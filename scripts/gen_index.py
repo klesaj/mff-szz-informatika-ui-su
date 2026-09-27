@@ -67,8 +67,9 @@ def main() -> None:
                 if lab == "Příklady otázek":
                     nq = len(list((okruh / "priklady" / "src").glob("q_*.tex")))
                     extra = f"{nq} otázek, {extra}"
+                cls = "primary" if lab == "Výklad" else "secondary"
                 links.append(
-                    f'<a href="pdf/{dst}">{html.escape(lab)}<span class="meta">{html.escape(extra)}</span></a>'
+                    f'<a class="{cls}" href="pdf/{dst}">{html.escape(lab)}<span class="meta">{html.escape(extra)}</span></a>'
                 )
             cards.append(
                 f'<li class="card"><div class="code">{html.escape(code)}</div>'

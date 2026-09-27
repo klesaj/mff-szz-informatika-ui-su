@@ -6,9 +6,9 @@
 <title>Bakalářské státnice MFF UK</title>
 <meta name="description" content="Studijní materiály k bakalářské státní zkoušce z informatiky na MFF UK: výklad všech okruhů a řešené reálné otázky 2022 až 2026.">
 <style>
-  :root { --bg:#fbfbfa; --fg:#1d1d1f; --muted:#62636a; --card:#fff; --line:#e3e3e0; --accent:#1f5fbf; --accent-bg:#eef3fb; }
+  :root { --bg:#fbfbfa; --fg:#1d1d1f; --muted:#62636a; --card:#fff; --line:#e3e3e0; --accent:#1f5fbf; --accent-hover:#184c99; --on-accent:#fff; --accent-bg:#eef3fb; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#16171a; --fg:#e8e8ea; --muted:#9a9ba3; --card:#1e2024; --line:#2e3036; --accent:#7fb0ff; --accent-bg:#1f2a3d; }
+    :root { --bg:#16171a; --fg:#e8e8ea; --muted:#9a9ba3; --card:#1e2024; --line:#2e3036; --accent:#7fb0ff; --accent-hover:#a3c6ff; --on-accent:#0f1a2e; --accent-bg:#1f2a3d; }
   }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
@@ -21,11 +21,14 @@
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:.9rem 1rem 1rem; display:flex; flex-direction:column; }
   .code { font-weight:700; color:var(--accent); font-size:.85rem; letter-spacing:.03em; }
   .name { font-weight:600; margin:.1rem 0 .7rem; }
-  .links { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:auto; }
-  .links a { display:inline-flex; flex-direction:column; text-decoration:none; color:var(--accent); background:var(--accent-bg);
-             border-radius:7px; padding:.35rem .65rem; font-size:.93rem; font-weight:600; }
-  .links a:hover { outline:1px solid var(--accent); }
-  .meta { font-weight:400; font-size:.78rem; color:var(--muted); }
+  .links { display:flex; flex-wrap:nowrap; align-items:stretch; gap:.5rem; margin-top:auto; }
+  .links a { display:inline-flex; flex-direction:column; justify-content:center; text-decoration:none; border-radius:8px; font-weight:600; }
+  .links .primary { flex:1 1 auto; min-width:0; background:var(--accent); color:var(--on-accent); padding:.55rem .9rem; font-size:1.05rem; }
+  .links .primary .meta { color:var(--on-accent); opacity:.8; }
+  .links .primary:hover { background:var(--accent-hover); }
+  .links .secondary { flex:0 0 auto; align-self:center; color:var(--accent); border:1px solid var(--line); padding:.3rem .65rem; font-size:.85rem; }
+  .links .secondary:hover { border-color:var(--accent); background:var(--accent-bg); }
+  .meta { font-weight:400; font-size:.75rem; color:var(--muted); }
   a { color:var(--accent); }
   footer { margin-top:3rem; font-size:.85rem; color:var(--muted); }
 </style>

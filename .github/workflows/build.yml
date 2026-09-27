@@ -24,7 +24,7 @@ jobs:
       options: --user root
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Sestav všechny okruhy
         run: ./build.sh all
@@ -33,7 +33,7 @@ jobs:
         run: python3 scripts/gen_index.py --site _site
 
       - name: Artefakt s PDF (všechny větve)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pdfs
           path: _site/
@@ -41,7 +41,7 @@ jobs:
 
       - name: Pages artefakt (jen main)
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: _site/
 
@@ -55,4 +55,4 @@ jobs:
     steps:
       - name: Nasazení na GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

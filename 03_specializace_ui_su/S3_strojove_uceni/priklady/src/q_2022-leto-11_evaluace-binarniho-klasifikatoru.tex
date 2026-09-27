@@ -1,0 +1,36 @@
+% Zdroj: PDF priklady-leto-2022-one.pdf (sešit S1, PGVVH+UI), fyzická str. 3. Značka: specializační otázka UI. Zařazeno: S3. Číselné výsledky ověřeny.
+\section{Evaluace binárního klasifikátoru}
+\szzotazka{léto 2022}{11}{Evaluace binárního klasifikátoru}
+
+\noindent\textbf{Zadání.}\par
+Pro evaluaci binárního klasifikátoru byla použita množina $1000$ testovacích příkladů, ve které
+je $50\,\%$ příkladů negativních. Klasifikátor má citlivost (sensitivity) $60\,\%$ a úspěšnost
+(accuracy) $70\,\%$.
+\begin{enumerate}
+  \item Napište kompletní matici konfuze (confusion matrix).
+  \item Vypočtěte specifičnost (specificity) klasifikátoru.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, výpočet ověřen numericky.)}\par
+Z~rozdělení je $P = 500$ pozitivních a $N = 500$ negativních příkladů.
+Citlivost (sensitivity, recall) je $\mathrm{TP}/P = 0{,}6 \Rightarrow \mathrm{TP} = 300$, $\mathrm{FN} = 200$.
+Úspěšnost (accuracy) je $(\mathrm{TP}+\mathrm{TN})/1000 = 0{,}7 \Rightarrow \mathrm{TP}+\mathrm{TN} = 700$,
+odtud $\mathrm{TN} = 400$ a $\mathrm{FP} = N - \mathrm{TN} = 500 - 400 = 100$.
+
+\begin{enumerate}
+  \item Matice konfuze (řádky $=$ skutečná třída, sloupce $=$ predikovaná třída):
+    \begin{center}
+    \begin{tabular}{lcc}
+    \toprule
+    & predikováno pozitivní & predikováno negativní \\
+    \midrule
+    skutečně pozitivní & $\mathrm{TP} = 300$ & $\mathrm{FN} = 200$ \\
+    skutečně negativní & $\mathrm{FP} = 100$ & $\mathrm{TN} = 400$ \\
+    \bottomrule
+    \end{tabular}
+    \end{center}
+  \item Specifičnost (specificity) $= \dfrac{\mathrm{TN}}{N} = \dfrac{\mathrm{TN}}{\mathrm{TN}+\mathrm{FP}}
+    = \dfrac{400}{500} = 0{,}8 = 80\,\%$.
+\end{enumerate}
+

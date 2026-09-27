@@ -1,0 +1,40 @@
+% Zdroj: PDF priklady-leto-2023.pdf, fyzická str. 1. Neznačená starší sada. Zařazeno: M5.
+\section{Pravděpodobnost}
+\szzotazka{léto 2023}{4}{Pravděpodobnost}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Napište větu o linearitě střední hodnoty (nedokazujte ji).
+  \item Ve skupině $n$ lidí každý hodí (férovou) šestistěnnou kostkou. Každá dvojice lidí,
+    kteří hodili stejné číslo, získá jeden bod. Označme $Y$ počet bodů získaných jednou
+    předem vybranou dvojicí. Určete střední hodnotu veličiny $Y$.
+  \item Označme $X$ celkový počet získaných bodů za všechny dvojice (jeden člověk může
+    skórovat ve více dvojicích). Určete střední hodnotu veličiny $X$.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textit{(V PDF originálu bez náčrtu; následující řešení doplněno, numericky ověřeno simulací.)}
+
+\begin{enumerate}
+  \item \emph{Linearita střední hodnoty.} Pro libovolné náhodné veličiny $X_1,\dots,X_n$ definované na témž pravděpodobnostním prostoru a~konstanty $a_1,\dots,a_n,b\in\mathbb{R}$ platí
+    \[
+      E\Bigl(\sum_{i=1}^{n} a_i X_i + b\Bigr) = \sum_{i=1}^{n} a_i\, E(X_i) + b.
+    \]
+    Speciálně $E(X_1+\dots+X_n)=E(X_1)+\dots+E(X_n)$ \emph{bez ohledu na nezávislost} jednotlivých veličin.
+
+  \item Veličina $Y$ nabývá hodnot $0$ nebo $1$ -- je to indikátor jevu \uv{vybraná dvojice hodila stejné číslo}. Z $36$ stejně pravděpodobných uspořádaných výsledků dvou hodů kostkou má $6$ shodu (oba $1$, oba $2$, \dots, oba $6$), tedy
+    \[
+      P(Y=1)=\frac{6}{36}=\frac{1}{6},\qquad E(Y)=1\cdot P(Y=1)+0\cdot P(Y=0)=\boxed{\frac{1}{6}}.
+    \]
+
+  \item Označme pro každou dvojici $\{i,j\}\subseteq\{1,\dots,n\}$, $i<j$, indikátor $Y_{ij}$ shody dvojice. Pak
+    \(
+      X = \sum_{\{i,j\}} Y_{ij},
+    \)
+    součet je přes všech $\binom{n}{2}$ dvojic. Pro \emph{každou} dvojici stejně jako v~bodě~(2) platí $E(Y_{ij})=1/6$. Veličiny $Y_{ij}$ \emph{nejsou nezávislé} jako celek (po dvou sice ano, ale když $Y_{ij}=Y_{jk}=1$, je nutně i $Y_{ik}=1$), ale \emph{linearita střední hodnoty} nezávislost \uv{nepotřebuje}. Tedy
+    \[
+      E(X)=\sum_{\{i,j\}} E(Y_{ij})=\binom{n}{2}\cdot\frac{1}{6}=\boxed{\frac{n(n-1)}{12}}.
+    \]
+    Kontrola: pro $n=2$ je $E(X)=1/6$, což sedí s~bodem~(2); pro $n=10$ je $E(X)=90/12=7{,}5$.
+\end{enumerate}

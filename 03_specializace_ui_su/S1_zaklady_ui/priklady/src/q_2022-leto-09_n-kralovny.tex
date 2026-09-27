@@ -1,0 +1,17 @@
+% Zdroj: PDF priklady-leto-2022-one.pdf (sešit S1, PGVVH+UI), fyzická str. 2. Značka: specializační otázka UI. Zařazeno: S1 (prohledávání / CSP).
+\section{N-královen}
+\szzotazka{léto 2022}{9}{N-královen}
+
+\noindent\textbf{Zadání.}\par
+Problém N-královen (rozmístit $N$ královen na šachovnici $N\times N$ tak, aby se neohrožovaly -- žádné dvě na stejném sloupci, řádku nebo diagonále). (a)~Popište vhodnou abstrakci pro prohledávací algoritmus (stavy, přechodový model, cílovou podmínku). (b)~Vyberte vhodný informovaný či neinformovaný prohledávací algoritmus a~zdůvodněte. (c)~Ukažte, jak by se problém modeloval a~řešil jako problém splňování podmínek (CSP).
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}[nosep]
+  \item[(a)] \textbf{Abstrakce pro prohledávání.} Stav $=$ částečné rozmístění královen, např.\ jedna v~každém z~prvních $k$ sloupců tak, že se vzájemně neohrožují. Počáteční stav $=$ prázdná šachovnice. Přechodový model $=$ přidání královny do dalšího ($k{+}1.$) sloupce na řádek, kde neohrožuje žádnou již položenou královnu. Cílová podmínka $=$ rozmístěno $N$ královen (všechny sloupce zaplněny). Tím, že na každý sloupec přijde právě jedna královna, se prohledávací strom drasticky zúží.
+  \item[(b)] \textbf{Volba algoritmu.} Neinformované prohledávání do hloubky (DFS) s~navracením (backtracking) je vhodné: řešení leží v~hloubce $N$, strom je konečný a~DFS je paměťově nenáročné. Informované metody ($A^*$, heuristiky) se obvykle nevyplatí, protože jde o~splnění podmínek (constraint satisfaction), ne o~hledání nejkratší cesty -- všechna řešení jsou ve stejné hloubce a~cena cesty není relevantní.
+  \item[(c)] \textbf{Model jako CSP.} Proměnné $Q_1,\dots,Q_N$ (po jedné na sloupec), doména $\{1,\dots,N\}$ (řádek královny v~daném sloupci). Podmínky pro všechna $i<j$: $Q_i\neq Q_j$ (různé řádky) a~$|Q_i-Q_j|\neq|i-j|$ (nejsou na společné diagonále). Řeší se backtrackingem se šířením podmínek (forward checking / AC-3) a~heuristikou výběru proměnné MRV.
+\end{enumerate}
+
+\medskip
+\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu.)}

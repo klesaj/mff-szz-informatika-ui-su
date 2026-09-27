@@ -1,0 +1,85 @@
+% Zdroj: PDF priklady-leto-2025.pdf, fyzická str. 24-25. Značka: specializace UI-SU. Zařazeno: S3.
+\section{EM algoritmus}
+\szzotazka{léto 2025}{32}{EM algoritmus}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Popište EM algoritmus.
+  \item Uvažujme pravděpodobnostní model definovaný bayesovskou sítí s veličinou $\mathit{Cluster}$ s hodnotami $\{1,2\}$ jakožto rodičem
+    veličin $\mathit{Color}$ a $\mathit{Holes}$, které nabývají hodnot $\{\mathit{blue}, \mathit{green}\}$ resp. $\{\mathit{yes}, \mathit{no}\}$. Veličiny $\mathit{Color}$ a $\mathit{Holes}$ nejsou spojeny
+    hranou.
+
+    Určete parametry modelu a inicializujte je hodnotami z množiny $\{0{.}4, 0{.}6\}$, aby tvořily korektní model a podmíněné
+    pravděpodobnosti pro podmínku $\mathit{Cluster}=1$ nebyly identické s těmi pro $\mathit{Cluster}=2$.
+  \item Zvolte jeden z parametrů z předchozího bodu a vypočtěte pro něj jednu aktualizaci dle EM algoritmu. Uvažujte
+    následující data, kde \uv{?} značí chybějící hodnotu.
+\end{enumerate}
+
+\begin{center}
+\begin{tabular}{cc|c}
+\toprule
+Color & Holes & Cluster \\
+\midrule
+blue  & no  & ? \\
+blue  & yes & ? \\
+blue  & no  & ? \\
+green & yes & ? \\
+green & yes & ? \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Při výpočtu můžete použít následující aproximace:
+$0{.}6^0 * 0{.}4^3 \approx 0{.}064$, $0{.}6^1 * 0{.}4^2 \approx 0{.}096$, $0{.}6^2 * 0{.}4^1 \approx 0{.}144$, $0{.}6^3 * 0{.}4^0 \approx 0{.}216$.
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item EM algoritmus umožňuje odhadnout parametry modelu s nepozorovanými proměnnými. Inicializuje model a iteruje
+    kroky E a M, dokud parametry modelu nezkonvergují.
+    \begin{description}
+      \item[E] Spočte očekávané hodnoty chybějících dat.
+      \item[M] Spočte maximálně věrohodné odhady parametrů na datech s doplněnými chybějícími hodnotami.
+    \end{description}
+  \item Parametry modelu (s jejich inicializací pro následující bod):
+    \begin{center}
+    \begin{tabular}{l c | c}
+    \toprule
+    parametr & inicializace & značení \\
+    \midrule
+    $P(\mathit{Cluster}=1)$ & $0{.}6$ & $\theta$ \\
+    $P(\mathit{Color}=\mathit{blue} \mid \mathit{Cluster}=1)$ & $0{.}6$ & $\theta_{B1}$ \\
+    $P(\mathit{Color}=\mathit{blue} \mid \mathit{Cluster}=2)$ & $0{.}4$ & $\theta_{B2}$ \\
+    $P(\mathit{Holes}=\mathit{yes} \mid \mathit{Cluster}=1)$ & $0{.}6$ & $\theta_{H1}$ \\
+    $P(\mathit{Holes}=\mathit{yes} \mid \mathit{Cluster}=2)$ & $0{.}4$ & $\theta_{H2}$ \\
+    \bottomrule
+    \end{tabular}
+    \end{center}
+  \item Nejjednodušší aktualizace je pro parametr $\theta$. Přes datové řádky $[\mathit{color}_j, \mathit{holes}_j]$ spočteme $\sum_j P(\mathit{Cluster}=1 \mid \mathit{color}_j, \mathit{holes}_j)$
+    a vydělíme počtem příkladů.
+    \begin{center}
+    \renewcommand{\arraystretch}{2.2}
+    \resizebox{\linewidth}{!}{%
+    \begin{tabular}{cc|c}
+    \toprule
+    Color & Holes & $P(\mathit{Cluster}=1 \mid \mathit{color}_j, \mathit{holes}_j)$ \\
+    \midrule
+    blue & no &
+      $\dfrac{\theta\cdot\theta_{B1}\cdot(1-\theta_{H1})}{\theta\cdot\theta_{B1}\cdot(1-\theta_{H1}) + (1-\theta)\cdot\theta_{B2}\cdot(1-\theta_{H2})}
+      = \dfrac{0{.}6*0{.}6*0{.}4}{0{.}6*0{.}6*0{.}4 + 0{.}4*0{.}4*0{.}6} = \dfrac{0{.}6*0{.}6*0{.}4}{0{.}4*0{.}6} = 0{.}6$
+      \footnotemark \\
+    blue & yes &
+      $\dfrac{\theta\cdot\theta_{B1}\cdot\theta_{H1}}{\theta\cdot\theta_{B1}\cdot\theta_{H1} + (1-\theta)\cdot\theta_{B2}\cdot\theta_{H2}}
+      = \dfrac{0{.}6*0{.}6*0{.}6}{0{.}6*0{.}6*0{.}6 + 0{.}4*0{.}4*0{.}4} = \dfrac{0{.}216}{0{.}216 + 0{.}064} = 0{.}77$ \\
+    blue & no & jako výše, $0{.}6$ \\
+    green & yes &
+      $\dfrac{\theta\cdot(1-\theta_{B1})\cdot\theta_{H1}}{\theta\cdot(1-\theta_{B1})\cdot\theta_{H1} + (1-\theta)\cdot(1-\theta_{B2})\cdot\theta_{H2}}
+      = \dfrac{0{.}6*0{.}4*0{.}6}{0{.}6*0{.}4*0{.}6 + 0{.}4*0{.}6*0{.}4} = 0{.}6$ \\
+    green & yes & jako výše, $0{.}6$ \\
+    \bottomrule
+    \end{tabular}}
+    \end{center}
+    \footnotetext{V originálním PDF je ve jmenovateli druhého členu napsáno $(1-\theta_{C2})$; podle parametrizace i číselného dosazení
+      jde o $(1-\theta_{H2})$; zde uvedeno korektně.}
+    Pro námi zvolené počáteční parametry je nová hodnota $\theta$ rovna $\dfrac{4\cdot 0{.}6 + 0{.}77}{5} = \dfrac{3{.}17}{5} = 0{.}634$.
+\end{enumerate}

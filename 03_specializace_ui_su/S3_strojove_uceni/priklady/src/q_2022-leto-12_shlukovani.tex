@@ -1,0 +1,56 @@
+% Zdroj: PDF priklady-leto-2022-one.pdf (sešit S1, PGVVH+UI), fyzická str. 3. Značka: specializační otázka UI. Zařazeno: S3. Číselné výsledky ověřeny.
+\section{Shlukování (K-means)}
+\szzotazka{léto 2022}{12}{Shlukování (K-means)}
+
+\noindent\textbf{Zadání.}\par
+Ručně provedeme první iteraci algoritmu K-means pro $K = 2$ na množině šesti příkladů s~příznaky
+$A_1, A_2$:
+
+\begin{center}
+\begin{tabular}{ccc}
+\toprule
+příklad & $A_1$ & $A_2$ \\
+\midrule
+1 & 2 & 4 \\
+2 & 1 & 3 \\
+3 & 0 & 4 \\
+4 & 5 & 2 \\
+5 & 6 & 2 \\
+6 & 4 & 0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Náhodně jsme příklady přiřadili do dvou shluků: $C_1 = \{2,3,4\}$, $C_2 = \{1,5,6\}$.
+\begin{enumerate}
+  \item Spočítejte pro každý shluk jeho centroid.
+  \item Přiřaďte každý příklad k~nejbližšímu centroidu (euklidovská vzdálenost) a~uveďte prvky
+    nově vzniklých shluků.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, výpočet ověřen numericky.)}\par
+\begin{enumerate}
+  \item Centroid je průměr bodů shluku:
+    \[
+      c_1 = \Big(\tfrac{1+0+5}{3},\,\tfrac{3+4+2}{3}\Big) = (2,3),\qquad
+      c_2 = \Big(\tfrac{2+6+4}{3},\,\tfrac{4+2+0}{3}\Big) = (4,2).
+    \]
+  \item Pro každý bod porovnáme čtverce vzdáleností k~$c_1=(2,3)$ a~$c_2=(4,2)$:
+    \begin{center}
+    \begin{tabular}{ccccc}
+    \toprule
+    bod & $(A_1,A_2)$ & $\|\cdot - c_1\|^2$ & $\|\cdot - c_2\|^2$ & shluk \\
+    \midrule
+    1 & $(2,4)$ & $1$  & $8$  & $C_1$ \\
+    2 & $(1,3)$ & $1$  & $10$ & $C_1$ \\
+    3 & $(0,4)$ & $5$  & $20$ & $C_1$ \\
+    4 & $(5,2)$ & $10$ & $1$  & $C_2$ \\
+    5 & $(6,2)$ & $17$ & $4$  & $C_2$ \\
+    6 & $(4,0)$ & $13$ & $4$  & $C_2$ \\
+    \bottomrule
+    \end{tabular}
+    \end{center}
+    Nově vzniklé shluky: $C_1 = \{1,2,3\}$, $C_2 = \{4,5,6\}$.
+\end{enumerate}
+

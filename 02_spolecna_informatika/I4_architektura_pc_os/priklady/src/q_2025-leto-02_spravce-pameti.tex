@@ -1,0 +1,174 @@
+% Zdroj: PDF priklady-leto-2025.pdf, fyzická str. 1-3. Značka: společné okruhy. Zařazeno: I4.
+\section{Jednoduchý správce paměti}
+\szzotazka{léto 2025}{2}{Jednoduchý správce paměti (heap alokátor, 32-bit)}
+
+\noindent\textbf{Zadání.}\par
+Předpokládejte v~celé otázce pouze kontext 32-bitového \textbf{little endian} procesoru,
+\textbf{bitem 0 rozumíme LSb}.
+
+Naším cílem je v~souvislém bloku paměti implementovat jednoduchý heap pro dynamickou
+alokaci podbloků paměti (neplést s~haldou jako datovou strukturou). Celý náš heap bude mít
+pevnou velikost danou při inicializaci a~nebude používat žádné optimalizace nad rámec zde
+popsaného. Paměť našeho heapu si chceme organizovat jako souvislou posloupnost podbloků,
+kde každý podblok má být vždy \textit{zarovnaný na 2 byty}. Každý podblok heapu je buď
+\textit{volný} nebo \textit{obsazený} (naalokovaný).
+
+\medskip
+\noindent\textbf{Volné podbloky} mají následující strukturu:\par
+\texttt{+0}: Size [16-bit] = velikost podbloku \textbf{včetně této hlavičky}. Jelikož
+z~výše uvedeného vyplývá, že bit 0 této položky by byl vždy 0, tak tuto nulu neukládáme.
+Místo toho pro nás bude mít bit 0 položky Size speciální význam -- bude označovat, zda je
+podblok volný nebo obsazený. $0 = $ \textit{volný}, $1 = $ \textit{obsazený}. Tedy pro
+volný podblok:\par
+\texttt{bit 0: 0} $=$ volný\par
+\texttt{+2}: Next [16-bit] = offset dalšího volného podbloku od začátku celého heapu --
+tedy volné podbloky tvoří vlastně jednosměrně vázaný seznam. Poslední volný podblok má
+v~této položce vyplněnou hodnotu \texttt{-1}.\par
+\texttt{+4}: zbytek podbloku je nevyužitý a~je vyplněn nulovými byty.
+
+\medskip
+\noindent\textbf{Obsazené podbloky} mají následující strukturu:\par
+\texttt{+0}: Size [16-bit] = má stejný význam jako u~volného podbloku, s~tím rozdílem, že zde:\par
+\texttt{bit 0: 1} $=$ obsazený\par
+\texttt{+2}: Payload -- samotná data podbloku (náš alokátor vrací všechny tyto byty
+vynulované).\par
+\textit{Pozor:} obsazené podbloky tedy nemají položku Next -- místo v~paměti, které
+u~volného podbloku náleželo položce Next, se alokací podbloku stane součástí Payloadu
+a~musí být alokátorem na haldě vynulováno.
+
+\medskip
+Pro celý heap si pamatujeme offset prvního volného podbloku od začátku celého heapu. Na
+počátku se heap skládá právě z~1 volného podbloku, jehož velikost odpovídá velikosti
+celého heapu. Při požadavku na alokaci nového podbloku dostaneme požadovanou velikost
+payloadu v~bytech a~použijeme první dostatečně velký volný podblok na nejnižším offsetu od
+začátku heapu (tj. strategie first-fit).
+
+Předpokládejte následující kostru třídy v~C\#, kterou budete doplňovat (požadovanou
+implementaci můžete napsat v~jazyce C\# nebo Java nebo C++ -- pro Javu nebo C++
+předpokládejte ekvivalentní implementaci kostry v~daném jazyce s~tím, že parametry
+konstruktoru a~metod si můžete vhodně upravit dle zvyklostí v~daném jazyce) (\texttt{ushort}
+je 16-bitové bezznaménkové celé číslo):
+
+\begin{lstlisting}[language={[Sharp]C}]
+class Heap {
+    private ushort _firstFreeOffset = 0;
+    private byte[] _heap;
+
+    public Heap(byte[] availableMemory) {
+        _heap = availableMemory;
+        // TODO
+    }
+    private ushort FindFirstFree(ushort payloadSize) { // TODO }
+    private void Mark(ushort offset, bool isFree) { // TODO }
+
+    public void SetUshort(ushort offset, ushort value) { ... }
+    public ushort GetUshort(ushort offset) { ... }
+    public ushort Alloc(ushort payloadSize) { ... }
+    public void Free(ushort payloadOffset) { ... }
+}
+\end{lstlisting}
+
+Metody \texttt{SetUshort} a~\texttt{GetUshort} \textbf{ne}programujte, ale naopak je
+vhodně využijte ve svém kódu. Metoda \texttt{SetUshort} na \texttt{offset}u od začátku
+heapu uloží \texttt{value} v~little endian pořadí. Metoda \texttt{GetUshort} vrátí
+16-bitovou hodnotu uloženou na heapu od daného \texttt{offset}u (byty na heapu chápe
+v~little endian pořadí).
+
+Metody \texttt{Alloc} a~\texttt{Free} \textbf{ne}programujte -- tyto metody bude programovat
+někdo jiný s~využitím vašich metod. Pro úkol 4 níže se hodí vědět: metoda \texttt{Alloc}
+naalokuje na heapu místo pro \texttt{payloadSize} velký payload a~vrátí offset pro payload;
+metoda \texttt{Free} bere offset payloadu vráceného nějakým voláním metody \texttt{Alloc}
+a~podblok, do kterého payload náleží, uvolní.
+
+\medskip
+\noindent\textbf{Úkoly:}
+\begin{enumerate}
+\item Doplňte implementaci konstruktoru, který inicializuje prázdný heap.
+\item Napište implementaci metody \texttt{FindFirstFree}, která vrátí offset prvního
+  volného podbloku vhodné velikosti. Stav podbloku tato funkce nijak nemění.
+\item Napište implementaci metody \texttt{Mark}, která očekává, že na \texttt{offset}u je
+  platný podblok haldy, a~změní jeho stav na \uv{obsazený} nebo \uv{volný} dle parametru
+  \texttt{isFree}. Funkce nebude manipulovat s~položkou Next.
+\item Předpokládejte, že jsme pro náš heap dostali k~dispozici 22 bytů -- tato paměť je
+  předem vyplněna nulovými byty. Předpokládejte, že provedeme s~heapem následující operace:
+
+\begin{lstlisting}[language={[Sharp]C}]
+A = Alloc(2)
+B = Alloc(4)
+C = Alloc(2)
+Free(B)
+\end{lstlisting}
+
+Napište hexdump 22 bytů paměti konečného stavu heapu po provedení všech těchto operací --
+řešení vyplňte do jedné z~níže uvedených tabulek (je jich zde redundantně více, kdybyste
+své řešení potřebovali opravit).
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{offset} & +0 & +1 & +2 & +3 & +4 & +5 & +6 & +7 \\
+\hline
+0x0000 & & & & & & & & \\
+\hline
+0x0008 & & & & & & & & \\
+\hline
+0x0010 & & & & & & & & \\
+\hline
+\end{tabular}
+\end{center}
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+Konečný stav heapu (hexdump 22 bytů):
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{offset} & +0 & +1 & +2 & +3 & +4 & +5 & +6 & +7 \\
+\hline
+0x0000 & 05 & 00 & 00 & 00 & 06 & 00 & 0E & 00 \\
+\hline
+0x0008 & 00 & 00 & 05 & 00 & 00 & 00 & 08 & 00 \\
+\hline
+0x0010 & FF & FF & 00 & 00 & 00 & 00 & -- & -- \\
+\hline
+\end{tabular}
+\end{center}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Oficiální náčrt uvádí jen
+výsledný hexdump (úkol~4). Úkoly 1--3 v~C\#: potřebná velikost podbloku je payload $+\,2$ (hlavička),
+zaokrouhleno nahoru na sudé číslo.
+\begin{lstlisting}[language={[Sharp]C}]
+public Heap(byte[] availableMemory) {
+    _heap = availableMemory;
+    _firstFreeOffset = 0;
+    SetUshort(0, (ushort)_heap.Length);   // Size = cely heap, bit 0 = 0 (volny)
+    SetUshort(2, 0xFFFF);                 // Next = -1 (posledni volny)
+    for (int i = 4; i < _heap.Length; i++) _heap[i] = 0;   // zbytek nulovy
+}
+private ushort FindFirstFree(ushort payloadSize) {
+    ushort need = (ushort)(payloadSize + 2);
+    if ((need & 1) != 0) need++;                        // zarovnani na 2 B
+    ushort o = _firstFreeOffset;
+    while (o != 0xFFFF) {
+        ushort size = (ushort)(GetUshort(o) & 0xFFFE);  // bit 0 je priznak
+        if (size >= need) return o;
+        o = GetUshort((ushort)(o + 2));                 // Next
+    }
+    return 0xFFFF;                                      // nic vhodneho
+}
+private void Mark(ushort offset, bool isFree) {
+    ushort size = GetUshort(offset);
+    SetUshort(offset, isFree ? (ushort)(size & 0xFFFE) : (ushort)(size | 1));
+}
+\end{lstlisting}
+Odvození hexdumpu (22~B, na počátku jeden volný podblok \texttt{@0} velikosti~22):
+\texttt{Alloc(2)} potřebuje $2{+}2=4$~B, vezme \texttt{@0} a~zbytek \texttt{@4} (18~B) zůstane volný;
+\texttt{Alloc(4)} potřebuje 6~B, vezme \texttt{@4}, volný zbytek \texttt{@10} (12~B); \texttt{Alloc(2)}
+vezme \texttt{@10} (4~B), volný zbytek \texttt{@14} (8~B). \texttt{Free(B)} dostane offset payloadu~6,
+podblok je tedy \texttt{@4}; stane se volným a~zařadí se do seznamu před \texttt{@14}. Výsledek:
+A~\texttt{@0} se \texttt{Size}~$= 4\,|\,1 = 5$, volný \texttt{@4} se \texttt{Size}~6 a~\texttt{Next}~$=14=\texttt{0x0E}$,
+C~\texttt{@10} se \texttt{Size}~5, volný \texttt{@14} se \texttt{Size}~8 a~\texttt{Next}~$=\texttt{0xFFFF}$.
+Všechny 16-bitové hodnoty jsou little-endian (\texttt{05 00}, \texttt{0E 00}, \dots), payloady i~zbytky
+volných podbloků jsou nulové.

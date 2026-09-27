@@ -1,0 +1,37 @@
+% Zdroj: PDF priklady-podzim-2023.pdf, fyzická str. 18-19. Značka: specializace UI-SU. Zařazeno: S3.
+\section{chí-kvadrát test (test dobré shody)}
+\szzotazka{podzim 2023}{29}{chí-kvadrát test (test dobré shody)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Popište $\chi^2$ test (test dobré shody). Jaká je jeho nulová a alternativní hypotéza?
+    Jak se spočítá hodnota testové statistiky? Jaké má tato testová statistika pravděpodobnostní rozdělení?
+  \item Majitel obchodu měl během pěti pracovních dnů jednoho týdne celkem $100$ zákazníků.
+    Počty zákazníků v jednotlivých dnech (pondělí až pátek) byly postupně $25$, $30$, $15$, $14$ a $16$.
+    Pomocí $\chi^2$ testu rozhodněte, zda se počty zákazníků v jednotlivých dnes statisticky významně liší.
+    \textit{Nápověda:} Kritické hodnoty testové statistiky na hladině významnosti $\alpha = 0.05$ pro
+    3--6 stupňů volnosti (df) jsou (postupně) $7{,}8$ (df${}=3$), $9{,}5$ (df${}=4$), $11{,}1$ (df${}=5$)
+    a $12{,}6$ (df${}=6$).
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Nulová hypotéza je, že pozorované četnosti jednotlivých kategorií odpovídají jejich očekávaným
+    četnostem. Alternativní hypotéza je, že neodpovídají. Testová statistika se vypočítá jako
+    \[
+      \sum_{i=1}^{n} \frac{(O_i - E_i)^2}{E_i},
+    \]
+    kde $O_i$ jsou pozorované četnosti a $E_i$ jsou očekávané četnosti. Pokud nulová hypotéza platí,
+    má testová statistika $\chi^2$ rozdělení s $n-1$ stupni volnosti, kde $n$ je počet různých kategorií.
+  \item Zajímá nás, jestli počet zákazníků je každý den stejný. Očekávané četnosti jsou tedy $E_i = 20$.
+    Dosazením do vzorce dostaneme hodnotu testové statistiky
+    \[
+      \begin{aligned}
+      &\frac{(25-20)^2}{20} + \frac{(30-20)^2}{20} + \frac{(15-20)^2}{20} + \frac{(14-20)^2}{20} + \frac{(16-20)^2}{20}\\
+      &\qquad= \frac{25 + 100 + 25 + 36 + 16}{20} = \frac{202}{20} = 10{,}1.
+      \end{aligned}
+    \]
+    Máme $5$ kategorií, kritická hodnota testové statistiky se $4$ stupni volnosti je $9{,}5$, rozdíl
+    v počtu zákazníků tedy je statisticky významný.
+\end{enumerate}

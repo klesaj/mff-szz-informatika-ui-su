@@ -1,0 +1,42 @@
+% Zdroj: PDF priklady-leto-2023.pdf, fyzická str. 2. Značka: otázka studijního zaměření (neznačená starší sada). Zařazeno: S3.
+\section{Rozhodovací stromy}
+\szzotazka{léto 2023}{7}{Rozhodovací stromy}
+
+\noindent\textbf{Zadání.}\par
+Chceme trénovat rozhodovací strom na datech v tabulce níže, která obsahují dva kategorické atributy
+$x_1$ a $x_2$. Cílem je předpovědět kategorickou hodnotu $y$.
+
+\medskip
+\noindent\textit{Nápověda:} Při řešení můžete potřebovat hodnoty některých logaritmů. Můžete použít
+následující aproximace: $\log_2 \tfrac{1}{3} = -1{,}5$, $\log_2 \tfrac{2}{3} = -0{,}6$.
+
+\begin{center}
+\begin{tabular}{ccc}
+\toprule
+$x_1$ & $x_2$ & $y$ \\
+\midrule
+0 & 0 & 0 \\
+1 & 0 & 1 \\
+0 & 1 & 1 \\
+2 & 1 & 0 \\
+0 & 0 & 1 \\
+1 & 1 & 1 \\
+2 & 0 & 0 \\
+0 & 1 & 0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{enumerate}
+  \item Popište stručně algoritmus trénování rozhodovacího stromu a kritéria pro větvení.
+  \item Určete, podle jakého atributu se bude strom větvit v kořeni stromu. Proč?
+  \item Je možné zadaná trénovací data klasifikovat se $100\,\%$ přesností (accuracy)? Vysvětlete.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, zisky ověřeny numericky.)}\par
+\begin{enumerate}[nosep]
+  \item Strom se staví hladově shora dolů (rozděl a~panuj): v~každém uzlu se zvolí atribut s~největším \emph{informačním ziskem} (největším poklesem entropie), příklady se podle něj rozdělí a~rekurzivně se pokračuje, dokud nejsou listy čisté (nebo nedojdou atributy).
+  \item Entropie kořene je $B(4,4)=1$ bit. Dělení podle $x_1$: $x_1{=}0$ dává poměr $(2,2)$, $x_1{=}1$ poměr $(0,2)$, $x_1{=}2$ poměr $(2,0)$; vážená entropie $\tfrac48\cdot1+\tfrac28\cdot0+\tfrac28\cdot0=0{,}5$, tedy zisk $0{,}5$. Dělení podle $x_2$: obě hodnoty dají poměr $(2,2)$, zisk $0$. V~kořeni se proto větví podle $\boldsymbol{x_1}$.
+  \item Ne. Stejný vstup se v~datech opakuje s~\emph{různým} cílem: $(x_1,x_2)=(0,0)$ má jednou $y{=}0$ a~jednou $y{=}1$, podobně $(0,1)$. Tyto příklady nelze odlišit žádným stromem, takže lze dosáhnout nejvýše $6/8=75\,\%$ přesnosti.
+\end{enumerate}

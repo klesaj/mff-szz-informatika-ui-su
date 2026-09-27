@@ -1,0 +1,37 @@
+% Zdroj: PDF priklady-podzim-2023.pdf, fyzická str. 1-2. Značka: společné okruhy. Zařazeno: I1.
+% Obrázek: stavový diagram PDA A oříznut z PDF str. 2 (src/fig/pda-vice-a-liche.png).
+\section{Zásobníkový automat}
+\szzotazka{podzim 2023}{2}{Zásobníkový automat (definice + konstrukce PDA)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+\item Uveďte definici \textit{zásobníkového automatu}.
+\item Sestrojte zásobníkový automat $A$, který přijímá právě řetězce $w \in \{a, b\}^*$,
+  které mají více znaků $a$ než $b$ a~zároveň počet $a$ je lichý, tj.
+  \[ L(A) = \{w \mid w \in \{a, b\}^* \ \&\ |w|_a > |w|_b \ \&\ (\exists k \in \mathbb{N}_0) |w|_a = 2k+1\}. \]
+  Za částečné řešení se uznává i~automat rozpoznávající \uv{více $a$ než $b$}.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+\item \textit{Zásobníkový automat} je sedmice $(Q, \Sigma, \Gamma, \delta, q_0, Z_0, F)$, kde
+  \begin{itemize}
+  \item $Q$ je konečná množina stavů,
+  \item $\Sigma$ je konečná vstupní abeceda,
+  \item $\Gamma$ je konečná zásobníková abeceda,
+  \item $\delta$ je přechodová funkce $Q \times (\Sigma \cup \{\lambda\}) \times \Gamma
+    \to \mathcal{P}_{FIN}(Q \times \Gamma^*)$,
+  \item $q_0 \in Q$ je počáteční stav,
+  \item $Z_0 \in \Gamma$ je počáteční zásobníkový symbol,
+  \item $F \subseteq Q$ je množina přijímacích stavů.
+  \end{itemize}
+  V~případě přijímání prázdným zásobníkem bez množiny přijímajících stavů.
+
+\item Úkol řeší například zásobníkový automat $A$ se třemi stavy: přijímacím $q_f$
+  a~$q_0$, $q_1$ rozlišujícími sudý a~lichý počet $a$. Přebytečné znaky $a$ resp.\ $b$
+  si ukládáme na zásobník, adekvátně odebíráme. Formálně: $A = (\{q_0, q_1, q_f\},
+  \{a, b\}, \{Z, A, B\}, \delta, q_0, Z, \{q_f\})$, s~přechodovou funkcí $\delta$
+  popsanou grafem
+  \begin{center}\includegraphics[width=0.9\linewidth]{pda-vice-a-liche.png}\end{center}
+\end{enumerate}

@@ -1,0 +1,18 @@
+% Zdroj: PDF priklady-jaro-2023.pdf, fyzická str. 3. Značka: otázka studijního zaměření (neznačená starší sada). Zařazeno: S3.
+\section{Učení pomocí kolektivních prediktorů}
+\szzotazka{jaro 2023}{6}{Učení pomocí kolektivních prediktorů}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Vysvětlete princip trénování metodami \emph{bagging} a \emph{boosting}.
+  \item Popište trénovací algoritmus \emph{nahodilých lesů}.
+  \item Uveďte konkrétní příklad algoritmu typu \emph{boosting}. Stručně vysvětlete hlavní myšlenku.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení.)}\par
+\begin{enumerate}[nosep]
+  \item \emph{Bagging} (bootstrap aggregating): natrénujeme $M$ kopií modelu, každou na vlastním \emph{bootstrapovém} vzorku (losování $N$ příkladů s~opakováním), a~jejich predikce agregujeme -- u~klasifikace hlasováním, u~regrese průměrem; snižuje rozptyl. \emph{Boosting}: modely trénujeme \emph{sekvenčně}, každý další klade větší váhu na příklady, které dosavadní kombinace klasifikuje špatně; výsledkem je vážený součet slabých klasifikátorů.
+  \item \emph{Náhodný les} (random forest): bagging rozhodovacích stromů s~jednou přidanou náhodností -- v~každém uzlu se nejlepší řez hledá jen z~náhodné podmnožiny příznaků (typicky $\sqrt{D}$). Stromy se nechávají přerůst (neprořezané); predikce hlasováním (klasifikace) nebo průměrem (regrese).
+  \item Konkrétní boosting: \emph{AdaBoost}. Začne s~rovnoměrnými váhami $w_i=1/N$; v~kole $m$ natrénuje slabý klasifikátor $h_m$, spočte jeho váženou chybu $\varepsilon_m$, hlas $\alpha_m=\tfrac12\ln\frac{1-\varepsilon_m}{\varepsilon_m}$ a~zvýší váhy špatně klasifikovaných příkladů ($w_i\propto w_i\,e^{-\alpha_m t_i h_m(x_i)}$). Finální predikce je $\operatorname{sign}\!\big(\sum_m \alpha_m h_m\big)$.
+\end{enumerate}

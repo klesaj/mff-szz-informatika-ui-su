@@ -1,0 +1,40 @@
+% !TeX program = lualatex
+% Agregátor reálných otázek SZZ pro okruh I2. Jednotlivé otázky jsou v souborech q_*.tex.
+% Sestavení: ./build.sh 02_spolecna_informatika/I2_algoritmy_datove_struktury/priklady   (nebo cd .../priklady && latexmk)
+\documentclass[11pt,a4paper]{article}
+\usepackage{szzpriklady}
+% Build běží z adresáře priklady/ (CWD), obrázky jsou v src/fig/.
+\graphicspath{{src/fig/}{fig/}}
+
+\title{Příklady otázek -- Algoritmy a datové struktury\\[0.3em]\large Reálné otázky ze SZZ 2022--2025 (I2)}
+\author{Jakub Klesa}
+\date{Pokryté předměty: NTIN060 (ADS 1), NTIN061 (ADS 2)}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\bigskip
+
+\begin{poznamka}
+Tento dokument obsahuje reálné otázky z minulých termínů SZZ (2022--2025) zařazené do
+okruhu I2. U otázek s obrázkem je grafika oříznutá z originálního PDF (viz odkaz na
+zdroj). Text, číselná data a tabulky jsou přepsané věrně.
+Zadání i oficiální náčrty řešení pocházejí ze sad zveřejněných na webu MFF UK:\par
+{\raggedright\url{https://www.mff.cuni.cz/cs/studenti/bakalarske-studium/statni-zaverecne-zkousky/bakalarske-statni-zkousky-studijniho-programu-informatika}\par}
+Náčrty označené jako doplněné jsou vlastní, oficiální sada je k~dané otázce neobsahuje.
+Pojmy a~značení odpovídají učebnici M.~Mareše a~T.~Vally \emph{Průvodce labyrintem algoritmů}
+(\url{https://pruvodce.ucw.cz/}).
+\end{poznamka}
+\bigskip
+
+% === Otázky (chronologicky). Doplň \input řádky a soubory q_*.tex do src/. ===
+% Příklad: \input{q_2024-leto-28_bayesovske-site}
+% ZACATEK-OTAZEK
+\input{src/q_2022-leto-01_binarni-vyhledavaci-stromy}
+\input{src/q_2023-jaro-01_trideni-bst-avl}
+\input{src/q_2023-leto-01_trideni-slevanim-mergesort}
+\input{src/q_2024-leto-01_rozdel-a-panuj-median}
+\input{src/q_2025-podzim-01_tridy-slozitosti-np}
+% KONEC-OTAZEK
+
+\end{document}

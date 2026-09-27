@@ -1,0 +1,37 @@
+% Zdroj: PDF priklady-podzim-2025.pdf, fyzická str. 2--3. Značka: společné okruhy (matematika). Zařazeno: M1.
+\section{Základy analýzy}
+\szzotazka{podzim 2025}{3}{Základy analýzy}
+
+\noindent\textbf{Zadání.}\par
+Nechť $p \in (0, +\infty)$ je kladné reálné číslo. Označme $U_p$ rovinný útvar, který je zleva ohraničen přímkou $x = p$, zprava přímkou $x = p + 1$, zdola osou $x$ a shora grafem funkce $f(x) = x + \frac{1}{x}$. Jinými slovy,
+\[
+  U_p = \left\{ (x, y) \in \mathbb{R} \times \mathbb{R};\ p \leq x \leq p + 1 \,\wedge\, 0 \leq y \leq x + \frac{1}{x} \right\}.
+\]
+\begin{enumerate}
+  \item Ukažte, že $U_p$ má obsah $p + \ln\!\left(1 + \frac{1}{p}\right) + \frac{1}{2}$ čtverečních jednotek.
+  \item Existuje v intervalu $(0, 100)$ nějaká hodnota $p$, pro kterou má $U_p$ obsah větší než $10\,000$ čtverečních jednotek?
+  \item Najděte hodnotu $p \in (0, +\infty)$, pro niž obsah $U_p$ nabývá svého minima, případně ukažte, že taková hodnota neexistuje.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Označme $u(p)$ obsah útvaru $U_p$. Tento obsah je roven integrálu $\int_p^{p+1} f(x)\,\mathrm{d}x$. Funkce $f(x) = x + \frac{1}{x}$ má primitivní funkci $F(x) = \frac{x^2}{2} + \ln(x) + c$ pro libovolné $c \in \mathbb{R}$. Hledaný obsah je tedy roven
+    \begin{align*}
+      u(p) &= F(p + 1) - F(p) \\
+           &= \frac{(p + 1)^2}{2} + \ln(p + 1) - \frac{p^2}{2} - \ln(p) \\
+           &= \frac{2p + 1}{2} + \ln(p + 1) - \ln(p) \\
+           &= p + \frac{1}{2} + \ln\!\left(\frac{p + 1}{p}\right) \\
+           &= p + \ln\!\left(1 + \frac{1}{p}\right) + \frac{1}{2}.
+    \end{align*}
+  \item Zde si stačí všimnout, že funkce $u(p)$ má pro $p$ jdoucí k nule zprava limitu $+\infty$, a tedy na libovolném pravém okolí nuly nabývá libovolně velkých hodnot. Pro dostatečně malé $p > 0$ má tedy $U_p$ obsah větší než $10\,000$ čtverečních jednotek.
+  \item Pomocí aritmetiky derivací a pravidel pro derivování složené funkce zjistíme, že funkce $u(p)$ má na uvažovaném intervalu $(0, +\infty)$ derivaci
+    \[
+      u'(p) = 1 + \frac{1}{1 + \frac{1}{p}} \cdot \frac{-1}{p^2} = 1 - \frac{1}{p^2 + p}.
+    \]
+    Vyřešením kvadratické rovnice zjistíme, že jediné kladné $p_0$ splňující $u'(p_0) = 0$ je $p_0 = \frac{-1 + \sqrt{5}}{2}$. Zároveň vidíme, že $u'(p)$ je rostoucí funkce -- to lze vidět přímo ze vzorce pro $u'(p)$, případně výpočtem druhé derivace
+    \[
+      u''(p) = \frac{2p + 1}{(p^2 + p)^2},
+    \]
+    která je pro $p \in (0, +\infty)$ zjevně kladná. Z toho plyne, že $u'(p)$ je záporná pro $p \in (0, p_0)$ a kladná pro $p > p_0$, a tedy funkce $u(p)$ je klesající na intervalu $(0, p_0]$ a rostoucí na intervalu $[p_0, +\infty)$. Funkce $u(p)$ tedy v bodě $p_0$ nabývá své jediné minimum.
+\end{enumerate}

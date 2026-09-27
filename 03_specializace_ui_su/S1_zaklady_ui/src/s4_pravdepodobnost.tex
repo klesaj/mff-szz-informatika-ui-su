@@ -1,0 +1,364 @@
+\section{Pravděpodobnostní uvažování (Bayesovské sítě, exaktní a aproximační odvozování)}
+
+Logický agent věří každému tvrzení jako pravdivému, nepravdivému, nebo nemá názor. To je často příliš hrubé: ve světě s~\emph{částečnou pozorovatelností} (agent přesně nezná svůj stav) a~\emph{nedeterminismem} (nezná výsledek akce) by musel udržovat \emph{stavy víry} (množiny možných světů) a~\emph{kontingenční plány} pro každou eventualitu, což exploduje. \emph{Pravděpodobnostní} agent místo toho přiřadí každému tvrzení \emph{stupeň víry} -- číslo mezi $0$ (jistě nepravda) a~$1$ (jistě pravda). Tato sekce shrnuje základy teorie pravděpodobnosti potřebné pro uvažování, ukáže, jak se odpovídá na dotazy vysčítáním sdružené distribuce, a~zavede \emph{Bayesovské sítě} jako kompaktní reprezentaci, nad níž se uvažuje exaktně (enumerace, eliminace proměnných) i~aproximačně (Monte Carlo).
+
+\subsection{Základy teorie pravděpodobnosti}
+
+Pravděpodobnostní tvrzení mluví o~\emph{možných světech} (prvcích výběrového prostoru $\Omega$), které jsou \emph{vzájemně se vylučující} a~\emph{vyčerpávající}. Každému světu $\omega$ je přiřazena pravděpodobnost $P(\omega)$, přičemž $0\le P(\omega)\le 1$ a~$\sum_{\omega\in\Omega} P(\omega)=1$. \emph{Jev} je množina možných světů; jeho pravděpodobnost je součet pravděpodobností jeho světů. Svět popisujeme \emph{faktorovaně} pomocí \emph{náhodných veličin}: každá veličina (např. $Cavity$, $Toothache$) má doménu možných hodnot a~úplné přiřazení hodnot všem veličinám určuje právě jeden svět. \textbf{Značení (důležité):} tučné $\mathbf{P}(X)$ značí celé \emph{rozdělení} -- vektor pravděpodobností pro všechny hodnoty $X$ -- zatímco obyčejné $P(x)$ je jedno \emph{číslo}, pravděpodobnost konkrétní hodnoty. Tak třeba $\mathbf{P}(X\mid e)=\alpha\,\mathbf{P}(X,e)$ je rovnost dvou vektorů.
+
+\begin{definice}[Úplná sdružená distribuce]
+\emph{Úplná sdružená pravděpodobnostní distribuce} (full joint distribution) náhodných veličin $X_1,\dots,X_n$ je tabulka, která každému úplnému přiřazení (možnému světu) přiřadí jeho pravděpodobnost $P(X_1{=}x_1,\dots,X_n{=}x_n)$. Z~ní lze \emph{v~principu} odpovědět na libovolný pravděpodobnostní dotaz. Má ale velikost $\prod_i |\mathrm{dom}(X_i)|$, tedy pro $n$ binárních veličin $2^n$ řádků -- exponenciálně v~počtu veličin.
+\end{definice}
+
+\begin{definice}[Podmíněná pravděpodobnost, součinové (product) pravidlo]
+Pro jev $a$ a~\emph{evidenci} $b$ s~$P(b)>0$ je \emph{podmíněná} (aposteriorní) pravděpodobnost
+\[ P(a\mid b)=\frac{P(a\wedge b)}{P(b)}. \]
+Přepsáním dostáváme \emph{product rule} (součinové pravidlo): $P(a\wedge b)=P(a\mid b)\,P(b)=P(b\mid a)\,P(a)$. Bez podmínky mluvíme o~\emph{apriorní} (prior) pravděpodobnosti.
+\end{definice}
+
+\begin{definice}[Marginalizace, podmiňování, normalizace]
+\emph{Marginalizace} (vysčítání, summing out) získá rozdělení podmnožiny veličin součtem přes hodnoty zbylých:
+\[ \mathbf{P}(Y)=\sum_{z\in Z}\mathbf{P}(Y,z), \qquad\text{(varianta s~podmiňováním)}\quad \mathbf{P}(Y)=\sum_{z\in Z}\mathbf{P}(Y\mid z)\,P(z). \]
+Pro \emph{podmíněný} dotaz se skrytými veličinami $H$ (vše kromě dotazu $Y$ a~evidence $E$) platí
+\[ \mathbf{P}(Y\mid E{=}e)=\frac{\mathbf{P}(Y,E{=}e)}{P(E{=}e)}=\alpha\,\mathbf{P}(Y,E{=}e)=\alpha\sum_{h}\mathbf{P}(Y,E{=}e,H{=}h), \]
+kde $\alpha=1/P(E{=}e)$ je \emph{normalizační konstanta}. Protože $\sum_{y}P(Y{=}y\mid e)=1$, nemusíme $P(E{=}e)$ počítat zvlášť: spočteme nenormalizovaný vektor $\mathbf{P}(Y,e)$ pro všechny hodnoty $Y$ a~na závěr ho \emph{znormalizujeme}, aby dal v~součtu $1$.
+\end{definice}
+
+\begin{priklad}[Zubní diagnóza: dotaz vysčítáním a normalizací]
+Mějme binární veličiny $Cavity$ (kaz), $Toothache$ (bolest), $Catch$ (sonda zachytí) s~úplnou sdruženou distribucí. Pak třeba
+$P(toothache)=0.108+0.012+0.016+0.064=0.2$ (sečteme všechny světy, kde bolí). Dotaz na rozdělení $Cavity$ při bolesti vyřešíme přes normalizaci a~vysčítání skryté veličiny $Catch$:
+\begin{align*}
+\mathbf{P}(Cavity\mid toothache)&=\alpha\,\mathbf{P}(Cavity,toothache)\\
+&=\alpha\big[\mathbf{P}(Cavity,toothache,catch)+\mathbf{P}(Cavity,toothache,\neg catch)\big]\\
+&=\alpha\big[\langle 0.108,\,0.016\rangle+\langle 0.012,\,0.064\rangle\big]\\
+&=\alpha\,\langle 0.12,\,0.08\rangle=\langle 0.6,\,0.4\rangle,
+\end{align*}
+kde první složka vektoru je $Cavity{=}true$, druhá $Cavity{=}false$, a~$\alpha=1/(0.12+0.08)=5$.
+\end{priklad}
+
+\begin{definice}[Bayesovo pravidlo]
+Z~rovnosti $P(a\mid b)P(b)=P(b\mid a)P(a)$ plyne \emph{Bayesovo pravidlo}
+\[ P(a\mid b)=\frac{P(b\mid a)\,P(a)}{P(b)}, \qquad\text{obecně}\quad \mathbf{P}(Y\mid X)=\frac{\mathbf{P}(X\mid Y)\,\mathbf{P}(Y)}{P(X)}=\alpha\,\mathbf{P}(X\mid Y)\,\mathbf{P}(Y). \]
+\end{definice}
+
+\begin{intuice}[Kauzální vs. diagnostický směr]
+Píšeme-li $a=cause$ (příčina) a~$b=effect$ (důsledek), pak $P(effect\mid cause)$ je \emph{kauzální} (příčinná) znalost a~$P(cause\mid effect)$ \emph{diagnostická}. Bayesovo pravidlo počítá diagnostiku z~kauzality. Proč to tak děláme? \emph{Kauzální} znalost je robustnější: popisuje, jak svět funguje. Příklad -- meningitida způsobí ztuhlou šíji v~$70\,\%$ ($P(s\mid m)=0.7$), apriorní $P(m)=1/50\,000$, $P(s)=0.01$. Pak
+\[ P(m\mid s)=\frac{P(s\mid m)\,P(m)}{P(s)}=\frac{0.7\cdot\tfrac{1}{50000}}{0.01}=0.0014. \]
+Kdyby vypukla epidemie, $P(m)$ vzroste a~s~ním i~$P(m\mid s)$, kdežto kauzální vztah $P(s\mid m)$ (jak meningitida působí) se nezmění. Proto ukládáme kauzální čísla.
+\end{intuice}
+
+\subsection{Nezávislost a podmíněná nezávislost}
+
+Plnou sdruženou distribuci lze \emph{zhustit}, využijeme-li nezávislosti.
+
+\begin{definice}[(Absolutní) nezávislost a podmíněná nezávislost]
+Veličiny $X$, $Y$ jsou \textbf{nezávislé}, právě když
+\[ \mathbf{P}(X\mid Y)=\mathbf{P}(X)\quad\Longleftrightarrow\quad \mathbf{P}(Y\mid X)=\mathbf{P}(Y)\quad\Longleftrightarrow\quad \mathbf{P}(X,Y)=\mathbf{P}(X)\,\mathbf{P}(Y). \]
+$X$, $Y$ jsou \textbf{podmíněně nezávislé} při dané $Z$, právě když
+\[ \mathbf{P}(X,Y\mid Z)=\mathbf{P}(X\mid Z)\,\mathbf{P}(Y\mid Z)\quad\Longleftrightarrow\quad \mathbf{P}(X\mid Y,Z)=\mathbf{P}(X\mid Z). \]
+\end{definice}
+
+\begin{intuice}
+Absolutní nezávislost je vzácná (dvě kostky), zato \emph{podmíněná} nezávislost je všudypřítomná. Příklad: $Toothache$ a~$Catch$ \emph{nejsou} nezávislé (obojí je důsledkem kazu), ale \emph{při dané} $Cavity$ už ano -- známe-li stav kazu, výsledek sondy a~bolest spolu nesouvisejí: $\mathbf{P}(Catch,Toothache\mid Cavity)=\mathbf{P}(Catch\mid Cavity)\,\mathbf{P}(Toothache\mid Cavity)$. Jednu velkou tabulku tak nahradíme několika menšími. Přesně tento princip systematizují Bayesovské sítě.
+\end{intuice}
+
+\begin{definice}[Naivní Bayes]
+Jsou-li všechny důsledky $Effect_1,\dots,Effect_n$ \emph{podmíněně nezávislé} při dané příčině $Cause$, faktorizuje se sdružená distribuce na
+\[ \mathbf{P}(Cause,Effect_1,\dots,Effect_n)=\mathbf{P}(Cause)\prod_{i=1}^{n}\mathbf{P}(Effect_i\mid Cause). \]
+Tento model se nazývá \emph{naivní Bayes} (či idiot's Bayes). Místo $O(2^{n})$ čísel stačí $O(n)$ malých tabulek. Používá se i~tam, kde podmíněná nezávislost ve skutečnosti neplatí přesně -- často překvapivě dobře (např. klasifikace textu, viz okruh S3).
+\end{definice}
+
+\subsection{Bayesovské sítě: definice, konstrukce, vztah ke sdružené distribuci}
+
+\begin{definice}[Bayesovská síť]
+\emph{Bayesovská síť} je \emph{orientovaný acyklický graf} (DAG), kde
+\begin{itemize}
+  \item \textbf{uzly} odpovídají náhodným veličinám,
+  \item \textbf{orientovaná hrana} $X\to Y$ znamená, že $X$ je \emph{rodič} $Y$ (přímý vliv),
+  \item každý uzel $X$ má \emph{tabulku podmíněných pravděpodobností} (CPT) $\mathbf{P}(X\mid \mathit{Parents}(X))$, která kvantifikuje vliv rodičů na $X$.
+\end{itemize}
+Síť kompaktně reprezentuje \emph{úplnou sdruženou distribuci}.
+\end{definice}
+
+\begin{veta}[Síť reprezentuje sdruženou distribuci -- řetízkové pravidlo]
+Bayesovská síť určuje úplnou sdruženou distribuci součinem CPT:
+\[ P(x_1,\dots,x_n)=\prod_{i=1}^{n} P\big(x_i\mid \mathit{parents}(X_i)\big). \]
+\end{veta}
+
+\begin{intuice}[Proč to funguje]
+Obecné \emph{řetízkové (chain) pravidlo} platí pro libovolné očíslování veličin:
+\[ P(x_1,\dots,x_n)=\prod_i P(x_i\mid x_{i-1},\dots,x_1). \]
+Bayesovská síť navíc \emph{předpokládá}, že každý uzel je podmíněně nezávislý na svých \emph{ne-potomcích} při daných rodičích, tedy $P(x_i\mid x_{i-1},\dots,x_1)=P(x_i\mid \mathit{parents}(X_i))$, je-li $\mathit{Parents}(X_i)\subseteq\{X_1,\dots,X_{i-1}\}$. Dosazením do řetízkového pravidla vznikne součin CPT. Tím je vztah „síť $\Leftrightarrow$ sdružená distribuce`` oboustranný: ze sítě sdruženou distribuci \emph{sestavíme} (součinem) a~síť ji \emph{reprezentuje} kompaktně, protože ukládá jen lokální CPT místo celé exponenciální tabulky.
+\end{intuice}
+
+\begin{poznamka}[Konstrukce sítě]
+Síť se staví takto: (1)~vyber a~\emph{seřaď} veličiny -- libovolné pořadí funguje, ale \emph{příčiny před důsledky} dávají menší a~přirozenější sítě; (2)~pro $i=1,\dots,n$ vyber mezi již zařazenými $\{X_1,\dots,X_{i-1}\}$ \emph{minimální} množinu rodičů $\mathit{Parents}(X_i)$ tak, aby $P(X_i\mid \mathit{Parents}(X_i))=P(X_i\mid X_{i-1},\dots,X_1)$; (3)~veď hranu od každého rodiče k~$X_i$ a~zapiš CPT. Špatné pořadí (důsledky před příčinami) vede k~hustším sítím s~nepřirozenými hranami a~většími CPT, ale stále korektně reprezentuje stejnou sdruženou distribuci.
+\end{poznamka}
+
+Klasickým příkladem je síť \emph{alarm}: vloupání ($B$) nebo zemětřesení ($E$) spustí alarm ($A$); alarm slyší sousedé John ($J$) a~Mary ($M$) a~zavolají. Sousedé nevnímají vloupání ani zemětřesení přímo, jen alarm, a~neradí se spolu, takže $J$ a~$M$ jsou podmíněně nezávislé při daném $A$.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0]
+% --- DAG ---
+\node[bnnode] (B) at (0,2.2) {$B$};
+\node[bnnode] (E) at (3,2.2) {$E$};
+\node[bnnode] (A) at (1.5,0.6) {$A$};
+\node[bnnode] (J) at (0,-1) {$J$};
+\node[bnnode] (M) at (3,-1) {$M$};
+\draw[sip] (B) -- (A);
+\draw[sip] (E) -- (A);
+\draw[sip] (A) -- (J);
+\draw[sip] (A) -- (M);
+% popisky velicin
+\node[font=\footnotesize,anchor=east] at (-0.55,2.2) {Burglary};
+\node[font=\footnotesize,anchor=west] at (3.55,2.2) {Earthquake};
+\node[font=\footnotesize,anchor=west] at (2.35,0.6) {Alarm};
+\node[font=\footnotesize,anchor=east] at (-0.55,-1) {JohnCalls};
+\node[font=\footnotesize,anchor=west] at (3.55,-1) {MaryCalls};
+% --- mini CPT vedle ---
+\begin{scope}[xshift=6.3cm,yshift=0.2cm]
+\node[anchor=west,font=\footnotesize] at (0,2.3) {$P(B{=}T)=0.001$};
+\node[anchor=west,font=\footnotesize] at (0,1.9) {$P(E{=}T)=0.002$};
+\node[anchor=west,font=\footnotesize] at (0,1.3) {CPT pro $A$, tj. $P(A{=}T\mid B,E)$:};
+\node[anchor=west,font=\footnotesize] at (0.2,0.0) {%
+\begin{tabular}{ccc}
+\toprule
+$B$ & $E$ & $P(A{=}T\mid B,E)$\\
+\midrule
+T & T & $0.95$\\
+T & F & $0.94$\\
+F & T & $0.29$\\
+F & F & $0.001$\\
+\bottomrule
+\end{tabular}};
+\node[anchor=west,font=\footnotesize] at (0,-1.55) {$P(J{=}T\mid A)$: $\;0.90$ / $0.05$};
+\node[anchor=west,font=\footnotesize] at (0,-1.95) {$P(M{=}T\mid A)$: $\;0.70$ / $0.01$};
+\end{scope}
+\end{tikzpicture}
+\obrpopis{Síť \emph{alarm}: DAG s~pěti binárními veličinami a~CPT u~uzlů (poslední dva řádky znamenají $P({\cdot}\mid A{=}T)$ / $P({\cdot}\mid A{=}F)$). Místo $2^{5}-1=31$ čísel úplné sdružené tabulky stačí $1+1+4+2+2=10$ čísel v~CPT. Síť reprezentuje celou sdruženou distribuci součinem $P(B,E,A,J,M)=P(B)\,P(E)\,P(A\mid B,E)\,P(J\mid A)\,P(M\mid A)$, obecně $P(x_1,\dots,x_n)=\prod_i P(x_i\mid \mathit{parents}(X_i))$. Např. $P(j,m,a,\neg b,\neg e)=0.90\cdot0.70\cdot0.001\cdot0.999\cdot0.998\approx 0.000628$.}
+\end{center}
+
+\subsection{Exaktní odvozování: enumerace}
+
+Cílem \emph{odvozování} (inference) je spočítat aposteriorní rozdělení dotazované veličiny $X$ při dané evidenci $e$, přičemž zbylé veličiny $Y$ jsou \emph{skryté}:
+\[ \mathbf{P}(X\mid e)=\alpha\,\mathbf{P}(X,e)=\alpha\sum_{y}\mathbf{P}(X,e,y), \]
+kde každý člen $P(x,e,y)$ se vyčíslí jako součin CPT podle řetízkového pravidla. Pro síť alarm a~dotaz $\mathbf{P}(B\mid j,m)$ (vloupání, když volá John i~Mary) je
+\begin{align*}
+\mathbf{P}(B\mid j,m)&=\alpha\sum_{e}\sum_{a} P(B)\,P(e)\,P(a\mid B,e)\,P(j\mid a)\,P(m\mid a)\\
+&=\alpha\,P(B)\sum_{e}P(e)\sum_{a}P(a\mid B,e)\,P(j\mid a)\,P(m\mid a).
+\end{align*}
+Vytknutím konstantních faktorů ven ze sumace dostaneme strom výpočtu, který se vyhodnocuje zdola nahoru.
+
+\begin{algo}[\textsc{Enumeration-Ask} -- exaktní odvozování enumerací]
+\ttfamily\small
+ENUMERATION-ASK($X$, $e$, $bn$):\\
+\hspace*{1.5em}$Q(X)\leftarrow$ prázdné rozdělení nad $X$\\
+\hspace*{1.5em}\textbf{for} každou hodnotu $x_i$ veličiny $X$:\\
+\hspace*{3em}$Q(x_i)\leftarrow$ ENUMERATE-ALL($bn.\mathrm{vars}$, $e\cup\{X{=}x_i\}$)\\
+\hspace*{1.5em}\textbf{return} NORMALIZE($Q(X)$)\\[2pt]
+ENUMERATE-ALL(vars, $e$):\\
+\hspace*{1.5em}\textbf{if} vars je prázdné: \textbf{return} $1.0$\\
+\hspace*{1.5em}$V\leftarrow$ FIRST(vars) \cmt{veličiny v~topologickém pořadí}\\
+\hspace*{1.5em}\textbf{if} $V$ má v~$e$ hodnotu $v$:\\
+\hspace*{3em}\textbf{return} $P(v\mid \mathit{parents}(V))\cdot$ ENUMERATE-ALL(REST(vars), $e$)\\
+\hspace*{1.5em}\textbf{else} \cmt{skrytá veličina -- vysčítej přes její hodnoty}\\
+\hspace*{3em}\textbf{return} $\sum_{v} P(v\mid \mathit{parents}(V))\cdot$ ENUMERATE-ALL(REST(vars), $e\cup\{V{=}v\}$)
+\end{algo}
+
+\begin{intuice}
+Enumerace je v~podstatě hloubkové procházení stromu, jehož větvení odpovídá hodnotám skrytých veličin -- podobně jako řešení CSP nebo SAT. Je správná, ale \emph{neefektivní}: některé podvýpočty se opakují. Ve výrazu výše se faktory $P(j\mid a)\,P(m\mid a)$ počítají \emph{znovu} pro každou hodnotu $e$, ačkoli na $e$ nezávisejí. To napravuje eliminace proměnných.
+\end{intuice}
+
+\subsection{Exaktní odvozování: eliminace proměnných}
+
+\emph{Eliminace proměnných} (variable elimination) je dynamické programování nad výrazem enumerace: \emph{mezivýsledky se uloží a~znovu použijí}. Pracuje s~\emph{faktory} -- maticemi (tabulkami) indexovanými hodnotami veličin, odpovídajícími CPT. Výraz pro $\mathbf{P}(B\mid j,m)$ zapíšeme jako součin faktorů
+\[ \mathbf{P}(B\mid j,m)=\alpha\,\underbrace{f_1(B)}_{P(B)}\sum_{e}\underbrace{f_2(E)}_{P(e)}\sum_{a}\underbrace{f_3(A,B,E)}_{P(a\mid B,e)}\,\underbrace{f_4(A)}_{P(j\mid a)}\,\underbrace{f_5(A)}_{P(m\mid a)}, \]
+a~vyhodnocujeme \emph{zprava doleva}: opakovaně bodově vynásobíme faktory obsahující právě eliminovanou veličinu a~tu pak \emph{vysčítáme}.
+
+\begin{definice}[Operace s faktory]
+\textbf{Bodový součin} (pointwise product) dvou faktorů dá faktor nad \emph{sjednocením} jejich veličin; každý řádek je součin odpovídajících řádků (shoda na sdílených veličinách). \textbf{Vysčítání} (summing out) veličiny $V$ z~faktoru sečte podmatice vzniklé fixací $V$ na jednotlivé hodnoty -- $V$ z~faktoru zmizí.
+\end{definice}
+
+\begin{algo}[\textsc{Elimination-Ask} -- eliminace proměnných]
+\ttfamily\small
+ELIMINATION-ASK($X$, $e$, $bn$):\\
+\hspace*{1.5em}factors $\leftarrow$ [\,]\\
+\hspace*{1.5em}\textbf{for} každou veličinu $V$ v~ORDER($bn.\mathrm{vars}$):\\
+\hspace*{3em}factors $\leftarrow$ [MAKE-FACTOR($V$, $e$)] $+$ factors \cmt{CPT $V$ jako faktor}\\
+\hspace*{3em}\textbf{if} $V$ je skrytá veličina:\\
+\hspace*{4.5em}factors $\leftarrow$ SUM-OUT($V$, factors) \cmt{vynásob faktory s~$V$ a~vysčítej $V$}\\
+\hspace*{1.5em}\textbf{return} NORMALIZE(POINTWISE-PRODUCT(factors))\\[5pt]
+\normalfont\itshape\footnotesize\textcolor{black!60}{Podprogramy -- co se skrývá za těmi jmény:}\\[3pt]
+\ttfamily\small
+MAKE-FACTOR($V$, $e$):\\
+\hspace*{1.5em}$f \leftarrow$ CPT $P(V \mid \mathit{parents}(V))$ jako tabulka\\
+\hspace*{1.5em}zafixuj v~$f$ veličiny z~$e$ \cmt{jejich rozměr zmizí}\\
+\hspace*{1.5em}\textbf{return} $f$\\[4pt]
+POINTWISE-PRODUCT($f_1,\dots,f_k$):\\
+\hspace*{1.5em}$h \leftarrow$ tabulka nad $\bigcup_i \mathrm{vars}(f_i)$\\
+\hspace*{1.5em}$h(x) \leftarrow \prod_i f_i(x)$ pro každý řádek $x$ \cmt{$f_i$ dle své části}\\
+\hspace*{1.5em}\textbf{return} $h$\\[4pt]
+SUM-OUT($V$, factors):\\
+\hspace*{1.5em}touch $\leftarrow$ faktory obsahující $V$;\ \ rest $\leftarrow$ ostatní\\
+\hspace*{1.5em}$g \leftarrow$ POINTWISE-PRODUCT(touch) \cmt{spoj vše s~$V$}\\
+\hspace*{1.5em}$g' \leftarrow \sum_{v} g(V{=}v,\dots)$ \cmt{$V$ zmizí}\\
+\hspace*{1.5em}\textbf{return} rest $+\ [g']$\\[4pt]
+ORDER(vars): obrácené topologické pořadí \cmt{libovolné korektní}\\
+NORMALIZE($f$): poděl $f$ součtem prvků \cmt{ať součet $=1$}
+\end{algo}
+
+\begin{poznamka}
+Algoritmus je správný pro \emph{libovolné} pořadí eliminace, ale pořadí ovlivňuje rychlost: \emph{složitost je dána velikostí největšího faktoru}, který během běhu vznikne. Heuristika: eliminuj vždy veličinu, která vede k~nejmenšímu nově vytvořenému faktoru. (Pro polystromy -- sítě bez neorientovaných cyklů -- je eliminace lineární; pro obecné sítě je exaktní odvozování \#P-těžké.) Klíčový rozdíl oproti enumeraci: faktor $\sum_a P(a\mid B,e)P(j\mid a)P(m\mid a)$ se spočítá jednou a~sdílí místo opakování pro každé $e$.
+\end{poznamka}
+
+\begin{center}
+\begin{tikzpicture}[scale=0.95,every node/.style={font=\footnotesize}]
+% --- levy: enumeracni strom s opakovanim ---
+\node[font=\small\bfseries] at (0,3.3) {Enumerace (strom)};
+\node[draw,rounded corners,fill=blue!8] (eB) at (0,2.6) {$P(B)$};
+\node[draw,rounded corners] (eE1) at (-1.5,1.6) {$e$};
+\node[draw,rounded corners] (eE2) at (1.5,1.6) {$\neg e$};
+\draw[sipp] (eB)--(eE1); \draw[sipp] (eB)--(eE2);
+\node[draw,rounded corners] (eA1) at (-2.3,0.5) {$a$};
+\node[draw,rounded corners] (eA2) at (-0.7,0.5) {$\neg a$};
+\node[draw,rounded corners] (eA3) at (0.7,0.5) {$a$};
+\node[draw,rounded corners] (eA4) at (2.3,0.5) {$\neg a$};
+\draw[sipp] (eE1)--(eA1); \draw[sipp] (eE1)--(eA2);
+\draw[sipp] (eE2)--(eA3); \draw[sipp] (eE2)--(eA4);
+\node[font=\scriptsize,fill=red!12,inner sep=1pt] at (-2.3,-0.45) {$P(j|a)P(m|a)$};
+\node[font=\scriptsize,fill=red!12,inner sep=1pt] at (2.3,-0.45) {$P(j|a)P(m|a)$};
+\node[font=\scriptsize] at (0,-1.25) {tentýž podvýpočet $2\times$ (a~víckrát hloub)};
+% --- pravy: eliminace s faktory ---
+\begin{scope}[xshift=8.0cm]
+\node[font=\small\bfseries] at (0,3.3) {Eliminace (faktory)};
+\node[draw,rounded corners,fill=red!10] (fJM) at (0,2.0) {$f_{JM}(A)=P(j|A)\,P(m|A)$};
+\node[draw,rounded corners,fill=teal!12] (fA) at (0,0.8) {$\sum_a f_3(A,B,E)\,f_{JM}(a)$};
+\node[draw,rounded corners,fill=teal!12] (fE) at (0,-0.4) {$\sum_e f_2(E)\,(\cdots)$};
+\draw[sip] (fJM)--(fA); \draw[sip] (fA)--(fE);
+\node[font=\scriptsize,align=center] at (0,-1.4) {$f_{JM}$ spočten \emph{jednou},\\ sdílen pro obě hodnoty $e$};
+\end{scope}
+\end{tikzpicture}
+\obrpopis{Enumerace (vlevo) prochází strom hodnot skrytých veličin a~tentýž podvýpočet $P(j\mid a)P(m\mid a)$ opakuje v~každé větvi $e$. Eliminace proměnných (vpravo) si mezivýsledek uloží jako \emph{faktor} $f_{JM}(A)$ a~znovu ho použije, čímž sdílí výpočet (dynamické programování). Pořadí eliminace zde: nejdřív $A$, pak $E$.}
+\end{center}
+
+\subsection{Aproximační odvozování: metody Monte Carlo}
+
+Pro velké, \emph{vícenásobně propojené} sítě je exaktní odvozování neúnosné. Pak sáhneme k~\emph{aproximaci} metodami Monte Carlo: vygenerujeme mnoho \emph{vzorků} (úplných ohodnocení veličin) a~hledanou pravděpodobnost odhadneme statisticky -- více vzorků znamená větší přesnost. Vzorky se generují podle rozdělení daného sítí: veličiny se berou v~\emph{topologickém pořadí} a~každá se navzorkuje z~$P(X_i\mid \mathit{parents}(X_i))$ podmíněné hodnotami už navzorkovaných rodičů (algoritmus \textsc{Prior-Sample}). Pak platí $P(x_1,\dots,x_n)=\lim_{N\to\infty} N(x_1,\dots,x_n)/N$, kde $N(\cdot)$ je počet výskytů události mezi $N$ vzorky.
+
+\begin{poznamka}[Zamítací vzorkování (rejection sampling)]
+Chceme ale $\mathbf{P}(X\mid e)$. Nejjednodušší cesta: generuj vzorky ze sítě (jako \textsc{Prior-Sample}) a~\emph{ponech jen ty konzistentní s~evidencí} $e$, ostatní \emph{zamítni}. Odhad je $\mathbf{P}(X\mid e)\approx N(X,e)/N(e)$ (podíl, kolikrát mezi konzistentními vzorky vyšlo $X{=}x$). \textbf{Hlavní slabina:} při málo pravděpodobné evidenci se zamítne drtivá většina vzorků (počet konzistentních vzorků klesá exponenciálně s~počtem evidenčních veličin), takže odhad je drahý a~nepřesný.
+\end{poznamka}
+
+\begin{algo}[\textsc{Likelihood-Weighting} -- vážení věrohodností]
+\ttfamily\small
+LIKELIHOOD-WEIGHTING($X$, $e$, $bn$, $N$):\\
+\hspace*{1.5em}$W\leftarrow$ vektor vážených počtů pro hodnoty $X$, nuly\\
+\hspace*{1.5em}\textbf{for} $j=1$ \textbf{to} $N$:\\
+\hspace*{3em}$\mathbf{x},w\leftarrow$ WEIGHTED-SAMPLE($bn$, $e$)\\
+\hspace*{3em}$W[x]\leftarrow W[x]+w$ \cmt{$x$ = hodnota $X$ ve vzorku $\mathbf{x}$}\\
+\hspace*{1.5em}\textbf{return} NORMALIZE($W$)\\[2pt]
+WEIGHTED-SAMPLE($bn$, $e$):\\
+\hspace*{1.5em}$w\leftarrow 1$; \ $\mathbf{x}\leftarrow$ událost s~hodnotami evidence z~$e$ napevno\\
+\hspace*{1.5em}\textbf{for} $i=1$ \textbf{to} $n$ \cmt{veličiny v~topologickém pořadí}:\\
+\hspace*{3em}\textbf{if} $X_i$ je evidenční s~hodnotou $x_i$ v~$e$:\\
+\hspace*{4.5em}$w\leftarrow w\cdot P(X_i{=}x_i\mid \mathit{parents}(X_i))$ \cmt{nevzorkuj, jen zvaž}\\
+\hspace*{3em}\textbf{else} $\mathbf{x}[i]\leftarrow$ vzorek z~$P(X_i\mid \mathit{parents}(X_i))$\\
+\hspace*{1.5em}\textbf{return} $\mathbf{x},w$
+\end{algo}
+
+\begin{intuice}
+Místo zamítání generuje vážení věrohodností \emph{jen} vzorky konzistentní s~$e$: evidenční veličiny se \emph{nevzorkují}, ale fixují na pozorované hodnoty. Tím se ale zkresluje rozdělení -- vzorek vznikne s~pravděpodobností $\prod_i P(z_i\mid \mathit{parents}(z_i))$ jen přes \emph{neevidenční} veličiny $z$, kdežto „chybí`` váha $w(z,e)=\prod_j P(e_j\mid \mathit{parents}(e_j))$ za evidenční veličiny. Každý vzorek proto dostane \emph{váhu} $w$ = součin pravděpodobností (věrohodností) evidence vzhledem k~jejím rodičům a~odhad $P(x\mid e)$ je normalizovaný součet vah těch vzorků, v~nichž $X{=}x$ (vážené součty místo prostých počtů). \textbf{Hlavní slabina:} jsou-li evidenční veličiny „dole`` v~síti, většina vah je nepatrná a~odhad ovládne pár vzorků (degenerace). Přesto je likelihood weighting typicky mnohem účinnější než zamítací vzorkování.
+\end{intuice}
+
+\subsection{Řešený příklad SZZ}
+
+\begin{priklad}[SZZ léto 2024 č.~28: Bayesovské sítě (definice, konstrukce, odvozování)]
+\szzotazka{léto 2024}{28}{Bayesovské sítě}\par
+\textbf{Zadání.}\par
+Definujte Bayesovskou síť a~napište, jak se takové sítě používají a~jak se konstruují. Jaký je vztah mezi Bayesovskou sítí a~úplnou sdruženou pravděpodobnostní distribucí? Pro síť na obrázku (čtyři binární veličiny $P_1,\dots,P_4$ s~uvedenými CPT) a~pozorování $P_3{=}F$, $P_4{=}T$ spočítejte $P(P_1{=}T\mid P_3{=}F,P_4{=}T)$.
+
+\medskip
+\textbf{Řešení (teoretická část).}
+\emph{Bayesovská síť} je orientovaný acyklický graf, jehož uzly jsou náhodné veličiny, hrana $X\to Y$ značí přímý vliv (rodičovství) a~každý uzel nese CPT $\mathbf{P}(X\mid \mathit{Parents}(X))$. \emph{Používá se} k~odpovídání na dotazy $\mathbf{P}(X\mid E{=}e)$ (rozdělení dotazované veličiny při evidenci) -- exaktně enumerací nebo eliminací proměnných, aproximačně vzorkováním. \emph{Konstruuje se} seřazením veličin (ideálně příčiny před důsledky) a~výběrem minimální množiny rodičů pro každou veličinu, aby platilo $P(X_i\mid \mathit{Parents}(X_i))=P(X_i\mid X_{i-1},\dots,X_1)$. \emph{Vztah ke sdružené distribuci:} síť ji \emph{plně reprezentuje} přes řetízkové pravidlo $P(x_1,\dots,x_n)=\prod_i P(x_i\mid \mathit{parents}(X_i))$ -- ze sítě sdruženou distribuci sestavíme součinem CPT a~naopak síť ji ukládá kompaktně (jen lokální CPT místo exponenciální tabulky).
+
+\medskip
+\textbf{Řešení (výpočet).} Struktura sítě je řetěz s~rozvětvením $P_1\to P_2\to\{P_3,P_4\}$ (uzel $P_2$ je rodičem $P_3$ i~$P_4$). CPT:
+\[ P(P_1{=}T)=0.4;\quad P(P_2{=}T\mid P_1{=}T)=0.8,\ P(P_2{=}T\mid P_1{=}F)=0.5; \]
+\[ P(P_3{=}T\mid P_2{=}T)=0.2,\ P(P_3{=}T\mid P_2{=}F)=0.3;\qquad P(P_4{=}T\mid P_2{=}T)=0.8,\ P(P_4{=}T\mid P_2{=}F)=0.5. \]
+
+\emph{(1) Sdružená distribuce z~řetízkového pravidla.} Pro libovolné hodnoty
+\[ P(P_1,P_2,P_3,P_4)=P(P_1)\,P(P_2\mid P_1)\,P(P_3\mid P_2)\,P(P_4\mid P_2). \]
+
+\emph{(2) Vysčítání skryté veličiny $P_2$.} Veličina $P_2$ je skrytá (není v~dotazu ani evidenci), proto ji marginalizujeme. Pro $P_1{=}T$ a~evidenci $P_3{=}F$, $P_4{=}T$:
+\begin{align*}
+P(P_1{=}T,P_3{=}F,P_4{=}T)
+&=P(P_1{=}T)\sum_{P_2}P(P_2\mid P_1{=}T)\,P(P_3{=}F\mid P_2)\,P(P_4{=}T\mid P_2)\\
+&=0.4\Big[\underbrace{0.8}_{P_2{=}T}\cdot\underbrace{0.8}_{P_3{=}F\mid P_2{=}T}\cdot\underbrace{0.8}_{P_4{=}T\mid P_2{=}T}
++\underbrace{0.2}_{P_2{=}F}\cdot\underbrace{0.7}_{P_3{=}F\mid P_2{=}F}\cdot\underbrace{0.5}_{P_4{=}T\mid P_2{=}F}\Big]\\
+&=0.4\,[\,0.512+0.070\,]=0.4\cdot0.582=0.23280.
+\end{align*}
+(Použili jsme $P(P_3{=}F\mid P_2{=}T)=1-0.2=0.8$ a~$P(P_3{=}F\mid P_2{=}F)=1-0.3=0.7$.)
+
+\noindent Analogicky pro $P_1{=}F$ (zde $P(P_1{=}F)=0.6$, $P(P_2{=}T\mid P_1{=}F)=0.5$):
+\begin{align*}
+P(P_1{=}F,P_3{=}F,P_4{=}T)
+&=0.6\,[\,0.5\cdot0.8\cdot0.8+0.5\cdot0.7\cdot0.5\,]\\
+&=0.6\,[\,0.320+0.175\,]=0.6\cdot0.495=0.29700.
+\end{align*}
+
+\emph{(3) Normalizace.} Evidence $P(P_3{=}F,P_4{=}T)=0.23280+0.29700=0.52980$, tedy
+\[ P(P_1{=}T\mid P_3{=}F,P_4{=}T)=\frac{0.23280}{0.52980}=\boxed{0.4394}\quad(\approx 43.9\,\%). \]
+(Doplňkově $P(P_1{=}F\mid P_3{=}F,P_4{=}T)=0.29700/0.52980\approx0.5606$; součet je $1$.)
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0]
+\node[bnnode] (p1) at (0,2.4) {$P_1$};
+\node[bnnode] (p2) at (0,0.8) {$P_2$};
+\node[bnnode] (p3) at (-1.6,-0.8) {$P_3$};
+\node[bnnode] (p4) at (1.6,-0.8) {$P_4$};
+\draw[sip] (p1) -- (p2);
+\draw[sip] (p2) -- (p3);
+\draw[sip] (p2) -- (p4);
+% CPT bloky
+\begin{scope}[xshift=4.0cm,yshift=0.0cm,every node/.style={font=\footnotesize}]
+\node[anchor=west] at (0,2.6) {$P(P_1{=}T)=0.4$};
+\node[anchor=west] at (0,1.4) {%
+\begin{tabular}{cc}
+\toprule
+$P_1$ & $P(P_2{=}T\mid P_1)$\\
+\midrule
+T & $0.8$\\
+F & $0.5$\\
+\bottomrule
+\end{tabular}};
+\node[anchor=west] at (0,-1.0) {%
+\begin{tabular}{ccc}
+\toprule
+$P_2$ & $P(P_3{=}T\mid P_2)$ & $P(P_4{=}T\mid P_2)$\\
+\midrule
+T & $0.2$ & $0.8$\\
+F & $0.3$ & $0.5$\\
+\bottomrule
+\end{tabular}};
+\end{scope}
+\end{tikzpicture}
+\obrpopis{Bayesovská síť k~SZZ úloze: řetěz s~rozvětvením $P_1\to P_2\to\{P_3,P_4\}$ a~příslušné CPT. Dotaz $P(P_1{=}T\mid P_3{=}F,P_4{=}T)$ řešíme sestavením sdružené distribuce přes řetízkové pravidlo, vysčítáním skryté $P_2$ a~normalizací; výsledek $\approx 0.4394$. Tato otázka nemá v~PDF oficiální náčrt řešení; výpočet je ověřen numericky.}
+\end{center}
+\end{priklad}
+
+\begin{poznamka}
+Pozorování ($P_3{=}F$, $P_4{=}T$) změnilo víru o~$P_1$ z~apriorních $P(P_1{=}T)=0.4$ na aposteriorních $0.439$. Důsledky $P_3$, $P_4$ tedy nesou informaci o~vzdálené příčině $P_1$ -- to je celé kouzlo Bayesovských sítí: lokální CPT a~globální (diagnostické i~kauzální) uvažování přes ně.
+\end{poznamka}
+
+\begin{priklad}[Obměna úlohy: kauzální směr na téže síti]
+SZZ dotaz výše byl \emph{diagnostický} (evidence $P_3,P_4$ \emph{pod} dotazem $P_1$). V~opačném, \emph{kauzálním} směru -- evidence \emph{nad} dotazem -- se výpočet zjednoduší. \textbf{Zadání:} na téže síti $P_1\to P_2\to\{P_3,P_4\}$ spočítejte $P(P_4{=}T\mid P_1{=}T)$.
+
+\textbf{Řešení.} Relevantní jsou jen dotaz, evidence a~jejich \emph{předkové}, tj. $\{P_1,P_2,P_4\}$. Veličina $P_3$ není předkem $P_4$ ani $P_1$ -- je to \emph{barren} uzel (nepřispívá) a~vypadne, protože $\sum_{P_3} P(P_3\mid P_2)=1$. Zbude suma jen přes skrytou $P_2$:
+\[
+P(P_4{=}T\mid P_1{=}T)=\sum_{P_2} P(P_2\mid P_1{=}T)\,P(P_4{=}T\mid P_2)
+= \underbrace{0.8\cdot0.8}_{P_2{=}T} + \underbrace{0.2\cdot0.5}_{P_2{=}F} = 0.74.
+\]
+\textbf{Normalizace netřeba:} $P(P_4{=}F\mid P_1{=}T)=0.8\cdot0.2+0.2\cdot0.5=0.26$ a~součet $0.74+0.26=1$ vyjde sám -- v~kauzálním směru je nenormalizovaný výsledek rovnou rozdělením (kdežto diagnostické $P(P_1\mid P_3,P_4)$ výše normalizovat $\alpha$ muselo).
+
+\textbf{Extrém -- pozorování přímého rodiče:} $P(P_4{=}T\mid P_2{=}T)=0.8$ je rovnou řádek CPT, žádná suma ani normalizace.
+\end{priklad}

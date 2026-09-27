@@ -1,0 +1,24 @@
+% Zdroj: PDF priklady-leto-2023.pdf, fyzická str. 2. Značka: otázka studijního zaměření (neznačená starší sada). Zařazeno: S3.
+\section{Testování binárního klasifikátoru}
+\szzotazka{léto 2023}{6}{Testování binárního klasifikátoru}
+
+\noindent\textbf{Zadání.}\par
+Předpokládejme, že k testování binárního klasifikátoru byla použita testovací sada ve složení
+$100$ pozitivních a $400$ negativních příkladů.
+
+\begin{enumerate}
+  \item[a)] Ukázalo se, že ROC křivka prochází bodem $\mathrm{TPR} = \mathrm{FPR} = 20\,\%$.
+    Vypočítejte hodnotu precision v tomto bodě.
+  \item[b)] Jiný klasifikátor vykazuje konstantní hodnotu $\text{precision} = 50\,\%$.
+    Znázorněte odpovídající ROC křivku.
+\end{enumerate}
+
+\noindent Použité zkratky: ROC — Receiver Operating Characteristic curve; TPR — true-positive rate
+(též: sensitivity neboli recall); FPR — false-positive rate (též: fall-out).
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, výpočet ověřen numericky.)}\par
+\begin{enumerate}
+  \item[a)] $\mathrm{TPR}=0{,}2\Rightarrow \mathrm{TP}=0{,}2\cdot100=20$; $\mathrm{FPR}=0{,}2\Rightarrow \mathrm{FP}=0{,}2\cdot400=80$. Precision $=\dfrac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}=\dfrac{20}{100}=0{,}2$.
+  \item[b)] Konstantní precision $\dfrac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}=\tfrac12$ znamená $\mathrm{FP}=\mathrm{TP}$ při každém prahu. Protože $\mathrm{TPR}=\mathrm{TP}/100$ a~$\mathrm{FPR}=\mathrm{FP}/400=\mathrm{TP}/400$, platí $\mathrm{TPR}=4\,\mathrm{FPR}$. ROC křivka je tedy \emph{úsečka} z~$(0,0)$ do bodu $(\mathrm{FPR},\mathrm{TPR})=(0{,}25,\,1)$ (leží nad diagonálou náhodného hádání).
+\end{enumerate}

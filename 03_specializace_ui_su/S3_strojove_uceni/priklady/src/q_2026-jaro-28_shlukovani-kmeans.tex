@@ -1,0 +1,37 @@
+% Zdroj: PDF priklady-jaro-2026.pdf, fyzická str. 22. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S3.
+\section{Shlukování pomocí $K$-means}
+\szzotazka{jaro 2026}{28}{Shlukování pomocí K-means}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Popište algoritmus $K$-means. K čemu se používá? Popište podrobně jeho kroky a jak je možné algoritmus inicializovat.
+  \item Jakou ztrátovou funkci algoritmus optimalizuje?
+  \item Konverguje algoritmus? Zformulujte argument nebo důkaz, proč tomu tak je. Jaké to má praktické důsledky?
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{itemize}
+  \item $K$-means je algoritmus učení bez učitele (neřízené učení) používaný pro shlukování dat do $K$ skupin podle (geometrické)
+    podobnosti jejich rysů.
+  \item Algoritmus:
+    \begin{enumerate}
+      \item Inicializace $K$ centroidů (náhodně nebo pomocí metod jako \texttt{kmeans++}).
+      \item Algoritmus: Opakuj, dokud nedojde ke konvergenci (žádná změna přiřazení nebo centroidů):
+        \begin{enumerate}
+          \item Přiřaď každý datový bod k nejbližšímu centroidu.
+          \item Aktualizuj centroidy výpočtem průměru všech bodů v každém shluku.
+        \end{enumerate}
+    \end{enumerate}
+  \item \texttt{Kmeans++} inicializace: začni s náhodným centroidem, poté iterativně vybírej nové centroidy s pravděpodobností úměr\-nou
+    čtverci vzdálenosti od nejbližšího již existujícího centroidu.
+  \item Ztrátová funkce, kterou algoritmus optimalizuje, je součet čtverců vzdáleností mezi datovými body a jejich přiřazenými
+    centroidy.
+  \item Algoritmus konverguje, protože každá iterace snižuje hodnotu ztrátové funkce, která je omezená zdola nulou. Zaručuje
+    pouze konvergenci k lokálnímu minimu, nikoli nutně ke globálnímu minimu.
+  \item Praktické důsledky: Volba počátečních centroidů může ovlivnit konečný výsledek shlukování, a proto může být nutné
+    provést více běhů s různými inicializacemi, aby se našlo lepší řešení.
+\end{itemize}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Samotné klesání zdola omezené funkce ještě nezaručuje, že se algoritmus po konečně mnoha krocích zastaví. Úplný argument: krok přiřazení (každý bod k~nejbližšímu centroidu) ani krok přepočtu (centroid jako průměr, který minimalizuje součet čtverců ve shluku) ztrátu $J$ nezvýší. Hodnota $J$ po přepočtu je určena jen přiřazením bodů do shluků a~různých přiřazení je konečně mnoho (nejvýše $K^N$). Při každé skutečné změně přiřazení $J$ ostře klesne, takže se žádné přiřazení nemůže zopakovat, a~algoritmus se proto po konečně mnoha iteracích zastaví, v~lokálním minimu $J$.

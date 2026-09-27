@@ -1,0 +1,20 @@
+# Výstupy LaTeXu (./build.sh)
+out/
+tmp/
+_site/
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.toc
+
+# Python, IDE, OS
+__pycache__/
+*.py[cod]
+.venv/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*~

@@ -1,0 +1,47 @@
+% Zdroj: PDF priklady-jaro-2023.pdf, fyzická str. 5. Sada starší (neznačený formát 2023), otázka studijního zaměření. Zařazeno: S3.
+\section{Naivní Bayesovský klasifikátor}
+\szzotazka{jaro 2023}{16}{Naivní Bayesovský klasifikátor}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Popište princip naivního Bayesovského klasifikátoru. Na základě čeho (vzorec) přiřazuje
+    objekty do tříd?
+  \item Popište význam jednotlivých pravděpodobností v Bayesově vzorci. V čem spočívá naivnost
+    klasifikátoru?
+  \item Použitím Bayesovského klasifikátoru určete, zda student půjde do školy, jestliže vstane
+    pozdě, nemá oblíbenou přednášku a prší. Pravděpodobnost určete na základě následujících pozorování.
+\end{enumerate}
+
+\begin{center}
+\begin{tabular}{ccccc}
+\toprule
+Den & Vstanu & Je oblíbená přednáška? & Počasí & Jdu do školy \\
+\midrule
+1  & Brzo     & Ne  & Slunce & Ne  \\
+2  & Normálně & Ne  & Désť   & Ne  \\
+3  & Brzo     & Ne  & Slunce & Ano \\
+4  & Pozdě    & Ne  & Slunce & Ano \\
+5  & Pozdě    & Ano & Slunce & Ano \\
+6  & Pozdě    & Ano & Désť   & Ne  \\
+7  & Brzo     & Ano & Désť   & Ano \\
+8  & Normálně & Ne  & Slunce & Ne  \\
+9  & Normálně & Ano & Slunce & Ano \\
+10 & Pozdě    & Ano & Slunce & Ano \\
+11 & Normálně & Ano & Désť   & Ano \\
+12 & Brzo     & Ne  & Désť   & Ano \\
+13 & Brzo     & Ano & Slunce & Ano \\
+\bottomrule
+\end{tabular}
+\end{center}
+{\footnotesize\noindent V~originálním PDF je hodnota psána „Désť``, správně „Déšť``; tabulka je přepsána věrně.\par}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, četnosti a skóre ověřeny numericky.)}\par
+\begin{enumerate}[nosep]
+  \item Klasifikátor přiřadí třídu maximalizující $P(c)\prod_j P(x_j\mid c)$ -- Bayesovo pravidlo s~\emph{naivním} předpokladem podmíněné nezávislosti příznaků. Pravděpodobnosti se odhadnou relativními četnostmi z~tabulky.
+  \item $P(c)$ jsou apriorní pravděpodobnosti tříd, $P(x_j\mid c)$ věrohodnosti jednotlivých příznaků, jmenovatel $P(x_1,\dots,x_D)$ je normalizace (stejná pro všechny třídy, pro výběr maxima ji lze vynechat). \uv{Naivnost} je v~předpokladu, že příznaky jsou při dané třídě navzájem nezávislé.
+  \item Z~13 dnů jde do školy $9\times$, nejde $4\times$: $P(\text{Ano})=\tfrac{9}{13}$, $P(\text{Ne})=\tfrac{4}{13}$. Pro dotaz (Vstanu${=}$Pozdě, oblíbená${=}$Ne, Počasí${=}$Déšť):
+  \[ \text{Ano}:\ \tfrac{9}{13}\cdot\tfrac39\cdot\tfrac39\cdot\tfrac39=\tfrac{1}{39}\approx 0{,}026,\qquad
+     \text{Ne}:\ \tfrac{4}{13}\cdot\tfrac14\cdot\tfrac34\cdot\tfrac24=\tfrac{3}{104}\approx 0{,}029. \]
+  Větší je skóre třídy \textbf{Ne}, takže klasifikátor predikuje, že student \emph{do školy nepůjde} (po normalizaci $P(\text{Ne}\mid\text{data})\approx 53\,\%$).
+\end{enumerate}

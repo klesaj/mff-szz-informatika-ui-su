@@ -1,0 +1,76 @@
+% Zdroj: PDF priklady-leto-2024.pdf, fyzická str. 1. Značka: společné okruhy. Zařazeno: I2.
+\section{Algoritmy rozděl a panuj}
+\szzotazka{léto 2024}{1}{Algoritmy rozděl a panuj (Master theorem, medián $2n$ čísel)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+\item Mějme algoritmus $A$, který na datech velikosti $n$ udělá $T(n)$ elementárních
+  operací. Algoritmus $A$ je rekurzivní a pracuje takto ($a, c, x, y$ jsou přirozená
+  čísla, $a > 0$, $c > 1$):
+  \begin{enumerate}
+  \item Udělá $\Theta(n^x)$ elementárních operací, aby ze vstupních dat vybral $a$
+    podmnožin velikosti $n/c$.
+  \item Rekurzivně pustí sám sebe na každou z~vybraných podmnožin dat (pokud má velikost
+    alespoň $c$, pro data menší velikosti vyřeší úlohu v~konstantním čase).
+  \item Udělá $\Theta(n^y)$ elementárních operací, aby všechna řešení z~bodu b) spojil do
+    řešení původní úlohy na datech velikosti $n$.
+  \end{enumerate}
+  Určete (bez důkazu) asymptoticky těsný odhad funkce $T(n)$ v~závislosti na parametrech
+  $a, c, x, y$.
+
+\item Nechť $X$ a $Y$ jsou pole délky $n$, každé obsahující setříděnou posloupnost $n$
+  přirozených čísel. Navrhněte a popište algoritmus s~časovou složitostí $O(\log n)$,
+  který najde medián (jeden z~mediánů) všech $2n$ čísel obsažených v~polích $X$ a $Y$.
+  Dokažte metodou z~bodu 1), že složitost Vašeho algoritmu je opravdu $O(\log n)$.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textbf{1)} Úloha je řešitelná pomocí Master Theoremu, tj. Kuchařky. V~algoritmu $A$ je
+společná režie $\Theta(n^x + n^y) = \Theta(n^{\max\{x,y\}})$ při každém rekurzivním
+volání. Z~toho vychází rekurzivní rovnice $T(n) = a \cdot T(n/c) + \Theta(n^{\max\{x,y\}})$
+pro časovou složitost řešitelná pomocí Master Theoremu. Zavedeme $d = \max\{x, y\}$.
+Řešení rovnice se dělí na 3~případy:
+\begin{enumerate}
+\item $T(n) = \Theta(n^d)$ pro $a/c^d < 1$;
+\item $T(n) = \Theta(n^d \log n)$ pro $a/c^d = 1$;
+\item $T(n) = \Theta(n^{\log_c a})$ pro $a/c^d > 1$.
+\end{enumerate}
+
+\textbf{2)} V~jednotlivých krocích algoritmu porovnáváme mediány obou polí $X$ a $Y$,
+například prvky $x = X[\lfloor (n-1)/2 \rfloor]$ a $y = Y[\lfloor (n-1)/2 \rfloor]$ při
+indexování od 0.
+
+Pokud $x < y$, můžeme odstranit levou polovinu $X$ (prvky vlevo od $x$) a pravou polovinu
+$Y$ (prvky vpravo od $y$) a na ponechané prvky voláme rekurzi. Je velmi podstatné, aby
+počet odstraněných prvků z~$X$ (které jsou všechny garantovaně menší než hledaný medián)
+byl stejný jako počet odstraněných prvků z~$Y$ (které jsou všechny garantovaně větší než
+hledaný medián). Tato vlastnost zajistí, že medián prvků které vstupují do rekurzivního
+volání je také mediánem původní množiny prvků.
+
+Pokud $x > y$, pak odstraňujeme symetricky levou polovinu $Y$ a pravou polovinu $X$
+a voláme rekurzi.
+
+Pokud $x = y$, pak je $x$ medián (jeden z~mediánů).
+
+Přístup k~prvkům $x$ a $y$, jejich porovnání a posunutí indexů (vymezujících aktuální
+části $X$ a $Y$) zvládneme v~konstantním čase $\Theta(1) = \Theta(n^0)$. Pro $n < 3$
+dopočítáme medián v~konstantním čase.
+
+Vychází rovnice $T(n) = 1 \cdot T(n/2) + \Theta(1)$, tj. $a = 1$, $c = 2$, $d = 0$.
+V~Kuchařce vyjde $a/c^d = 1/2^0 = 1$, tj. případ 2 s~řešením
+$\Theta(n^0 \log n) = \Theta(\log n)$.
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} proč odříznutí
+nemění medián. Nechť $x<y$, $k=\lfloor(n-1)/2\rfloor$ a~všech $2n$ čísel setříděných je
+$z_1\le\dots\le z_{2n}$ (mediány jsou $z_n$ a~$z_{n+1}$). Pro odebraný prvek $X[i]$,
+$i<k$, jsou čísla $\ge X[i]$ aspoň všechna v~$X[i..n-1]$ (aspoň $n-k+1$ čísel)
+a~v~$Y[k..n-1]$ ($n-k$ čísel, všechna $\ge y>x$), celkem aspoň $2n-2k+1\ge n+2$;
+proto $X[i]\le z_{n-1}$. Symetricky pro odebraný $Y[j]$, $j\ge n-k$, jsou čísla
+$\le Y[j]$ aspoň všechna v~$X[0..k]$ a~$Y[0..j]$, celkem aspoň $n+2$, takže
+$Y[j]\ge z_{n+2}$. Odebereme tedy $k$ čísel pod dolním mediánem a~$k$ čísel nad
+horním mediánem a~prostřední dvojice $z_n, z_{n+1}$ se nezmění. Obě pole mají po
+kroku délku $n-k=\lceil (n+1)/2\rceil$, pro $n\ge3$ tedy velikost klesne; pro $n=2$ by
+krok nic neodebral, proto se malé případy dořeší přímo. Algoritmus vrací dolní nebo
+horní medián (ověřeno náhodnými testy včetně opakovaných hodnot).

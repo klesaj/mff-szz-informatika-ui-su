@@ -1,0 +1,78 @@
+% szzpriklady.sty - styl pro složky priklady/ (přepsané reálné otázky SZZ).
+%
+% URČENÍ: tento balíček je výhradně pro agregátory a fragmenty ve složkách
+% <okruh>/priklady/ (zadání a náčrty řešení reálných státnicových otázek).
+% NENÍ to styl studijních materiálů - ty používají common_latex/szzmaterial.sty
+% (boxový vzhled rámeček-vs-lišta). Tyto dva styly jsou záměrně oddělené:
+% priklady zůstávají v střídmé sazbě (Latin Modern, amsthm), aby se hotové a
+% fact-checknuté PDF otázek neměnily.
+%
+% Co fragmenty/agregátory z tohoto balíčku reálně používají:
+%   - \szzotazka{<termín>}{<číslo>}{<název>}  ... značka reálné otázky (ve fragmentech q_*.tex)
+%   - prostředí poznamka                       ... úvodní poznámka v agregátoru
+%   - amsthm prostředí (definice/veta/...)      ... kdyby otázka citovala definici či větu
+%   - graphicx                                  ... obrázky oříznuté z originálních PDF (src/fig/)
+%
+% Určeno pro LuaLaTeX. Nalezení souboru zajišťuje TEXINPUTS (viz build.sh / .latexmkrc).
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{szzpriklady}[2026/05/26 v1.1 Styl pro priklady/ (realne otazky SZZ)]
+
+% --- Sazba a jazyk (LuaLaTeX) ---
+\usepackage{fontspec}            % defaultně Latin Modern (má české znaky)
+\usepackage[czech]{babel}
+\usepackage{microtype}
+
+% --- Geometrie stránky ---
+\usepackage[a4paper,margin=2.5cm]{geometry}
+
+% --- Matematika ---
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+
+% --- Grafika, tabulky, seznamy ---
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+% --- Kód ---
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,
+  showstringspaces=false,columns=fullflexible}
+
+% --- C# styl pro listings (pro fialové boxy "Lehčí v C#") ---
+\lstdefinestyle{cs}{language={[Sharp]C},basicstyle=\ttfamily\small,breaklines=true,
+  frame=single,showstringspaces=false,columns=fullflexible,
+  keywordstyle=\color{blue!60!black}\bfseries,commentstyle=\color{black!55}\itshape,
+  stringstyle=\color{purple!70!black}}
+
+% --- Fialový box "Lehčí v C#" (csalt): protějšek stejnojmenného boxu z výkladu I3.
+%     Použití: \begin{csalt}[podtitulek] ... \end{csalt}
+%     Přidává se do priklady/ tam, kde je dle požadavků C# znatelně jednodušší než C++.
+%     POZOR: komentáře v kódu PSÁT BEZ DIAKRITIKY (Latin Modern Mono v priklady). ---
+\usepackage[most]{tcolorbox}
+\newtcolorbox{csalt}[1][]{enhanced,breakable,colback=violet!4,colframe=violet!60!black,
+  boxrule=0.7pt,arc=2pt,left=8pt,right=8pt,top=4pt,bottom=5pt,
+  fonttitle=\bfseries,coltitle=white,colbacktitle=violet!60!black,
+  title={Lehčí v~C\# \textemdash\ #1}}
+
+% --- Odkazy ---
+\usepackage[hidelinks]{hyperref}
+% Dlouhé URL (např. web MFF) se smí zalomit i za pomlčkou.
+\makeatletter\g@addto@macro{\UrlBreaks}{\do\-}\makeatother
+
+% --- Prostředí vět (česky) - pro případ, že otázka cituje definici/větu ---
+\theoremstyle{definition}
+\newtheorem{definice}{Definice}[section]
+\newtheorem{veta}[definice]{Věta}
+\newtheorem{lemma}[definice]{Lemma}
+\newtheorem{dusledek}[definice]{Důsledek}
+\newtheorem{priklad}[definice]{Příklad}
+\theoremstyle{remark}
+\newtheorem*{poznamka}{Poznámka}
+% \proofname je díky babel-czech nastaveno na "Důkaz"
+
+% --- Značka reálné otázky z minulých termínů (klíčové makro fragmentů q_*.tex) ---
+% Použití: \szzotazka{léto 2025}{27}{CSP}
+\newcommand{\szzotazka}[3]{\par\noindent\textit{(Reálná otázka: #1, č.~#2 -- #3)}\par}

@@ -1,0 +1,39 @@
+% !TeX program = lualatex
+% Agregátor reálných otázek SZZ pro okruh M4. Jednotlivé otázky jsou v souborech q_*.tex.
+% Sestavení: ./build.sh 01_spolecna_matematika/M4_teorie_grafu/priklady   (nebo cd .../priklady && latexmk)
+\documentclass[11pt,a4paper]{article}
+\usepackage{szzpriklady}
+% Build běží z adresáře priklady/ (CWD), obrázky jsou v src/fig/.
+\graphicspath{{src/fig/}{fig/}}
+
+\title{Příklady otázek -- Teorie grafů\\[0.3em]\large Reálné otázky ze SZZ 2023--2026 (M4)}
+\author{Jakub Klesa}
+\date{Pokryté předměty: NDMI002 (Diskrétní matematika), NDMI011 (Kombinatorika a grafy 1)}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\bigskip
+
+\begin{poznamka}
+Tento dokument obsahuje reálné otázky z minulých termínů SZZ (2023--2026) zařazené do
+okruhu M4. U otázek s obrázkem je grafika oříznutá z originálního PDF (viz odkaz na
+zdroj). Text, číselná data a tabulky jsou přepsané věrně.
+Zadání i oficiální náčrty řešení pocházejí ze sad zveřejněných na webu MFF UK:\par
+{\raggedright\url{https://www.mff.cuni.cz/cs/studenti/bakalarske-studium/statni-zaverecne-zkousky/bakalarske-statni-zkousky-studijniho-programu-informatika}\par}
+Náčrty označené jako doplněné jsou vlastní, oficiální sada je k~dané otázce neobsahuje.
+Vlastní doplnění k~oficiálním náčrtům jsou uvedena v~odděleném bloku \emph{Doplňující vysvětlení}.
+\end{poznamka}
+\bigskip
+
+% === Otázky (chronologicky). Doplň \input řádky a soubory q_*.tex do src/. ===
+% Příklad: \input{q_2024-leto-28_bayesovske-site}
+% ZACATEK-OTAZEK
+\input{src/q_2023-jaro-04_rovinne-grafy}
+\input{src/q_2023-podzim-03_souvislost-grafu}
+\input{src/q_2024-podzim-04_barevnost-grafu}
+\input{src/q_2025-jaro-04_eulerovske-grafy}
+\input{src/q_2026-jaro-04_rovinne-grafy}
+% KONEC-OTAZEK
+
+\end{document}

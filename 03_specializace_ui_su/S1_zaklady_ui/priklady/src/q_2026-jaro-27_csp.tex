@@ -1,0 +1,42 @@
+% Zdroj: PDF priklady-jaro-2026.pdf, fyzická str. 21. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S1 (CSP / hranová konzistence).
+\section{CSP}
+\szzotazka{jaro 2026}{27}{CSP (binární CSP, hranová konzistence, AC-3)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}[nosep]
+  \item Definujte binární Constraint Satisfaction Problem (CSP), konkrétně vstup a výstup tohoto problému. Co znamená ,,hranová konzistence`` v kontextu CSP?
+  \item Pokud je problém hranově konzistentní, je zaručeno, že je splnitelný? Pokud problém není hranově konzistentní, může být stále splnitelný? Svou odpověď zdůvodněte nebo poskytněte protipříklady.
+  \item Uvažte následující binární CSP, aplikujte algoritmus AC-3 pro dosažení hranové konzistence. Součástí řešení musí být postup.
+
+  Mějme celočíselné proměnné $A, B, C$ a $D$ s doménami:
+  \begin{align*}
+    D_A &= \{1\} \\
+    D_B &= \{1, 2, 3\} \\
+    D_C &= \{1, 2, 3\} \\
+    D_D &= \{1, 2, 3\}
+  \end{align*}
+  Podmínky:
+  \begin{align*}
+    C_1 &: C + D = 4 \\
+    C_2 &: A + B \leq 3 \\
+    C_3 &: B + C \geq 4
+  \end{align*}
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}[nosep]
+  \item CSP je definován množinou proměnných, doménou (tj. množinou hodnot) pro každou proměnnou a množinou podmínek nad proměnnými. V binárním CSP může každá podmínka obsahovat maximálně dvě proměnné. Podmínka je hranově konzistentní, pokud pro každou hodnotu z domény každé proměnné v dané podmínce existuje přípustná hodnota z domény ostatních proměnných z dané podmínky. Problém je hranově konzistentní, pokud je každá podmínka hranově konzistentní.
+  \item Hranově konzistentní problém nemusí být splnitelný. Například tři proměnné $X_1, X_2, X_3$ s binárními doménami $\{0, 1\}$ a podmínkami pro každou dvojici $X_i \neq X_j$. Hranově nekonzistentní problém může být splnitelný. Například příklad ze zadání.
+  \item Algoritmus AC-3 mění domény proměnných tak, aby byly všechny podmínky hranově konzistentní. Podmínky, které obsahují proměnné, kterým se změnily domény, se musí zkontrolovat znovu. Hranově konzistentní problém má domény $D_A = \{1\}$, $D_B = \{1, 2\}$, $D_C = \{2, 3\}$, $D_D = \{1, 2\}$.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Postup AC-3 (revize hrany $(X,Y)$ vyřadí z~$D_X$ hodnoty bez opory v~$D_Y$; po zúžení $D_X$ se do fronty vrátí hrany $(Z,X)$ od ostatních sousedů $Z$):
+\begin{enumerate}[nosep]
+  \item $C_2$, revize $(B,A)$: $A=1$ a~$A+B\le3$ dává $B\le2$, vyřadí se $B=3$, $D_B=\{1,2\}$. Revize $(A,B)$ nic nemění.
+  \item $C_3$, revize $(C,B)$: $B\le2$ a~$B+C\ge4$ dává $C\ge2$, vyřadí se $C=1$, $D_C=\{2,3\}$. Revize $(B,C)$ nic nemění ($b=1$ i~$b=2$ má oporu $c=3$).
+  \item Zúžila se $D_C$, do fronty se vrací $(D,C)$: $C+D=4$ a~$C\in\{2,3\}$ dává $D\in\{1,2\}$, vyřadí se $D=3$.
+  \item Zúžila se $D_D$, do fronty se vrací $(C,D)$: $c=2$ má oporu $d=2$, $c=3$ oporu $d=1$, beze změny. Fronta se vyprázdní.
+\end{enumerate}
+Výsledek odpovídá náčrtu. Protože původní domény obsahovaly hodnoty bez opory (např.\ $B=3$), zadaný problém hranově konzistentní nebyl, a~přesto je splnitelný (např.\ $A=1$, $B=2$, $C=2$, $D=2$); to je protipříklad, na který náčrt v~bodě~2 odkazuje.

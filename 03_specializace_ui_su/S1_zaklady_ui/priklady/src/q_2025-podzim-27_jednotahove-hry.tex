@@ -1,0 +1,70 @@
+% Zdroj: PDF priklady-podzim-2025.pdf, fyzická str. 22. Značka: specializace UI-SU, UI-ZPJ, UI-ROB. Zařazeno: S1 (teorie her). Výplatní matice přepsány do LaTeXu.
+\section{Jednotahové hry}
+\szzotazka{podzim 2025}{27}{Jednotahové hry (Nash, dominantní strategie, Pareto)}
+
+\noindent\textbf{Zadání.}\par
+Uvažte jednotahové hry, kdy hráči volí tahy naráz a jejich odměna je přiřazena na základě kombinace zvolených tahů.
+\begin{enumerate}[label=(\Alph*),nosep]
+  \item Pro jednotahové hry dvou hráčů napište definice pojmů \textit{dominantní strategie}, \textit{Nashovo ekvilibrium} a \textit{Pareto optimální výsledek}.
+  \item V následujících maticích každé políčko obsahuje dvě čísla, která udávají zisk hráčů $A$ a $B$ po vykonání akcí \textit{Right} nebo \textit{Left}. Hráči zisk maximalizují. Pro tyto tři jednotahové hry napište všechny dominantní strategie, Nashova ekvilibria a Pareto optimální výsledky.
+  \item Pomocí těchto příkladů vysvětlete rozdíly mezi všemi dvojicemi pojmů definovaných v části (A).
+\end{enumerate}
+
+\begin{center}
+\begin{tabular}{cc|c|c}
+  & & \multicolumn{2}{c}{$B$} \\
+  & & Left & Right \\
+\hline
+$A$ & Left  & $A = 10,\ B = 5$ & $A = 7,\ B = 8$ \\
+    & Right & $A = 0,\ B = 6$  & $A = 15,\ B = 7$ \\
+\end{tabular}
+
+\smallskip
+Tabulka 1: Hra (1)
+\end{center}
+
+\begin{center}
+\begin{tabular}{cc|c|c}
+  & & \multicolumn{2}{c}{$B$} \\
+  & & Left & Right \\
+\hline
+$A$ & Left  & $A = 100,\ B = 100$ & $A = 0,\ B = 0$ \\
+    & Right & $A = 0,\ B = 0$     & $A = 50,\ B = 50$ \\
+\end{tabular}
+
+\smallskip
+Tabulka 2: Hra (2)
+\end{center}
+
+\begin{center}
+\begin{tabular}{cc|c|c}
+  & & \multicolumn{2}{c}{$B$} \\
+  & & Left & Right \\
+\hline
+$A$ & Left  & $A = 20,\ B = 20$ & $A = 0,\ B = 40$ \\
+    & Right & $A = 40,\ B = 0$  & $A = 10,\ B = 10$ \\
+\end{tabular}
+
+\smallskip
+Tabulka 3: Hra (3)
+\end{center}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, čistá ekvilibria ověřena prohledáním všech profilů, smíšená výpočtem přes princip indiference.)}\par
+
+\noindent\emph{(A) Definice.} \textit{Dominantní strategie} hráče je akce, která mu dá lepší výsledek než kterákoli jiná jeho akce \emph{při každé} volbě soupeře. \textit{Nashovo ekvilibrium} je profil voleb, v~němž si žádný hráč jednostrannou změnou své akce nepolepší (stabilní vůči jednostranné odchylce). \textit{Pareto optimální výsledek} je výsledek, který nelze zlepšit všem hráčům zároveň (neexistuje jiný výsledek, jejž by všichni preferovali).
+
+\noindent\emph{(B) Analýza tří her} (výsledky jako (zisk $A$, zisk $B$)):
+\begin{itemize}[nosep]
+  \item \textbf{Hra 1.} $B$ má dominantní strategii \emph{Right} (při $A$=Left: $8>5$; při $A$=Right: $7>6$); $A$ dominantní strategii nemá. Jediné Nashovo ekvilibrium je \emph{čisté}: $(\text{Right},\text{Right})=(15,7)$. \emph{Vlastní smíšené} ekvilibrium neexistuje: $B$ hraje svou ostře dominantní \textit{Right} s~pravd.\ $1$ v~každé rovnováze, a~$A$ na to nejlépe odpoví čistou \textit{Right} ($15>7$) -- ani jeden hráč tedy nerandomizuje. Pareto optimální: $(15,7)$ a~$(7,8)$ (navzájem neporovnatelné -- vyšší zisk $A$ proti vyššímu zisku $B$).
+  \item \textbf{Hra 2} (koordinační). Dominantní strategie nemá nikdo. Dvě \emph{čistá} Nashova ekvilibria: $(\text{Left},\text{Left})=(100,100)$ a~$(\text{Right},\text{Right})=(50,50)$. Navíc existuje \emph{vlastní smíšené} Nashovo ekvilibrium: oba hrají \textit{Left} s~pravděpodobností $\tfrac13$ a~\textit{Right} s~pravděpodobností $\tfrac23$. (Z~principu indiference: hraje-li $A$ \textit{Left} s~pravd.\ $p$, je $B$ lhostejný, právě když $100p=50(1-p)$, tj.\ $p=\tfrac13$; symetricky pro~$A$.) Očekávaný zisk každého je pak $100\cdot\tfrac13=33{,}\overline3$, tedy horší než v~obou čistých rovnováhách. Celkem má tedy hra~2 \textbf{tři} Nashova ekvilibria (dvě čistá, jedno smíšené). Pareto optimální: jen $(100,100)$ -- výsledek $(50,50)$ je Pareto-dominován $(100,100)$.
+  \item \textbf{Hra 3} (struktura vězňova dilematu). Oba mají dominantní strategii \emph{Right} ($A$: $40>20$, $10>0$; $B$ symetricky). Jediné Nashovo ekvilibrium je \emph{čisté}: $(\text{Right},\text{Right})=(10,10)$; protože ostře dominantní \textit{Right} hrají oba s~pravd.\ $1$, \emph{vlastní smíšené} ekvilibrium neexistuje. Pareto optimální: $(20,20),(0,40),(40,0)$. Nashův výsledek $(10,10)$ je Pareto-\emph{dominován} výsledkem $(20,20)$ -- racionální sobecká hra vede k~výsledku horšímu pro~oba.
+\end{itemize}
+
+\noindent\emph{(C) Rozdíly mezi pojmy.}
+\begin{itemize}[nosep]
+  \item \emph{Dominance vs.\ Nash}: profil v~dominantních strategiích je vždy Nash (hry 1, 3), ale Nash \emph{nemusí} pocházet z~dominance -- hra~2 nemá žádnou dominantní strategii, a~přesto má dvě Nashova ekvilibria. Existence Nashe tedy nevyžaduje dominanci.
+  \item \emph{Nash vs.\ Pareto}: Nash je o~\emph{stabilitě} (nikdo neodbočí), Pareto o~\emph{kolektivní dobrotě}. V~hře~3 je Nash $(10,10)$ Pareto-dominovaný (stabilní, ale pro~oba špatný); v~hře~1 je Nash $(15,7)$ Pareto optimální. Mohou se, ale nemusí krýt.
+  \item \emph{Dominance vs.\ Pareto}: hra v~dominantních strategiích nezaručuje Pareto optimum -- hra~3 končí v~Pareto-dominovaném $(10,10)$. To je jádro vězňova dilematu.
+  \item \emph{Čisté vs.\ smíšené Nashovo ekvilibrium}: ostře dominovaná strategie není v~nosiči žádné rovnováhy, takže hry~1 a~3 (dominance) mají jen čistou NE. Naproti tomu koordinační hra~2 má vedle dvou čistých i~smíšenou NE -- konečná hra má dle Nashovy věty vždy aspoň jednu, případně právě jen smíšenou.
+\end{itemize}

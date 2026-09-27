@@ -1,0 +1,72 @@
+% Zdroj: PDF priklady-leto-2023.pdf, fyzická str. 4-5. Značka: otázka studijního zaměření. Zařazeno: I4.
+\section{Synchronizace}
+\szzotazka{léto 2023}{14}{Synchronizace}
+\noindent\textit{(Pozn.: v~rámci současné akreditace nešlo o~společnou otázku (q1--q4), ale o~otázku jiné specializace (specializační sekce, systémové zaměření, ne UI). Do společného okruhu I4 tedy formálně nepatří; tematicky sem ovšem spadá a~je výborná k~procvičení.)}\par
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+\item Načrtněte rozhraní semaforu a popište sémantiku jeho operací.
+\item Pomocí rozhraní z prvního bodu implementujte datovou strukturu a funkce pro řešení
+  problému producent-konzument, jejíž skica je uvedena níže. Není potřeba implementovat
+  vlastní datovou strukturu pro udržení seznamu vyprodukovaných (ale nespotřebovaných) dat,
+  stačí popsat její rozhraní. To ale samo o sobě nesmí poskytovat žádné záruky ohledně
+  synchronizace.
+
+\begin{lstlisting}[language=C]
+typedef struct {
+    ...
+} prodcons_t;
+
+void prodcons_init (prodcons_t *prodcons, int capacity) { ... }
+
+void prodcons_produce (prodcons_t *prodcons, void *item) { ... }
+void *prodcons_consume (prodcons_t *prodcons) { ... }
+\end{lstlisting}
+
+V~odpovědi používejte programovací jazyk C nebo C++, ale kromě rozhraní z prvního bodu
+nepoužívejte žádné další nástroje pro synchronizaci.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textbf{(1)~Rozhraní semaforu.} Semafor drží nezáporný čítač a~frontu čekajících vláken.
+Operace \texttt{down} (P): je-li čítač $>0$, sníží ho; jinak vlákno \emph{pasivně} zablokuje
+a~zařadí do fronty. Operace \texttt{up} (V): je-li někdo ve frontě, probudí ho; jinak čítač
+zvýší. Obě operace jsou atomické.
+
+\textbf{(2)~Producent--konzument.} Použijeme tři semafory: \texttt{free} (volná místa, init
+\texttt{capacity}), \texttt{items} (připravené položky, init~0) a~binární \texttt{mtx}
+(vzájemné vyloučení nad bufferem, init~1). Buffer \texttt{buf} má jen rozhraní
+\texttt{buffer\_push}/\texttt{buffer\_pop} bez vlastní synchronizace.
+\begin{lstlisting}[language=C]
+typedef struct {
+    semaphore free;    // init = capacity (volna mista)
+    semaphore items;   // init = 0        (pripravene polozky)
+    semaphore mtx;     // init = 1        (vzajemne vylouceni nad bufferem)
+    buffer_t buf;      // push/pop bez vlastni synchronizace
+} prodcons_t;
+
+void prodcons_produce(prodcons_t *pc, void *item) {
+    down(&pc->free);            // pockej na volne misto
+    down(&pc->mtx);
+    buffer_push(&pc->buf, item);
+    up(&pc->mtx);
+    up(&pc->items);             // ohlas novou polozku
+}
+void *prodcons_consume(prodcons_t *pc) {
+    down(&pc->items);           // pockej na polozku
+    down(&pc->mtx);
+    void *item = buffer_pop(&pc->buf);
+    up(&pc->mtx);
+    up(&pc->free);              // uvolni misto
+    return item;
+}
+\end{lstlisting}
+Invarianty \texttt{free} $=\texttt{capacity}-\text{počet položek}$ a~\texttt{items} $=\text{počet
+položek}$ zaručují, že se nezapisuje do plného a~nečte z~prázdného bufferu. Počítací semafor se
+získává \emph{před} \texttt{mtx} (jinak by hrozil deadlock). \texttt{mtx} je potřeba i~při jediném
+producentovi a~konzumentovi, protože \texttt{push} a~\texttt{pop} mohou běžet současně nad touž
+nesynchronizovanou strukturou.
+
+\smallskip
+\textit{(Náčrt doplněn k~výkladu okruhu; otázka nemá v~PDF řešení, správnost ověřena rozborem invariantů a~pořadí operací.)}

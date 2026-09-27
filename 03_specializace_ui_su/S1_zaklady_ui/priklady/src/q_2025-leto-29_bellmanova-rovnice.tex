@@ -1,0 +1,45 @@
+% Zdroj: PDF priklady-leto-2025.pdf, fyzická str. 22-23. Značka: specializace UI-SU, UI-ZPJ, UI-ROB. Zařazeno: S1 (MDP / Bellmanova rovnice).
+\section{Bellmanova rovnice užitku}
+\szzotazka{léto 2025}{29}{Bellmanova rovnice užitku (MDP, iterace strategií)}
+
+\noindent\textbf{Zadání.}\par
+Robot se pohybuje v konečném stavovém prostoru $S$. Pro každý stav $s \in S$ známe množinu možných akcí $A(s)$ a pravděpodobnost $P(s' \mid s, a)$, že se robot ze stavu $s$ akcí $a \in A(s)$ přesune do stavu $s' \in S$. Při průchodu stavem $s \in S$ dostane robot odměnu (reward) $R(s)$. Celkový užitek ze stavu $s'$ je diskontován faktorem $\gamma = 0.9$.
+
+\begin{enumerate}[label=(\arabic*),nosep]
+  \item Napište rovnici pro výpočet maximálního užitku (utility) $U(s)$ ve stavu $s$.
+\end{enumerate}
+
+\begin{center}\includegraphics[width=0.8\linewidth]{mdp-stavovy-graf.png}\end{center}
+
+Obrázek udává stavový prostor, odměnu v jednotlivých stavech a dvě možné akce z každého stavu kromě koncových stavů $E$ a $F$. Pravděpodobnost, že se robot přesune do stavu, který je daný orientovanou hranou zvolené akce, je 0.8 a ve zbylé pravděpodobnosti 0.2 se přesune do stavu, do kterého směřuje druhá možná akce.
+
+\begin{enumerate}[label=(\arabic*),nosep,start=2]
+  \item Napište soustavu rovnic, jejichž řešení dá užitky jednotlivých stavů, jestliže zadáme robotu akce (strategii/policy) $B \to C$, $C \to D$ a $D \to F$.
+  \item Jakým algoritmem bychom tuto soustavu vyřešili?
+  \item Jak ze spočtených užitků zjistíme, zda zadaná volba akcí dává maximální možné užitky pro všechny stavy?
+  \item Jak bychom pokračovali, abychom našli akce pro všechny stavy maximalizující užitek?
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, soustava ověřena numericky.)}\par
+
+\noindent Stavy a~odměny: $B(-3),C(1),D(1)$ (nekoncové), $E(5),F(6)$ (koncové). Akce: $B$ má $\{\to C,\to D\}$, $C$ má $\{\to D,\to E\}$, $D$ má $\{\to F,\to B\}$; zvolená akce vede do~svého cíle s~pravd.\ $0{,}8$, do~cíle druhé akce s~pravd.\ $0{,}2$. Koncové užitky $U(E)=R(E)=5$, $U(F)=R(F)=6$.
+
+\noindent\emph{(1) Bellmanova rovnice} (maximální užitek):
+\[ U(s)=R(s)+\gamma\,\max_{a\in A(s)}\sum_{s'} P(s'\mid s,a)\,U(s'). \]
+
+\noindent\emph{(2) Soustava pro strategii} $B\to C,\ C\to D,\ D\to F$ (pevná strategie $\Rightarrow$ odpadá $\max$, rovnice jsou lineární):
+\[
+\begin{aligned}
+U(B)&=-3+0{,}9\,[\,0{,}8\,U(C)+0{,}2\,U(D)\,],\\
+U(C)&=\ \ 1+0{,}9\,[\,0{,}8\,U(D)+0{,}2\cdot5\,],\\
+U(D)&=\ \ 1+0{,}9\,[\,0{,}8\cdot6+0{,}2\,U(B)\,].
+\end{aligned}
+\]
+
+\noindent\emph{(3) Algoritmus řešení.} Jde o~\emph{vyhodnocení strategie} (policy evaluation): tři lineární rovnice o~třech neznámých vyřešíme přímo (Gaussova eliminace, $O(n^3)$), případně iterativně zjednodušeným Bellmanovým updatem bez~$\max$, dokud se užitky neustálí. Řešení:
+\[ \boxed{U(B)\approx 2{,}383,\quad U(C)\approx 6{,}039,\quad U(D)\approx 5{,}749},\qquad U(E)=5,\ U(F)=6. \]
+
+\noindent\emph{(4) Test optimality.} Pro každý stav ověříme \emph{Bellmanovo optimalitní kritérium}: zda zvolená akce dosahuje $\max_a \sum_{s'} P(s'\mid s,a)U(s')$, tj.\ zda by krok zlepšení strategie nezměnil akci. Spočítáme očekávaný užitek obou akcí (z~užitků výše): $B$: $\to C$ dá $5{,}981$ vs.\ $\to D$ $5{,}807$; $C$: $\to D$ dá $5{,}599$ vs.\ $\to E$ $5{,}150$; $D$: $\to F$ dá $5{,}277$ vs.\ $\to B$ $3{,}106$. V~každém stavu je zvolená akce lepší, takže strategie \textbf{je optimální}.
+
+\noindent\emph{(5) Hledání optimálních akcí.} Obecně \emph{iterace strategií} (policy iteration): střídáme vyhodnocení strategie (bod~3) a~zlepšení strategie (v~každém stavu vezmi akci s~nejvyšším očekávaným užitkem, bod~4), dokud se strategie přestane měnit. Zde jsme v~bodě~4 ověřili, že daná strategie je optimální, takže iterace strategií by skončila hned.

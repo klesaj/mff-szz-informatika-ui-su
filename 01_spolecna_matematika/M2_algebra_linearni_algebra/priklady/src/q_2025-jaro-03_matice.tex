@@ -1,0 +1,40 @@
+% Zdroj: PDF priklady-jaro-2025.pdf, fyzická str. 3. Značka: společné okruhy. Zařazeno: M2.
+\section{Matice}
+\szzotazka{jaro 2025}{3}{Matice}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Najděte symetrickou matici $S \in \mathbb{R}^{3 \times 3}$ takovou, aby
+    \[
+      \operatorname{Ker}(S) = \operatorname{span}\{(1,5,1)^T, (0,2,1)^T\}.
+    \]
+  \item Definujte pojem \textit{podobné matice} a stanovte, které z následujících veličin mají podobné matice stejné: hodnost, determinant, jádro.
+  \item Matice
+    \[
+      A = \begin{pmatrix}
+        2 & 2 & 3 \\
+        0 & -1 & -4 \\
+        1 & 2 & 4
+      \end{pmatrix}
+    \]
+    má vlastní čísla 3 a 1. Rozhodněte, zda existuje báze, vzhledem k níž má lineární zobrazení $f(x) = Ax$ matici v diagonálním tvaru.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Řádkový prostor matice je kolmý na jádro, čili je generován vektorem $(3,-1,2)^T$. Ze symetrie pak matice musí mít tvar
+    \[
+      S = \alpha(3,-1,2)^T(3,-1,2) = \alpha \begin{pmatrix}
+        9 & -3 & 6 \\
+        -3 & 1 & -2 \\
+        6 & -2 & 4
+      \end{pmatrix},
+    \]
+    kde $\alpha \neq 0$.
+  \item Matice $A, B \in \mathbb{R}^{n \times n}$ jsou podobné, pokud existuje regulární matice $R$ taková, že $A = RBR^{-1}$. Podobné matice mají stejnou hodnost i determinant. Jádro ne, například pro matice $A = \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}$, $B = \begin{pmatrix} 0 & 0 \\ 0 & 1 \end{pmatrix}$.
+  \item Ne, neexistuje. Vlastní číslo 1 je dvojnásobné, ale přísluší mu jen jeden vlastní vektor, neboť $\operatorname{rank}(A - I_3) = 2$. Tudíž matice nelze diagonalizovat.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} (1)~Vektor kolmý na oba generátory jádra dá vektorový součin $(1,5,1)\times(0,2,1)=(5\cdot1-1\cdot2,\ 1\cdot0-1\cdot1,\ 1\cdot2-5\cdot0)=(3,-1,2)$. Jádro má dimenzi~$2$, takže $\operatorname{rank}(S)=3-2=1$. Řádkový prostor je kolmý na jádro ($\operatorname{Ker}(S)=R(S)^\perp$), takže každý řádek $S$ je násobkem $(3,-1,2)$; ze symetrie totéž platí pro sloupce. Proto $S=\alpha\,v v^T$ s~$v=(3,-1,2)^T$ a~$\alpha\neq0$. Zkouška: $v^T(1,5,1)^T=3-5+2=0$ a~$v^T(0,2,1)^T=-2+2=0$. (3)~Že je právě číslo~$1$ dvojnásobné, plyne ze stopy: $\operatorname{trace}(A)=2-1+4=5=3+1+\lambda_3$, tedy $\lambda_3=1$. Matice $A-I_3=\begin{psmallmatrix}1&2&3\\0&-2&-4\\1&2&3\end{psmallmatrix}$ má 1.\ a~3.\ řádek stejný, takže $\operatorname{rank}(A-I_3)=2$ a~geometrická násobnost čísla~$1$ je $3-2=1$, menší než algebraická~$2$.

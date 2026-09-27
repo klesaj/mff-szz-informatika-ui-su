@@ -1,0 +1,146 @@
+% Zdroj: PDF priklady-podzim-2022.pdf, fyzická str. 1-2. Značka: společné okruhy. Zařazeno: I4. Číselné výsledky ověřeny numericky.
+\section{Virtuální paměť}
+\szzotazka{podzim 2022}{2}{Virtuální paměť (stránkování, 32-bit)}
+
+\noindent\textbf{Zadání.}\par
+Uvažujme procesor s~podporou stránkování. Virtuální i~fyzická adresa má 32 bitů, používá
+se jednoúrovňová stránkovací tabulka a~velikost stránky je 4\,KiB. Vedle nezbytných atributů
+lze pro každou stránku nastavit, zda ji smí proces modifikovat a~zda v~ní lze spouštět kód.
+Procesor navíc poskytuje informaci, zda se ke stránce přistupovalo a~zda do ní bylo zapsáno.
+
+\medskip
+\noindent\textbf{Část A.}
+\begin{enumerate}
+\item Navrhněte a~schematicky znázorněte formát položky stránkovací tabulky a~vysvětlete
+  význam jednotlivých polí. Položka musí obsahovat všechny nutné informace a~být efektivně
+  přístupná (nejvýše 1 čtení z~paměti).
+\item Kolik položek bude mít stránkovací tabulka a~kolik paměti zabere pro každý proces?
+\end{enumerate}
+
+\noindent\textbf{Část B.}
+\begin{enumerate}
+\item Napište (v~pseudokódu) funkci \texttt{create\_pte} se signaturou
+  \texttt{pte\_t create\_pte(address\_t phys\_addr, bool present, bool writable, bool executable)},
+  která pro zadanou fyzickou adresu a~atributy vrátí položku stránkovací tabulky.
+\item Napište (v~pseudokódu) funkci \texttt{void set\_mapping(pte\_t[] page\_table, address\_t virt\_addr, pte\_t entry)},
+  která do tabulky pro zadanou virtuální adresu vloží záznam.
+\end{enumerate}
+
+\noindent\textbf{Část C.}
+Souvislý blok 4 stránek virtuální paměti od adresy \texttt{0x0000B000} byl namapován na
+souvislý blok fyzické paměti. Blok je část heapu (lze číst a~modifikovat, nelze v~něm
+spouštět kód). Proces přečetl proměnnou (4\,B) z~virtuální adresy \texttt{0x0000CE90}, což
+bylo přeloženo na fyzickou adresu \texttt{0xA1018E90}. Pozměněnou hodnotu zapsal na
+virtuální adresu \texttt{0x0000D854}.
+\begin{enumerate}
+\item Na kterých fyzických adresách jsou uloženy položky stránkovací tabulky pro tento blok,
+  je-li tabulka v~souvislém bloku fyzické paměti od adresy \texttt{0x13400000}?
+\item Uveďte hexadecimální hodnoty všech položek tabulky pro tento rozsah, včetně všech atributů.
+\end{enumerate}
+
+V~odpovědi důsledně uvádějte číselnou soustavu -- prefix \texttt{0x} označuje šestnáctkovou soustavu.
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+
+\noindent\textit{Část A.2 (rozměry tabulky).}
+Stránka má $4\,\text{KiB}=2^{12}$\,B, takže offset uvnitř stránky tvoří dolních
+$\boxed{12}$ bitů a~číslo stránky horních $32-12=\boxed{20}$ bitů. Stránkovací tabulka má
+proto $2^{20}=\boxed{1\,048\,576}$ položek. Při velikosti položky 4\,B (32 bitů) zabere
+tabulka $2^{20}\cdot 4\,\text{B}=\boxed{4\,\text{MiB}}$ na proces.
+
+\medskip
+\noindent\textit{Část A.1 (návrh položky -- PTE, 32 bitů).}
+Číslo fyzického rámce (PFN) má rovněž $32-12=20$ bitů, vejde se tedy do horních 20 bitů
+položky [31:12]. Dolních 12 bitů (které by u~adresy tvořily offset) zbývá na příznaky --
+těch potřebujeme jen 5, takže 4-bytová položka bohatě stačí a~celá se přečte jedním přístupem
+do paměti. Rozložení polí je volbou návrháře; v~dalším pevně zafixujeme toto:
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{bity [31:12]} & \textbf{bit 6} & \textbf{bit 5} & \textbf{bit 2} & \textbf{bit 1} & \textbf{bit 0} \\
+\hline
+PFN (číslo rámce) & D & A & X & W & P \\
+\hline
+\end{tabular}
+\end{center}
+kde \textbf{P} = Present (platnost záznamu), \textbf{W} = Writable (proces smí stránku
+modifikovat), \textbf{X} = eXecutable (lze v~ní spouštět kód), \textbf{A} = Accessed
+(ke stránce se přistupovalo), \textbf{D} = Dirty (do stránky bylo zapsáno). Bity 3, 4, 7--11
+zůstávají rezervované (zde 0). Bity A a~D nastavuje hardware, ostatní spravuje OS.
+
+\medskip
+\noindent\textit{Část B (pseudokód).}
+\begin{lstlisting}
+function create_pte(phys_addr, present, writable, executable):
+    // PFN je v hornich 20 bitech, dolni offsetove bity vynulujeme
+    pte = phys_addr & 0xFFFFF000
+    // priznaky vskladame podle zvoleneho rozlozeni z casti A
+    if present:    pte = pte | 0x1   // bit 0: Present
+    if writable:   pte = pte | 0x2   // bit 1: Writable
+    if executable: pte = pte | 0x4   // bit 2: eXecutable
+    return pte
+
+procedure set_mapping(page_table, virt_addr, entry):
+    // cislo stranky = hornich 20 bitu virtualni adresy
+    index = virt_addr >> 12
+    page_table[index] = entry
+\end{lstlisting}
+
+\medskip
+\noindent\textit{Část C (překlad a~položky tabulky).}
+Stránka má \texttt{0x1000}\,B, číslo stránky je horních 20 bitů adresy (tj. adresa
+\texttt{>> 12}), offset dolních 12 bitů.
+
+Čtená virtuální adresa \texttt{0x0000CE90}: číslo stránky $=\texttt{0xC}$, offset
+$=\texttt{0xE90}$. Fyzická adresa \texttt{0xA1018E90} má stejný offset \texttt{0xE90}
+(souhlasí) a~rámec $=\texttt{0xA1018}$. Blok 4 stránek od \texttt{0x0000B000} jsou virtuální
+stránky \texttt{0xB}, \texttt{0xC}, \texttt{0xD}, \texttt{0xE}. Protože je mapování souvislé,
+rámce navazují:
+\[
+\texttt{0xB}\to\texttt{0xA1017},\quad
+\texttt{0xC}\to\texttt{0xA1018},\quad
+\texttt{0xD}\to\texttt{0xA1019},\quad
+\texttt{0xE}\to\texttt{0xA101A}.
+\]
+
+Příznaky A a~D: zápis proběhl na \texttt{0x0000D854} (stránka \texttt{0xD}) $\Rightarrow$
+stránka \texttt{0xD} je Accessed i~Dirty. Čtení proběhlo ze stránky \texttt{0xC}
+$\Rightarrow$ stránka \texttt{0xC} je jen Accessed (A=1, D=0). Stránky \texttt{0xB}
+a~\texttt{0xE} nebyly použity (A=0, D=0). Protože jde o~heap, je u~všech P=1, W=1, X=0.
+
+\smallskip
+\noindent\textbf{C.1 -- adresy položek.} Tabulka začíná na \texttt{0x13400000}, položka má
+4\,B, adresa položky $=\text{báze}+\text{číslo\_stránky}\cdot 4$:
+\[
+\texttt{0xB}\!\to\!\boxed{\texttt{0x1340002C}},\quad
+\texttt{0xC}\!\to\!\boxed{\texttt{0x13400030}},\quad
+\texttt{0xD}\!\to\!\boxed{\texttt{0x13400034}},\quad
+\texttt{0xE}\!\to\!\boxed{\texttt{0x13400038}}.
+\]
+
+\noindent\textbf{C.2 -- hodnoty položek.} Hodnota $=(\text{PFN}\,{\ll}\,12)\,|\,\text{příznaky}$.
+Příznakové byty dle zvoleného rozložení: \texttt{0x03} = P+W (bity 0,1); \texttt{0x23} =
+P+W+Accessed (přidán bit 5 $=\texttt{0x20}$); \texttt{0x63} = P+W+A+Dirty (navíc bit 6
+$=\texttt{0x40}$).
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{stránka} & \textbf{rámec (PFN)} & \textbf{A, D} & \textbf{položka} \\
+\hline
+\texttt{0xB} & \texttt{0xA1017} & A=0, D=0 & $\boxed{\texttt{0xA1017003}}$ \\
+\hline
+\texttt{0xC} & \texttt{0xA1018} & A=1, D=0 & $\boxed{\texttt{0xA1018023}}$ \\
+\hline
+\texttt{0xD} & \texttt{0xA1019} & A=1, D=1 & $\boxed{\texttt{0xA1019063}}$ \\
+\hline
+\texttt{0xE} & \texttt{0xA101A} & A=0, D=0 & $\boxed{\texttt{0xA101A003}}$ \\
+\hline
+\end{tabular}
+\end{center}
+Přesné hodnoty příznakových bitů závisejí na zvoleném rozložení položky PTE z~části A;
+při jiném rozložení polí by se příznakové byty odpovídajícím způsobem změnily (PFN a~adresy
+položek zůstávají stejné).
+
+\medskip
+\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu, číselné výsledky ověřeny numericky.)}

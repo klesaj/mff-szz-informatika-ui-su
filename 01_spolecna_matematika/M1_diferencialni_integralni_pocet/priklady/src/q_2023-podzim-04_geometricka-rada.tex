@@ -1,0 +1,24 @@
+% Zdroj: PDF priklady-podzim-2023.pdf, fyzická str. 3. Značka: společné okruhy (matematika). Zařazeno: M1.
+\section{Geometrická řada}
+\szzotazka{podzim 2023}{4}{Geometrická řada}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Definujte geometrickou řadu: řada $\sum_{n=0}^{\infty} a_n$ je geometrická, právě když $a_n = \dots$.
+  \item Uveďte, jaké součty má geometrická řada (v závislosti na příslušných parametrech).
+  \item Sečtěte řadu $\dfrac{4}{9} + \dfrac{8}{27} + \dfrac{16}{81} + \cdots$. Odpověď přiměřeně zdůvodněte.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item $\dots$ právě když $a_n = q^n$ pro nějaké reálné číslo $q$.
+  \item Pro $|q| < 1$ má součet $\dfrac{1}{1-q}$, pro $q \geq 1$ má součet $+\infty$ a pro $q \leq -1$ součet nemá (součet neexistuje).
+  \item Součet je
+    \[
+      (2/3)^2 \sum_{n \geq 0} (2/3)^n = \frac{(2/3)^2}{1 - 2/3} = \frac{4}{3}.
+    \]
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} každý člen je $\tfrac23$-násobkem předchozího ($\tfrac{8}{27}=\tfrac23\cdot\tfrac49$, $\tfrac{16}{81}=\tfrac23\cdot\tfrac{8}{27}$) a první člen je $\tfrac49=(\tfrac23)^2$, takže člen s~indexem $n\ge0$ je $(\tfrac23)^2(\tfrac23)^n$. Po vytknutí $(\tfrac23)^2$ zbude geometrická řada s~kvocientem $q=\tfrac23$; protože $|q|<1$, konverguje a její součet dává vzorec z~bodu~2.

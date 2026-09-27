@@ -1,0 +1,132 @@
+% ============================================================
+\section{Podpora běhu operačního systému}
+% ============================================================
+
+Operační systém (OS) je program, který stojí mezi aplikacemi a~„holým`` hardwarem. Tato sekce vysvětluje, na čem stojí jeho schopnost tuto roli bezpečně zastat: na \emph{dvou režimech procesoru} (uživatelský a~privilegovaný), na řízeném přechodu mezi nimi přes \emph{systémové volání} a~na \emph{jádře} OS, které v~privilegovaném režimu spravuje prostředky. Detailní mechanismy obsluhy zařízení, procesů a~paměti rozebírají následující sekce; zde jde o~ten základní rámec.
+
+\subsection{Role operačního systému}
+
+\begin{definice}[Operační systém: dvě role]
+\emph{Abstraktní (rozšířený) stroj}: OS skrývá složitost a~rozmanitost hardwaru a~nabízí aplikacím jednotné, na konkrétním HW nezávislé rozhraní -- \emph{API jádra} v~podobě \emph{systémových volání} (typicky obalených do knihoven jazyka). Místo sektorů na disku či rámců na síťové kartě vidí aplikace soubory, streamy a~sokety.
+\emph{Správce prostředků} (resource manager): veškerý hardware spravuje OS a~sdílí jej mezi aplikacemi -- \emph{alokuje} paměť, \emph{sdílí v~čase} (time-sharing) procesor a~\emph{abstrahuje} zařízení (disk, síť).
+\end{definice}
+
+\begin{intuice}
+Bez OS by každá aplikace musela umět ovládat všechna zařízení všech výrobců, hlídat, aby si vzájemně nepřepsaly paměť, a~explicitně se domlouvat na sdílení procesoru. OS dá každé aplikaci \emph{iluzi}, že má paměť, procesor i~zařízení jen pro sebe. Aby tuto iluzi mohl udržet a~vynutit (žádná aplikace nesmí sahat na HW přímo), potřebuje \emph{hardwarovou podporu} -- právě dva režimy procesoru.
+\end{intuice}
+
+\subsection{Privilegovaný a neprivilegovaný režim procesoru}
+
+\begin{definice}[Uživatelský a privilegovaný režim]
+Procesor pracuje v~jednom ze dvou základních režimů.
+\emph{Uživatelský režim} (user mode) je neprivilegovaný: běží v~něm aplikace. Část prostředků je nedostupná nebo jen pro čtení -- zejména \emph{systémové (řídicí) registry} a~\emph{privilegované instrukce} (in/out, instrukce měnící režim, obsluhu přerušení a~tabulky překladu adres). Pokus o~privilegovanou instrukci vyvolá výjimku. Paměť jádra a~paměť mapovanou na zařízení aplikace nevidí, protože ji OS nenamapuje do jejího adresového prostoru (překlad adres, sekce~6).
+\emph{Privilegovaný (jádrový, systémový) režim} (kernel mode) je plně oprávněný: jsou dostupné \emph{všechny} registry a~instrukce a~je v~něm \emph{plný přístup ke všem prostředkům}. Běží v~něm jádro OS, případně jen jeho část.
+\end{definice}
+
+\begin{poznamka}
+Architektura x86 zavádí čtyři úrovně oprávnění zvané \emph{ringy} (ring~0 až ring~3). V~praxi se používají jen dvě krajní: \emph{ring~3} odpovídá uživatelskému režimu (aplikace) a~\emph{ring~0} privilegovanému režimu (jádro). Prostřední ringy~1 a~2 běžné OS nevyužívají. Aktuální úroveň oprávnění drží procesor ve svém stavu a~kontroluje ji u~každé citlivé instrukce.
+\end{poznamka}
+
+\subsection{Přechod mezi režimy a systémové volání}
+
+Aplikace nesmí volat libovolný kód jádra: nezná jeho adresy a~hlavně by tím obešla ochranu. Přechod do privilegovaného režimu jde proto \emph{jen} přes pevně daný \emph{vstupní bod jádra} (entry point).
+
+\begin{definice}[Systémové volání (syscall)]
+\emph{Systémové volání} je požadavek aplikace na službu jádra. Uživatelská instrukce \cd!syscall! (na starších x86 přerušení \cd!int 0x80!) způsobí, že procesor \emph{přepne do privilegovaného režimu} a~skočí na adresu vstupního bodu jádra uloženou v~systémovém registru (na x86-64 v~registru \texttt{IA32\_LSTAR}). Číslo služby a~argumenty předá aplikace v~registrech. Jádro požadavek obslouží a~instrukcí \cd!sysret! se vrátí zpět do uživatelského režimu na následující instrukci aplikace.
+\end{definice}
+
+\begin{intuice}
+Klíčové je, že cílovou adresu skoku určuje \emph{jádro} (uložilo si ji při startu), ne aplikace. Aplikace tedy nemůže „skočit doprostřed`` jádra s~právy ring~0; smí jen na definovaný vstupní bod, kde si jádro zkontroluje, co po něm chce. To je celé jádro ochrany: přechod oprávnění je svázán s~jediným pevným vstupem.
+\end{intuice}
+
+I~zdánlivě nevinný řádek vyššího jazyka se obvykle opírá o~systémové volání. Třeba výpis na obrazovku vede přes knihovnu (\cd!printf!, která text nejdřív ukládá do svého bufferu) na systémové volání zápisu (\texttt{write}), které data předá jádru, protože obrazovka i~standardní výstup jsou \emph{sdílené prostředky} spravované OS:
+
+\begin{lstlisting}[language=C]
+// User mode (ring 3): the application just calls a library function
+int main() {
+    printf("Hello");   // wrapped in libc -> issues a write() syscall
+}
+// The write() wrapper sets up registers and executes one instruction:
+//   syscall            jump to kernel entry, switch to ring 0
+//   ...                kernel handles the write to standard output
+//   sysret             return to ring 3, continue after the syscall
+\end{lstlisting}
+
+\begin{center}
+\scalebox{1.2}{%
+\begin{tikzpicture}[x=1cm,y=1cm]
+% --- dve vodorovne drahy (pruhy): horni = ring 3, dolni = ring 0 ---
+\fill[blue!5]  (0,2.1) rectangle (12,3.5);
+\fill[red!5]   (0,0)   rectangle (12,1.4);
+\draw[black!30] (0,2.1) rectangle (12,3.5);
+\draw[black!30] (0,0)   rectangle (12,1.4);
+\node[anchor=west,font=\small\bfseries,blue!55!black] at (0.15,3.33)
+  {uživatelský režim (ring 3)};
+\node[anchor=west,font=\small\bfseries,red!55!black]  at (0.15,1.15)
+  {jádrový režim (ring 0)};
+% --- uzivatelsky kod pred a po syscallu (horni draha) ---
+\node[komp,fill=blue!8,minimum width=22mm] (u1) at (1.9,2.58)
+  {uživatelský\\ kód};
+\node[komp,fill=blue!8,minimum width=24mm] (u2) at (10.0,2.58)
+  {pokračování\\ uživ. kódu};
+% --- vstupni bod + obsluha v jadre (dolni draha) ---
+\node[komp,fill=red!8,minimum width=22mm] (entry) at (4.6,0.7)
+  {vstupní bod\\ jádra};
+\node[komp,fill=red!8,minimum width=24mm] (handle) at (7.6,0.7)
+  {obsluha\\ syscallu};
+% --- prubeh v case (zleva doprava) ---
+\draw[flow] (u1) -- (3.55,2.58);
+\draw[flow] (entry) -- (handle);
+% prechod dolu: syscall (user -> kernel)
+\draw[flow,red!60!black,very thick] (4.6,2.55) -- (4.6,1.1);
+\node[font=\scriptsize\ttfamily,anchor=south west] at (4.7,1.7) {syscall};
+\node[font=\scriptsize,anchor=north west,red!60!black] at (4.7,1.68)
+  {ring 3$\to$0};
+% prechod nahoru: sysret (kernel -> user)
+\draw[flow,red!60!black,very thick] (8.6,1.1) -- (8.6,2.55);
+\node[font=\scriptsize\ttfamily,anchor=south east] at (8.5,1.7) {sysret};
+\node[font=\scriptsize,anchor=north east,red!60!black] at (8.5,1.68)
+  {ring 0$\to$3};
+% casova osa
+\draw[->,black!55] (0,-0.45) -- (12,-0.45) node[anchor=west,font=\scriptsize]{čas};
+\end{tikzpicture}}%
+\obrpopis{Systémové volání jako přechod mezi režimy. Uživatelský kód běží v~horní dráze (ring~3). Instrukce \texttt{syscall} přepne procesor do privilegovaného režimu a~předá řízení \emph{jedinému pevnému vstupnímu bodu jádra} (skok dolů), nikam jinam -- to je podstata ochrany. Jádro v~dolní dráze (ring~0) požadavek obslouží a~instrukcí \texttt{sysret} přepne zpět do ring~3 a~pokračuje uživatelský kód za voláním.}
+\end{center}
+
+\subsection{Jádro operačního systému}
+
+\begin{definice}[Jádro (kernel)]
+\emph{Jádro} je ústřední, vždy zavedená část OS, která běží v~privilegovaném režimu a~poskytuje aplikacím rozhraní přes systémová volání. Spravuje prostředky počítače -- typicky obsahuje subsystémy pro \emph{správu paměti}, \emph{správu a~plánování procesů a~vláken}, \emph{souborový systém}, \emph{síťový subsystém} a~\emph{ovladače zařízení}. Jako jediné má přímý přístup k~hardwaru.
+\end{definice}
+
+Podle toho, jak je jádro vnitřně uspořádané a~kolik kódu běží v~privilegovaném režimu, rozlišujeme základní architektury jádra:
+
+\begin{itemize}
+\item \textbf{Monolitické jádro} -- celé jádro je jeden program, subsystémy se volají jako běžné funkce a~mají stejná (plná) oprávnění. \emph{Výhody:} nízká režie komunikace, efektivní kód. \emph{Nevýhody:} chyba v~kterékoli části může shodit celý systém, žádná izolace subsystémů. Moderní monolity umějí navíc \emph{dynamicky zavádět moduly} (flexibilita za cenu ještě většího rizika). Příklad: \textbf{Linux} (monolit s~moduly), Solaris, tradiční Unixy.
+\item \textbf{Vrstvené jádro} -- subsystémy uspořádané do hierarchie vrstev, vrstva $n{+}1$ používá výhradně služby vrstvy~$n$. \emph{Výhody:} přehlednější, snáz rozšiřitelné. \emph{Nevýhody:} ne vždy jdou funkce čistě seřadit do vrstev, vrstvy přidávají režii.
+\item \textbf{Mikrojádro} -- v~privilegovaném režimu zůstane jen nezbytné minimum (obsluha přerušení, komunikace mezi procesy); subsystémy (souborový systém, ovladače, \dots) běží jako oddělené \emph{servery} v~uživatelském režimu a~komunikují předáváním \emph{zpráv} (klient/server). \emph{Výhody:} bezpečnost, robustnost, snadná rozšiřitelnost (chyba serveru neshodí jádro). \emph{Nevýhody:} pomalejší kvůli režii zpráv a~častému přepínání režimu. Příklady: MINIX, QNX, L4; myšlenka je částečně přejatá i~jinde (návrh jádra Windows, Linux FUSE -- souborový systém v~user space).
+\end{itemize}
+
+\begin{poznamka}
+Volba architektury je \emph{kompromis mezi izolací (odolností) a~efektivitou}: izolované subsystémy jsou bezpečnější, ale komunikace mezi nimi přes hranici režimu stojí čas. Podrobnosti jednotlivých architektur už jdou nad rámec doslovných požadavků okruhu (ty chtějí „jádro operačního systému``), proto je držíme heslovitě.
+\end{poznamka}
+
+\subsection{Řešený příklad: které operace vyžadují jádrový režim}
+
+\begin{priklad}[Které operace potřebují přechod do jádra]
+\textbf{Zadání.}\par
+U~každé z~následujících operací rozhodněte, zda vyžaduje přechod do jádrového režimu (systémové volání), nebo proběhne celá v~uživatelském režimu:
+(a)~čtení souboru z~disku, (b)~sečtení hodnot dvou registrů, (c)~vyžádání nové paměti od OS (např.\ \cd!malloc!, který nemá dost ve své rezervě), (d)~zápis textu na obrazovku, (e)~inkrementace lokální proměnné v~cyklu.
+
+\medskip
+\textbf{Řešení.}\par
+Pravidlo: \emph{přechod do jádra je nutný právě tehdy, sahá-li operace na sdílený hardwarový prostředek, který spravuje OS} (disk, paměťové mapování procesu, obrazovka/terminál, síť). Čistý výpočet nad registry a~vlastní pamětí procesu žádné syscall nepotřebuje.
+\begin{enumerate}
+\item[(a)] \textbf{Čtení souboru} -- \emph{ano, syscall} (\texttt{read}/\texttt{open}). Disk je sdílený prostředek, přístup k~němu jde jedině přes jádro a~jeho ovladač.
+\item[(b)] \textbf{Sečtení dvou registrů} -- \emph{ne}. Jedna aritmetická instrukce, čistý výpočet v~user mode; nesahá na žádný sdílený prostředek.
+\item[(c)] \textbf{Alokace nové paměti od OS} -- \emph{ano, syscall} (\texttt{mmap}/\texttt{brk}). Rozšířit adresový prostor procesu (zařídit mapování stránek) umí jen jádro. \emph{Pozn.:} pokud \cd!malloc! vystačí s~už dříve získaným blokem, žádný syscall se nekoná -- ten je čistě v~user space.
+\item[(d)] \textbf{Zápis na obrazovku} -- \emph{ano, syscall} (\texttt{write}). Standardní výstup/terminál je sdílený prostředek spravovaný OS (viz \cd!printf! výše).
+\item[(e)] \textbf{Inkrement lokální proměnné} -- \emph{ne}. Lokální proměnná žije v~registru nebo na zásobníku procesu; inkrement je jedna instrukce, žádné sdílení.
+\end{enumerate}
+Vyžadují jádro tedy (a), (c), (d); čistě v~user módu proběhnou (b)~a~(e).
+\end{priklad}

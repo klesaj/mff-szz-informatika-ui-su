@@ -1,0 +1,229 @@
+% Zdroj: PDF priklady-jaro-2023.pdf, fyzická str. 1-2. Značka: společná informatika I3. Zařazeno: I3.
+\section{Objektový návrh}
+\szzotazka{jaro 2023}{2}{Objektový návrh (bitmapový editor, polymorfismus, pluginy/DLL)}
+
+\noindent\textbf{Zadání.}\par
+Předpokládejte, že implementujeme aplikaci pro úpravu bitmapových obrázků. Uživatel
+bude moci mít otevřených více obrázků najednou. Nový obrázek si uživatel otevře
+v uživatelském rozhraní aplikace (UI) výběrem jména souboru -- aplikace dle přípony
+souboru rozhodne o jeho formátu. U otevřeného obrázku si uživatel může postupně
+vybírat některé z nabízených filtrů -- v UI aplikace si uživatel vždy vybere filtr
+a jeho konkrétní nastavení, ten se uloží do seznamu vybraných filtrů. Nakonec bude
+mít uživatel možnost všechny filtry najednou aplikovat. Každý otevřený soubor si
+uživatel může kdykoliv uložit buď v původním nebo jiném podporovaném bitmapovém
+formátu. Pro jednoduchost předpokládejte, že jednomu formátu obrázku odpovídá právě
+jedna přípona souboru (tj. např. pro JPEG formát jen přípona \texttt{.jpg} a nikoliv
+už \texttt{.jpeg}), a že všechny filtry mohou libovolně měnit obrazová data, ale
+rozměry obrázku v pixelech vždy zůstávají zachované.
+
+\medskip
+Zatím máme v C\# připravenou níže uvedenou kostru hlavních tříd našeho programu, kde
+třída \texttt{Image} reprezentuje načtená obrazová data (další metadata jako původní
+jméno souboru atd. si budeme pamatovat jinde; poznámka: \texttt{[,]} v C\# znamená
+dvojrozměrné pole), a metoda \texttt{Program.Main} představuje jednoduchý scénář
+využití uvedených tříd:
+
+\begin{lstlisting}[language={[Sharp]C}]
+struct Color { public byte R, G, B; }
+
+static class Filters {
+    public static void ApplySharpness(Image image, float amount, float radius) { ... }
+    public static void ApplyBrightness(Image image, float amount) { ... }
+}
+
+abstract class Image {
+    public Color[,] bitmap = null;
+    public abstract void Load(string fileName);
+    public abstract void Save(string fileName);
+}
+
+class PngImage : Image {
+    public override void Load(string fileName) { ... }
+    public override void Save(string fileName) { ... }
+}
+
+class JpegImage : Image {
+    public override void Load(string fileName) { ... }
+    public override void Save(string fileName) { ... }
+}
+
+static class ImageLoader {
+    public static Image Load(string fileName) {
+        Image image;
+        if (fileName.EndsWith(".png")) {
+            image = new PngImage();
+        } else if (fileName.EndsWith(".jpg")) {
+            image = new JpegImage();
+        } else {
+            throw new ArgumentException();
+        }
+        image.Load(fileName);
+        return image;
+    }
+}
+
+class Program {
+    public static void Main() {
+        var fileName = "a.jpg";
+        var image = ImageLoader.Load(fileName);
+        Filters.ApplySharpness(image, 9.0f, 1.3f);
+        Filters.ApplyBrightness(image, 1.7f);
+        image.Save(fileName);
+    }
+}
+\end{lstlisting}
+
+Přepracujte celý objektový návrh tak, aby lépe umožňoval implementovat, udržovat
+a dále rozšiřovat uvedenou aplikaci. Novou kostru kódu zapište v C\#, C++, nebo Javě.
+Soustřeďte se na návrh typů a jejich vztahů (vše zapisujte v syntaxi zvoleného
+jazyka), deklaraci metod a pouze klíčových vlastností (properties) a datových položek.
+Implementaci většiny metod uvádět nemusíte -- pouze upravte implementaci
+\texttt{Program.Main} tak, aby vhodně využívala váš OO návrh. Ve svém řešení uveďte
+také implementaci kódu, který bude ve vašem návrhu implementovat posloupnost kroků
+od jména obrazového souboru k výběru formátu souboru a načtení obrázku v tomto formátu.
+
+\medskip
+Ve svém návrhu zohledněte nejen snadnou možnost implementace všech aspektů výše
+načrtnutého scénáře používání aplikace, ale také to, že do budoucna budeme chtít
+přidávat velké množství různých filtrů -- implementaci nového filtru ale vždy
+plánujeme doplňovat do hlavních zdrojových kódů aplikace; nepředpokládáme, že bychom
+nové filtry dodávali ve formě pluginů. Tedy ve svém řešení zohledněte pouze možnost
+batchové aplikace předvybraných filtrů, ale nemusíte řešit žádnou komplikovanou
+infrastrukturu pro jejich obecný popis.
+
+\medskip
+Formou pluginů naopak budeme chtít přidávat podporu pro nové obrazové formáty.
+Předpokládejte tedy, že každý nově podporovaný obrazový formát budeme implementovat
+ve formě nového pluginu naší aplikace (který budeme za běhu načítat jako dynamicky
+linkovanou knihovnu) -- chceme tedy, aby proces načítání obrázků ze souboru byl
+dostatečně flexibilní a umožňoval nám za běhu dodat odkaz na nový formát souborů,
+který bychom nalezli v nějakém pluginu (samotné načítání pluginů a podporu pro načítání
+dynamicky linkovaných knihoven, ani přímo hledání popisu formátu v pluginu neřešte).
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu: vlastní vzorové řešení v~C++, ověřené překladem.)}
+
+\medskip
+Slabiny původní kostry: filtry jsou \texttt{static} metody (nejdou rozšiřovat bez zásahu do třídy \texttt{Filters}), výběr formátu je napevno v~\texttt{ImageLoader} (nejde dodat formát z~pluginu za běhu) a \texttt{Image} míchá obrazová data se čtením/zápisem. Přepracovaný návrh oddělí tři odpovědnosti do rozhraní a zavede registr formátů, do něhož smí plugin přidat formát za běhu.
+
+\textbf{(1) Obrazová data jako hodnotový typ} \texttt{Bitmap} (rozměry se nemění):
+\begin{lstlisting}[language=C++]
+struct Color { unsigned char r, g, b; };
+
+class Bitmap {                 // hodnotovy typ: drzi jen pixely
+    int w_, h_;
+    std::vector<Color> px_;    // w_*h_ pixelu, rozmery se nemeni
+public:
+    Bitmap(int w, int h) : w_(w), h_(h), px_(w * h) {}
+    int width()  const { return w_; }
+    int height() const { return h_; }
+    Color& at(int x, int y)             { return px_[y * w_ + x]; }
+    const Color& at(int x, int y) const { return px_[y * w_ + x]; }
+};
+\end{lstlisting}
+
+\textbf{(2) Filtr a formát jako rozhraní} (entitní typy, drží se přes \texttt{unique\_ptr}):
+\begin{lstlisting}[language=C++]
+struct IFilter {               // jeden filtr = jedna trida
+    virtual ~IFilter() = default;
+    virtual void Apply(Bitmap& bmp) const = 0;
+};
+struct IImageFormat {          // cteni/zapis jednoho formatu
+    virtual ~IImageFormat() = default;
+    virtual Bitmap Load(const std::string& file) const = 0;
+    virtual void   Save(const std::string& file, const Bitmap& bmp) const = 0;
+};
+
+class Sharpness : public IFilter {
+    float amount_, radius_;
+public:
+    Sharpness(float a, float r) : amount_(a), radius_(r) {}
+    void Apply(Bitmap&) const override { /* ... */ }
+};
+class Brightness : public IFilter {
+    float amount_;
+public:
+    explicit Brightness(float a) : amount_(a) {}
+    void Apply(Bitmap&) const override { /* ... */ }
+};
+class PngFormat  : public IImageFormat { /* Load, Save */ };
+class JpegFormat : public IImageFormat { /* Load, Save */ };
+\end{lstlisting}
+
+\textbf{(3) Registr formátů} -- klíč je přípona, hodnota je továrna na formát; plugin zaregistruje nový formát za běhu jediným voláním:
+\begin{lstlisting}[language=C++]
+class FormatRegistry {
+    std::map<std::string, std::function<std::unique_ptr<IImageFormat>()>> reg_;
+public:
+    void Register(const std::string& ext,
+                  std::function<std::unique_ptr<IImageFormat>()> factory) {
+        reg_[ext] = std::move(factory);     // sem smi sahnout i plugin za behu
+    }
+    std::unique_ptr<IImageFormat> ForFile(const std::string& file) const {
+        auto it = reg_.find(file.substr(file.rfind('.')));
+        if (it == reg_.end()) throw std::runtime_error("neznamy format");
+        return it->second();
+    }
+};
+\end{lstlisting}
+
+\textbf{(4) Dokument} drží data, formát a seznam vybraných filtrů:
+\begin{lstlisting}[language=C++]
+class Document {
+    Bitmap bmp_;
+    std::unique_ptr<IImageFormat> format_;
+    std::vector<std::unique_ptr<IFilter>> filters_;
+public:
+    Document(Bitmap b, std::unique_ptr<IImageFormat> f)
+        : bmp_(std::move(b)), format_(std::move(f)) {}
+    void AddFilter(std::unique_ptr<IFilter> f) { filters_.push_back(std::move(f)); }
+    void ApplyAll()                  { for (auto& f : filters_) f->Apply(bmp_); }
+    void Save(const std::string& file) { format_->Save(file, bmp_); }  // v puvodnim formatu
+    // ulozeni v jinem formatu: format vybran podle cilove pripony (symetricke k ForFile)
+    void SaveAs(const FormatRegistry& reg, const std::string& file) { reg.ForFile(file)->Save(file, bmp_); }
+};
+\end{lstlisting}
+
+\textbf{(5) Scénář} (cesta od jména souboru přes výběr formátu k načtení a úpravám):
+\begin{lstlisting}[language=C++]
+int main() {
+    FormatRegistry reg;
+    reg.Register(".png", []{ return std::make_unique<PngFormat>(); });
+    reg.Register(".jpg", []{ return std::make_unique<JpegFormat>(); });
+
+    std::string file = "a.jpg";
+    auto fmt   = reg.ForFile(file);        // dle pripony vyber format
+    Bitmap bmp = fmt->Load(file);          // nacti obrazek v tom formatu
+    Document doc(std::move(bmp), std::move(fmt));
+    doc.AddFilter(std::make_unique<Sharpness>(9.0f, 1.3f));
+    doc.AddFilter(std::make_unique<Brightness>(1.7f));
+    doc.ApplyAll();
+    doc.Save("a.jpg");           // v puvodnim formatu
+    doc.SaveAs(reg, "b.png");    // nebo v jinem podporovanem formatu
+}
+\end{lstlisting}
+
+Nový filtr = nová třída implementující \texttt{IFilter} (přidá se do kódu, nic dalšího se nemění). Nový formát = nová třída implementující \texttt{IImageFormat} plus jeden řádek \texttt{reg.Register}, který smí zavolat i plugin za běhu (požadovaná flexibilita načítání formátů). Uložení v~jiném formátu řeší \texttt{SaveAs}, jež vybere formát podle cílové přípony přes týž registr (\texttt{Save} ukládá v~původním formátu). \texttt{Bitmap} je hodnotový typ, \texttt{IFilter}/\texttt{IImageFormat} entitní (drženy přes \texttt{unique\_ptr}); o~úklid se stará RAII.
+
+\medskip
+\begin{csalt}[rozhraní + zásuvné moduly]
+Tatáž architektura je v~C\# kratší a~bezpečnější. Filtry i~formáty jsou \texttt{interface}
+(bez abstraktní třídy a~virtuálního destruktoru), o~úklid se stará GC (žádné \texttt{unique\_ptr}).
+Klíčová výhoda u~\emph{pluginů}: formát z~DLL se načte reflexí, ne ručním \texttt{dlopen} /
+\texttt{LoadLibrary} a~továrnami:
+\begin{lstlisting}[style=cs]
+interface IFilter      { void Apply(Bitmap b); }
+interface IImageFormat { string Extension { get; }            // napr. ".png"
+                         Bitmap Load(string path); void Save(Bitmap b, string path); }
+
+// nacteni pluginu za behu: najdi vsechny IImageFormat v DLL a zaregistruj
+foreach (var asm in Directory.GetFiles("plugins", "*.dll").Select(Assembly.LoadFrom))
+    foreach (var t in asm.GetTypes()
+                         .Where(t => typeof(IImageFormat).IsAssignableFrom(t) && !t.IsAbstract))
+    {   var f = (IImageFormat)Activator.CreateInstance(t)!;
+        registry.Register(f.Extension, f);                  // pripona -> format
+    }
+\end{lstlisting}
+Nový filtr/formát = nová třída implementující rozhraní; plugin se přidá bez rekompilace jádra.
+\end{csalt}

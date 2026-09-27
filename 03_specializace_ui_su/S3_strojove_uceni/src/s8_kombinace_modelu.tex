@@ -1,0 +1,244 @@
+\section{Kombinace více modelů}\label{sec:kombinace}
+
+Jeden model má svá omezení: lineární modely nezachytí nelinearity, jeden hluboký rozhodovací strom má vysoký \emph{rozptyl} (drobná změna dat dá úplně jiný strom; viz sekce~\ref{sec:stromy}). \textbf{Kombinace více modelů} (ensembling) tyto slabiny obchází tím, že více modelů necháme rozhodovat společně. Tato sekce pokrývá tři klasické přístupy: \textbf{bagging} (paralelní modely na bootstrapových vzorcích, snižuje rozptyl), \textbf{boosting} (sekvenční modely opravující chyby předchůdců) a~jejich nejznámější zástupce -- \textbf{random forest} (náhodný les), tj.\ bagging rozhodovacích stromů s~náhodným výběrem příznaků.
+
+\begin{intuice}
+Proč vůbec kombinovat? Představme si výbor expertů: pokud každý dělá chyby \emph{jinde} (jejich chyby nejsou korelované), pak hlasováním nebo průměrem se chyby navzájem vyruší a~výbor je lepší než kterýkoli jednotlivý expert. Naopak když všichni dělají \emph{tytéž} chyby, kombinace nepomůže. Celé umění ensemblingu je vyrobit modely, které jsou jednotlivě slušné, ale jejich chyby spolu \emph{nesouvisí}.
+\end{intuice}
+
+\begin{definice}[Kombinace modelů: hlasování a~průměrování]
+Mějme $M$ natrénovaných modelů $y_1,\dots,y_M$. Jejich predikce zkombinujeme do jediné:
+\begin{itemize}
+  \item \textbf{hard voting} (tvrdé hlasování) -- u~klasifikace vrátíme třídu, kterou predikuje \emph{nejvíce} modelů (většina);
+  \item \textbf{soft voting} (měkké hlasování / averaging) -- zprůměrujeme \emph{rozdělení pravděpodobností} tříd vracená modely a~vybereme třídu s~nejvyšší průměrnou pravděpodobností; u~regrese prostě zprůměrujeme číselné predikce.
+\end{itemize}
+\end{definice}
+
+\subsection{Bagging (bootstrap agregace)}
+
+\begin{definice}[Bootstrap, bagging]
+\textbf{Bootstrapový vzorek} trénovací množiny o~$N$ příkladech vznikne tak, že z~ní vylosujeme $N$ příkladů \emph{s~opakováním} (s~vracením). Vzniklá množina má stejnou velikost $N$, ale některé příklady obsahuje vícekrát a~jiné vůbec. \textbf{Bagging} (\emph{bootstrap aggregating}) natrénuje $M$ kopií téhož modelu, každou na vlastním nezávislém bootstrapovém vzorku, a~jejich predikce \emph{agreguje} -- u~regrese průměrem, u~klasifikace hlasováním.
+\end{definice}
+
+\begin{intuice}
+Losování s~opakováním vyrobí $M$ \emph{podobných, ale ne identických} trénovacích množin, takže vzniklé modely jsou různé. Bagging hlavně \textbf{snižuje rozptyl} (variance) odhadu, aniž zvýší vychýlení (bias): je proto ideální pro modely s~\emph{nízkým vychýlením a~vysokým rozptylem} -- typicky hluboké rozhodovací stromy. Zhruba $1/e\approx 37\,\%$ příkladů se do daného bootstrapového vzorku nedostane (tzv.\ \emph{out-of-bag} příklady); na nich lze model „zdarma`` validovat.
+\end{intuice}
+
+\begin{poznamka}[Proč právě bootstrap]
+Pro neuronové sítě často stačí trénovat modely s~různou náhodnou inicializací: ztráta má mnoho lokálních minim, takže modely vyjdou dost odlišné i~na stejných datech. U~modelů s~\emph{konvexní} ztrátovou funkcí (lineární či logistická regrese) ale učení na týchž datech konverguje k~témuž optimu bez ohledu na náhodnost (inicializaci, pořadí příkladů). Různé modely tu dostaneme jen změnou samotných trénovacích dat -- a~to dělá bagging.
+\end{poznamka}
+
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  ds/.style={draw,thick,rounded corners=2pt,fill=blue!8,minimum width=20mm,minimum height=8mm,align=center},
+  bs/.style={draw,thick,rounded corners=2pt,fill=yellow!18,minimum width=20mm,minimum height=7mm,align=center},
+  md/.style={draw,thick,rounded corners=2pt,fill=green!12,minimum width=20mm,minimum height=7mm,align=center},
+  ag/.style={draw,thick,rounded corners=2pt,fill=red!10,minimum width=22mm,minimum height=9mm,align=center},
+  fl/.style={->,>=Stealth,thick}]
+  \node[ds] (D) at (0,0) {trénovací\\množina $\mathcal{D}$};
+  \node[bs] (B1) at (3.6,2.0) {bootstrap $\mathcal{D}_1$};
+  \node[bs] (B2) at (3.6,0.0) {bootstrap $\mathcal{D}_2$};
+  \node[bs] (B3) at (3.6,-2.0) {bootstrap $\mathcal{D}_M$};
+  \node[md] (M1) at (7.0,2.0) {model $y_1$};
+  \node[md] (M2) at (7.0,0.0) {model $y_2$};
+  \node[md] (M3) at (7.0,-2.0) {model $y_M$};
+  \node[ag] (A) at (10.6,0.0) {agregace\\(hlasování\\/ průměr)};
+  \node[font=\scriptsize] at (3.6,-1.0) {\vdots};
+  \node[font=\scriptsize] at (7.0,-1.0) {\vdots};
+  \foreach \b in {B1,B2,B3}{\draw[fl] (D) -- (\b);}
+  \draw[fl] (B1) -- (M1); \draw[fl] (B2) -- (M2); \draw[fl] (B3) -- (M3);
+  \foreach \m in {M1,M2,M3}{\draw[fl] (\m) -- (A);}
+  \node[font=\scriptsize,below=1pt of D] {\textit{losování s~opakováním}};
+\end{tikzpicture}
+\obrpopis{Schéma baggingu. Z~jediné trénovací množiny $\mathcal{D}$ vzniká $M$ bootstrapových vzorků (losování $N$ příkladů \emph{s~opakováním}). Na každém se natrénuje samostatný model; jejich predikce se na konci agregují (hlasováním u~klasifikace, průměrem u~regrese). Modely jsou trénované \emph{paralelně} a~nezávisle.}
+\end{center}
+
+\subsubsection*{Proč průměrování snižuje chybu}
+
+\begin{veta}[Redukce chyby průměrováním (nekorelované chyby)]
+Označme chybu $i$-tého modelu na příkladu $\mathbf{x}$ jako $\varepsilon_i(\mathbf{x})=y_i(\mathbf{x})-t$. Mají-li chyby \emph{nulovou střední hodnotu} a~jsou \emph{nekorelované} ($\mathbb{E}[\varepsilon_i\varepsilon_j]=0$ pro $i\ne j$), pak střední kvadratická chyba průměru $M$ modelů je
+\[ \mathbb{E}\!\left[\Big(\tfrac{1}{M}\textstyle\sum_i \varepsilon_i(\mathbf{x})\Big)^2\right] = \frac{1}{M}\,\mathbb{E}\!\left[\tfrac{1}{M}\textstyle\sum_i \varepsilon_i^2(\mathbf{x})\right], \]
+tj.\ $\tfrac{1}{M}$-násobek průměrné chyby jednotlivých modelů.
+\end{veta}
+
+\begin{intuice}
+Roznásobíme-li $\big(\sum_i\varepsilon_i\big)^2=\sum_{i,j}\varepsilon_i\varepsilon_j$ a~vezmeme střední hodnotu, smíšené členy $\mathbb{E}[\varepsilon_i\varepsilon_j]$ ($i\ne j$) vypadnou (nekorelovanost) a~zbude jen $M$ diagonálních členů $\mathbb{E}[\varepsilon_i^2]$; faktor $\tfrac{1}{M^2}$ před sumou pak dá výsledný $\tfrac{1}{M}$. Toto je \emph{ideální} mez: chyba klesá až $M$-krát. V~praxi jsou chyby \emph{korelované} (modely se učí z~překrývajících se dat), takže zlepšení je menší. Předpoklad nekorelovanosti je tedy klíčový -- proto se bagging snaží modely co nejvíc „rozhodit``.
+\end{intuice}
+
+\subsection{Boosting a~algoritmus AdaBoost}
+
+\begin{definice}[Boosting]
+\textbf{Boosting} buduje silný klasifikátor jako \emph{vážený součet} mnoha \emph{slabých} klasifikátorů (např.\ mělkých stromů), trénovaných \textbf{sekvenčně}. Po každém kole se zvýší \emph{váhy} těch trénovacích příkladů, které dosavadní kombinace klasifikuje \emph{špatně}, takže další slabý klasifikátor se zaměří právě na ně.
+\end{definice}
+
+\begin{intuice}
+Zatímco bagging trénuje modely \emph{paralelně a~nezávisle} (cíl: snížit rozptyl), boosting je trénuje \emph{postupně a~závisle} -- každý nový model „dohání`` chyby předchozích (cíl: snížit vychýlení). Slabý klasifikátor stačí lepší než náhoda (chybovost $<\tfrac12$); jejich vážená kombinace může být libovolně přesná. Metafora: tým, kde se každý nováček soustředí na úlohy, které tým dosud nezvládal.
+\end{intuice}
+
+\begin{algo}[AdaBoost (binární klasifikace, třídy $t_i\in\{-1,+1\}$)]
+Vstup: trénovací data $(\mathbf{x}_i,t_i)$, $i=1,\dots,N$; počet kol $T$.\\[2pt]
+Inicializuj váhy příkladů rovnoměrně: $w_i^{(1)}=\tfrac1N$. \cmt{na začátku stejně důležité}\\
+\textbf{pro} $m=1,\dots,T$:
+\begin{enumerate}[leftmargin=2.4em,itemsep=1pt]
+  \item Natrénuj slabý klasifikátor $h_m(\mathbf{x})\in\{-1,+1\}$ na datech s~váhami $w^{(m)}$.
+  \item Spočti váženou chybu \;$\varepsilon_m=\sum_{i:\,h_m(\mathbf{x}_i)\ne t_i} w_i^{(m)}$. \cmt{podíl chybně klasifikované váhy}
+  \item Spočti váhu klasifikátoru \;$\alpha_m=\tfrac12\ln\!\dfrac{1-\varepsilon_m}{\varepsilon_m}$. \cmt{čím menší chyba, tím větší vliv}
+  \item Převáž příklady: \;$w_i^{(m+1)}\propto w_i^{(m)}\,e^{-\alpha_m t_i h_m(\mathbf{x}_i)}$ a~normalizuj na součet $1$. \cmt{špatně klasifikované získají větší váhu}
+\end{enumerate}
+Výstup: \;$H(\mathbf{x})=\sign\!\Big(\sum_{m=1}^{T}\alpha_m\,h_m(\mathbf{x})\Big)$. \cmt{vážené hlasování slabých klasifikátorů}
+\end{algo}
+
+\begin{intuice}
+V~kroku~4 je $t_i h_m(\mathbf{x}_i)=+1$ pro správně a~$-1$ pro špatně klasifikovaný příklad, takže $e^{-\alpha_m t_i h_m}$ je $<1$ pro správné (váha klesne) a~$>1$ pro chybné (váha vzroste). Příklady, na kterých model selhává, tak v~dalším kole „křičí`` hlasitěji. Klasifikátor s~malou chybou $\varepsilon_m$ dostane velké $\alpha_m$ (velký hlas); klasifikátor s~$\varepsilon_m=\tfrac12$ (náhoda) dostane $\alpha_m=0$ (žádný hlas).
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  box/.style={draw,thick,rounded corners=2pt,minimum width=22mm,minimum height=15mm,align=center,fill=blue!7},
+  fl/.style={->,>=Stealth,thick}]
+  \node[box] (h1) at (0,0) {slabý\\klasif.\ $h_1$};
+  \node[box] (h2) at (3.5,0) {slabý\\klasif.\ $h_2$};
+  \node[box] (h3) at (7.0,0) {slabý\\klasif.\ $h_3$};
+  \node (dots) at (9.3,0) {\dots};
+  \draw[fl] (h1) -- node[above,font=\scriptsize,align=center]{převáž\\chyby} (h2);
+  \draw[fl] (h2) -- node[above,font=\scriptsize,align=center]{převáž\\chyby} (h3);
+  \draw[fl] (h3) -- (dots);
+  % body s rostouci vahou pod kazdym klasifikatorem
+  \def\yb{-1.5}
+  \foreach \cx/\sa/\sb in {0/1.0/1.0, 3.5/0.6/1.8, 7.0/0.5/2.4}{
+    \fill[green!55!black] (\cx-0.7,\yb) circle (\sa pt);
+    \fill[green!55!black] (\cx-0.35,\yb) circle (\sa pt);
+    \fill[red!70!black]   (\cx,\yb)      circle (\sb pt);
+    \fill[red!70!black]   (\cx+0.35,\yb) circle (\sb pt);
+    \fill[green!55!black] (\cx+0.7,\yb)  circle (\sa pt);
+  }
+  \node[font=\scriptsize,anchor=west] at (8.0,\yb) {velikost $=$ váha};
+  \node[font=\scriptsize,anchor=north] at (0,\yb-0.25) {rovnoměrné};
+  \node[font=\scriptsize,anchor=north] at (3.5,\yb-0.25) {chybné $\uparrow$};
+  \node[font=\scriptsize,anchor=north] at (7.0,\yb-0.25) {chybné $\uparrow\uparrow$};
+\end{tikzpicture}
+\obrpopis{Schéma boostingu. Slabé klasifikátory se trénují \emph{sekvenčně}; po každém kole vzroste váha (velikost bodu) příkladů, které dosud klasifikujeme špatně (červeně), takže další klasifikátor se zaměří na ně. Finální predikce je \emph{vážené hlasování} všech slabých klasifikátorů.}
+\end{center}
+
+\begin{poznamka}[Gradientní boosting a~XGBoost (jen koncept)]
+Modernější varianta, \textbf{gradientní boosting} (GBDT), místo převažování příkladů trénuje každý nový strom tak, aby predikoval \emph{záporný gradient ztráty} dosavadní kombinace (tj.\ „opravoval rezidua`` předchozích stromů); přidává se s~malým koeficientem (learning rate). Efektivní implementace \textbf{XGBoost} a~\textbf{LightGBM} (využívají i~druhý řád ztráty a~chytré dělení uzlů) patří k~nejsilnějším modelům pro \emph{tabulární data}. Detailní matematiku (Newtonův krok, Hessián) zde nerozebíráme; podstatná je myšlenka „sekvenční stromy opravující chybu předchůdců``.
+\end{poznamka}
+
+\subsection{Random forest (náhodný les)}
+
+\begin{definice}[Random forest]
+\textbf{Random forest} (náhodný les) je \emph{bagging rozhodovacích stromů} s~jednou přidanou náhodností: při hledání nejlepšího řezu v~\emph{každém uzlu} se uvažuje jen \textbf{náhodná podmnožina příznaků} (ne všechny). Predikce random forest vznikne \emph{hlasováním} stromů (klasifikace), resp.\ \emph{průměrem} (regrese).
+\end{definice}
+
+\begin{algo}[Trénink random forest]
+Vstup: data $\mathcal{D}$ o~$N$ příkladech s~$D$ příznaky; počet stromů $M$; velikost podmnožiny příznaků $k$ (typicky $k\approx\sqrt{D}$ u~klasifikace).\\[2pt]
+\textbf{pro} $m=1,\dots,M$:
+\begin{enumerate}[leftmargin=2.4em,itemsep=1pt]
+  \item Vytvoř bootstrapový vzorek $\mathcal{D}_m$ (losuj $N$ příkladů s~opakováním). \cmt{bagging}
+  \item Natrénuj rozhodovací strom na $\mathcal{D}_m$, ale v~\emph{každém uzlu} vyber nejlepší řez jen z~\emph{náhodných $k$ příznaků} (čerstvá podmnožina pro každý uzel). \cmt{náhodné příznaky}
+  \item Strom \emph{neprořezávej} (necháváme přerůst -- rozptyl srovná až agregace).
+\end{enumerate}
+Predikce: \;hlasování (klasifikace) / průměr (regrese) přes všech $M$ stromů.
+\end{algo}
+
+\begin{intuice}
+Proč navíc \emph{náhodné příznaky}? Samotný bagging stromů by dal stromy stále dost podobné -- pokud existuje jeden velmi silný příznak, vybraly by ho téměř všechny stromy v~kořeni a~jejich chyby by zůstaly korelované. Omezení na náhodnou podmnožinu příznaků nutí různé stromy „dívat se jinam``, čímž \emph{dekoreluje} jejich chyby; podle věty výše to je přesně to, co dělá agregaci účinnou. (Ještě radikálnější jsou \emph{extra trees}: nehledají ani nejlepší hodnotu řezu, volí ji náhodně z~rozsahu příznaku.)
+\end{intuice}
+
+\begin{poznamka}[Random forest vs.\ jeden strom -- výhody a~nevýhody]
+\textbf{Jeden strom:} rychlý trénink, snadná \emph{interpretace} (cestu k~rozhodnutí lze přečíst), ale vysoký \emph{rozptyl} a~sklon k~overfittingu. \textbf{Random forest:} výrazně \emph{přesnější a~stabilnější} (lépe generalizuje, odolný vůči overfittingu), zvládá vysoký počet příznaků, dává „zdarma`` odhad chyby (out-of-bag) i~důležitost příznaků. Cena: \emph{ztráta interpretovatelnosti} (stovky stromů už člověk nepřečte), pomalejší a~paměťově náročnější trénink i~inference. Random forest a~gradientní boosting stromů patří k~nejlepším modelům pro tabulární data (viz příklad v~sekci~\ref{sec:evaluace}).
+\end{poznamka}
+
+\subsection{Řešené příklady}
+
+\begin{priklad}[SZZ jaro 2023 č.~6: Učení pomocí kolektivních prediktorů]
+\szzotazka{jaro 2023}{6}{Učení pomocí kolektivních prediktorů}\par
+\textbf{Zadání.} (1)~Vysvětlete princip trénování metodami \emph{bagging} a~\emph{boosting}. (2)~Popište trénovací algoritmus \emph{random forest} (náhodných lesů). (3)~Uveďte konkrétní příklad algoritmu typu \emph{boosting} a~stručně vysvětlete jeho hlavní myšlenku.
+
+\smallskip
+\textbf{Řešení.}
+\emph{(1)} \textbf{Bagging} trénuje $M$ kopií modelu \emph{paralelně}, každou na vlastním \emph{bootstrapovém} vzorku (losování $N$ příkladů s~opakováním); predikce agreguje hlasováním/průměrem. Snižuje \emph{rozptyl} (vhodný pro nestabilní modely, např.\ hluboké stromy). \textbf{Boosting} trénuje slabé klasifikátory \emph{sekvenčně}; po každém kole zvýší \emph{váhu} chybně klasifikovaných příkladů, takže další model se zaměří na ně. Finální model je vážené hlasování. Snižuje hlavně \emph{vychýlení}.
+
+\emph{(2)} \textbf{Random forest} $=$ bagging rozhodovacích stromů $+$ náhodná podmnožina příznaků v~každém uzlu. Pro $m=1,\dots,M$: vytvoř bootstrapový vzorek, natrénuj na něm (nezprořezaný) strom, ale v~každém uzlu hledej nejlepší řez jen z~náhodně zvolené podmnožiny příznaků (typicky $\sqrt{D}$). Predikce: hlasování stromů. Dvojí náhodnost (data $+$ příznaky) \emph{dekoreluje} stromy.
+
+\emph{(3)} \textbf{AdaBoost.} Slabé klasifikátory $h_m\in\{-1,+1\}$ se trénují postupně na vážených datech; klasifikátor s~váženou chybou $\varepsilon_m$ dostane hlas $\alpha_m=\tfrac12\ln\tfrac{1-\varepsilon_m}{\varepsilon_m}$ a~váhy chybně klasifikovaných příkladů se vynásobí $e^{\alpha_m}$ (vzrostou). Výsledek $H(\mathbf{x})=\sign\big(\sum_m \alpha_m h_m(\mathbf{x})\big)$. Hlavní myšlenka: \emph{každé další kolo se soustředí na to, co dosavadní kombinace ještě nezvládá}.
+\end{priklad}
+
+\begin{priklad}[SZZ podzim 2023 č.~30: Kombinace více modelů]
+\szzotazka{podzim 2023}{30}{Kombinace více modelů}\par
+\textbf{Zadání.} (1)~Popište myšlenky baggingu a~boostingu; jeden boosting algoritmus podrobněji. (2)~Jak funguje a~jak se trénuje random forest? (3)~Porovnejte rozhodovací stromy a~random forest (výhody/nevýhody).
+
+\smallskip
+\textbf{Řešení.}
+\emph{(1)} Viz definice baggingu a~boostingu výše a~algoritmus \textbf{AdaBoost} v~předchozím příkladu (slabé klasifikátory, převažování chyb, vážené hlasování $\alpha_m$).
+
+\emph{(2)} Viz algoritmus tréninku random forest výše: každý strom na bootstrapovém vzorku, v~každém uzlu řez jen z~náhodné podmnožiny příznaků; výsledek hlasováním stromů.
+
+\emph{(3)} \textbf{Stromy:} interpretovatelné, rychlé, ale vysoký rozptyl a~overfitting. \textbf{Random forest:} přesnější, stabilnější, lépe generalizuje, OOB odhad chyby a~důležitost příznaků zdarma; cena je ztráta interpretovatelnosti a~vyšší výpočetní nároky. (Viz poznámka „random forest vs.\ strom`` výše.)
+\end{priklad}
+
+\begin{priklad}[SZZ jaro 2026 č.~29: Meze accuracy ensemblu při hlasování]
+\szzotazka{jaro 2026}{29}{Kombinace modelů}\par
+\textbf{Zadání.} (1)~Stručně popište myšlenky baggingu a~boostingu a~uveďte modely, které je používají. (2)~Tři modely $M_1,M_2,M_3$ pro binární klasifikaci mají accuracy $0{,}70$, $0{,}75$, $0{,}80$. Vytvoříme ensemble \emph{většinovým hlasováním} (finální odpověď je ta častější ze tří). \emph{Za jakých podmínek} bude mít ensemble vyšší accuracy než nejlepší model? \emph{Jaká je nejlepší dosažitelná} accuracy ensemblu? \emph{Kdy} bude naopak horší?
+
+\smallskip
+\textbf{Řešení.}
+\emph{(1)} \textbf{Bagging} -- paralelní modely na bootstrapových vzorcích, agregace hlasováním/průměrem; příklad: \emph{random forest}. \textbf{Boosting} -- sekvenční modely, převažování chyb; příklad: \emph{AdaBoost}, \emph{XGBoost} (gradientní boosting).
+
+\emph{(2)} Klíč je uvažovat \textbf{chybové množiny} $E_i=\{$vzorky, které $M_i$ klasifikuje špatně$\}$. Z~přesností: $|E_1|=30\,\%$, $|E_2|=25\,\%$, $|E_3|=20\,\%$ z~testovací množiny. Při \emph{většinovém hlasování tří} modelů je vzorek klasifikován \textbf{špatně}, právě když chybují \emph{alespoň dva} modely, tj.\ vzorek leží \emph{alespoň ve dvou} z~množin $E_1,E_2,E_3$. Chyba ensemblu je tedy
+\[ \mathrm{err}_{\mathrm{ens}} = \big|\,\text{vzorky pokryté alespoň dvěma z~}E_1,E_2,E_3\,\big|. \]
+Vše dál plyne z~toho, \emph{jak se chybové množiny překrývají}.
+
+\smallskip
+\begin{center}
+\begin{tikzpicture}[scale=1.15,font=\small]
+  \def\r{1.6}
+  \coordinate (c1) at (-0.95,0.55);
+  \coordinate (c2) at (0.95,0.55);
+  \coordinate (c3) at (0,-1.05);
+  % výplně kruhů (poloprůhledné)
+  \fill[blue!20,opacity=0.5]  (c1) circle (\r);
+  \fill[red!20,opacity=0.5]   (c2) circle (\r);
+  \fill[green!22,opacity=0.5] (c3) circle (\r);
+  % vyšrafování oblasti "chybují >= 2 modely" = sjednocení tří párových průniků
+  \begin{scope}
+    \clip (c1) circle (\r); \fill[pattern=north east lines,pattern color=black!55] (c2) circle (\r);
+  \end{scope}
+  \begin{scope}
+    \clip (c1) circle (\r); \fill[pattern=north east lines,pattern color=black!55] (c3) circle (\r);
+  \end{scope}
+  \begin{scope}
+    \clip (c2) circle (\r); \fill[pattern=north east lines,pattern color=black!55] (c3) circle (\r);
+  \end{scope}
+  % obrysy kruhů
+  \draw[blue!55!black,thick]  (c1) circle (\r);
+  \draw[red!55!black,thick]   (c2) circle (\r);
+  \draw[green!45!black,thick] (c3) circle (\r);
+  % popisky množin (vně kruhů)
+  \node[blue!55!black]  at (-2.35,2.05) {$E_1$ ($30\%$)};
+  \node[red!55!black]   at (2.35,2.05)  {$E_2$ ($25\%$)};
+  \node[green!45!black] at (0,-2.95)    {$E_3$ ($20\%$)};
+  % anotace vyšrafované oblasti s vodicí šipkou na trojný střed
+  \node[font=\scriptsize,align=center,anchor=west] (anot) at (2.6,-0.2)
+    {šrafování: chybují\\$\ge 2$ modely\\\textit{($=$ chyba ensemblu)}};
+  \draw[->,>=Stealth,black!60] (anot.west) to[bend right=12] (0,-0.05);
+\end{tikzpicture}
+\obrpopis{Chybové množiny tří modelů. Vzorek je ensemblem klasifikován špatně, právě když leží alespoň ve dvou množinách (vyšrafovaná oblast tvořená třemi párovými průniky). Disjunktní množiny (žádný překryv) $\Rightarrow$ ensemble se nikdy nemýlí; velké překryvy $\Rightarrow$ ensemble se mýlí často.}
+\end{center}
+
+\textbf{Nejlepší dosažitelná accuracy.} Mají-li modely \emph{disjunktní} chybové množiny (každý chybuje jinde), žádný vzorek neleží ve dvou množinách, takže $\mathrm{err}_{\mathrm{ens}}=0$, tj.\ \emph{accuracy $100\,\%$}. To je možné, protože $30\%+25\%+20\%=75\%\le 100\%$ se do testovací množiny vejde disjunktně.
+\[ \boxed{\text{nejlepší dosažitelná accuracy ensemblu} = 100\,\%\quad(\text{disjunktní chyby}).} \]
+
+\textbf{Kdy je ensemble lepší než nejlepší model.} Nejlepší model $M_3$ má chybu $20\,\%$. Ensemble je lepší, právě když $\mathrm{err}_{\mathrm{ens}} < 20\,\%$, tj.\ když se chybové množiny překrývají jen málo (chyby modelů jsou málo korelované).
+Stačí tedy, aby modely chybovaly převážně na \emph{různých} vzorcích.
+
+\textbf{Kdy je ensemble horší.} Při \emph{silně korelovaných} (překrývajících se) chybách:
+\begin{itemize}
+  \item je-li $E_2\subseteq E_1$ (kdykoli chybuje $M_2$, chybuje i~$M_1$), je na celém $E_2$ chyba $\ge 2$, takže $\mathrm{err}_{\mathrm{ens}}\ge 25\%$, tj.\ accuracy \emph{nejvýše} $0{,}75$;
+  \item je-li navíc i~zbytek $E_1\setminus E_2$ pokryt $E_3$, je celé $E_1$ pokryté dvěma množinami, $\mathrm{err}_{\mathrm{ens}}\ge 30\%$, tj.\ accuracy \emph{nejvýše} $0{,}70$ (ensemble není lepší ani než nejhorší model).
+\end{itemize}
+Vůbec \emph{nejhorší} dosažitelná hodnota (maximální překryv při daných velikostech) je $1-\tfrac{0{,}30+0{,}25+0{,}20}{2}=\mathbf{0{,}625}$: každý vzorek, na kterém ensemble chybuje, spotřebuje aspoň dvě chyby jednotlivých modelů, a~těch je dohromady $75\,\%$. Mez se dosáhne např.\ při $|E_1\cap E_2|=17{,}5\%$, $|E_1\cap E_3|=12{,}5\%$, $|E_2\cap E_3|=7{,}5\%$ (trojný průnik prázdný): aspoň dvěma množinami je pokryto $37{,}5\%$ vzorků a~accuracy klesne na $\boxed{0{,}625}$. (Mají-li chyby být celá procenta, tj.\ $N=100$, je nejhorší $0{,}63$, např.\ při $17/12/8\,\%$.) Ensemble tedy může být horší \emph{než i~nejhorší jednotlivý model}, pokud modely dělají tytéž chyby.
+
+\smallskip
+\noindent\textbf{Závěr.} Většinové hlasování pomáhá jen tehdy, jsou-li chyby modelů málo korelované: při \emph{nezávislých} chybách chybují právě dva modely s~pravděpodobností $0{,}3\cdot0{,}25\cdot0{,}8+0{,}3\cdot0{,}75\cdot0{,}2+0{,}7\cdot0{,}25\cdot0{,}2=0{,}14$ a~všechny tři s~$0{,}015$, takže accuracy ensemblu je $0{,}845>0{,}80$; při \emph{disjunktních} chybových množinách až $100\,\%$. Korelované chyby kombinaci uškodí. (Přesnosti $0{,}70/0{,}75/0{,}80$ samy o~sobě výsledek \emph{neurčují} -- rozhoduje překryv chybových množin. Ověřeno vyčerpávajícím prohledáním rozložení chyb, \texttt{src/fig/gen\_s8\_ensemble.py}.)
+\end{priklad}

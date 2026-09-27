@@ -1,0 +1,38 @@
+% Zdroj: PDF priklady-leto-2023.pdf, fyzická str. 1. Značka: neznačeno (společná). Zařazeno: I1.
+\section{Převod bezkontextové gramatiky na automat}
+\szzotazka{léto 2023}{2}{Převod bezkontextové gramatiky na automat (CFG $\to$ zásobníkový automat)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+\item Uveďte definici \textit{bezkontextové gramatiky}.
+\item Sestrojte bezkontextovou gramatiku $G$ generující následující jazyk:
+  \[ L = \{a^i b^j \mid i, j \geq 0 \text{ a~platí } 2i = 3j\}. \]
+\item Převeďte gramatiku $G$ z~předchozí části na zásobníkový automat přijímající
+  prázdným zásobníkem. (Pokud se vám nepodařilo gramatiku sestrojit, sestrojte
+  libovolný zásobníkový automat přijímající jazyk $L$ prázdným zásobníkem.)
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textit{(V PDF bez náčrtu řešení; následující řešení je doplněné a numericky ověřené.)}
+\begin{enumerate}
+\item \textit{Bezkontextová gramatika} je čtveřice $G = (V, T, \mathcal{P}, S)$, kde $V$ je
+  konečná množina neterminálů (proměnných), $T$ konečná neprázdná množina terminálů
+  ($V \cap T = \emptyset$), $S \in V$ počáteční symbol a $\mathcal{P}$ konečná množina
+  pravidel tvaru $A \to \omega$, kde $A \in V$ a~$\omega \in (V \cup T)^*$.
+
+\item Z~podmínky $2i = 3j$ plyne $i = 3k$, $j = 2k$ pro $k \geq 0$, tedy
+  $L = \{a^{3k} b^{2k} \mid k \geq 0\}$. Generuje ho
+  \[ G = (\{S\}, \{a, b\}, \mathcal{P}, S), \qquad \mathcal{P} = \{\, S \to aaa\,S\,bb \mid \lambda \,\}. \]
+  (Každé použití prvního pravidla přidá tři $a$ zleva a~dvě $b$ zprava; ukončení pravidlem
+  $S \to \lambda$ dá $a^{3k} b^{2k}$.)
+
+\item Standardní převod gramatiky na jednostavový zásobníkový automat přijímající
+  prázdným zásobníkem: $P = (\{q_0\}, \{a, b\}, \{a, b, S\}, \delta, q_0, S)$, kde
+  \[ \delta(q_0, \lambda, S) = \{(q_0, aaaSbb),\ (q_0, \lambda)\}, \quad
+     \delta(q_0, a, a) = \{(q_0, \lambda)\}, \quad
+     \delta(q_0, b, b) = \{(q_0, \lambda)\}. \]
+  Pravidla pro $S$ rozepisují neterminál na vrcholu zásobníku, pravidla pro $a, b$ párují
+  terminál na vrcholu se čteným vstupním symbolem. Automat přijme prázdným zásobníkem
+  právě slova generovaná $G$.
+\end{enumerate}

@@ -1,0 +1,30 @@
+% Zdroj: PDF priklady-jaro-2024.pdf, fyzická str. 21. Značka: specializace UI-SU. Zařazeno: S3.
+\section{Statistické testy -- t-test}
+\szzotazka{jaro 2024}{26}{Statistické testy -- t-test}
+
+\noindent\textbf{Zadání.}\par
+Výrobce sušenek vyrábí sušenky s deklarovanou hmotností $100$ gramů. Při kontrole kvality bylo náhodně
+vybráno a převáženo $100$ sušenek, které měly průměrnou hmotnost $102$ gramů se směrodatnou odchylkou
+$2$ gramy. Pomocí t-testu chceme statisticky vyhodnotit, jestli se průměrná hmotnost sušenek liší od
+deklarované hmotnosti.
+
+\begin{enumerate}
+  \item Jaká je nulová a alternativní hypotéza jednovýběrového t-testu?
+  \item Spočítejte hodnotu testové statistiky pro data zadaná výše. Jaké má tato testová statistika
+    pravděpodobnostní rozdělení?
+  \item Liší se statisticky významně hmotnost sušenek od deklarované hmotnosti? \textit{Nápověda:}
+    Kritická hodnota testové statistiky na hladině významnosti $\alpha = 0.05$ je cca $2$.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Nulová hypotéza je $H_0 : \bar{X} = \mu$, kde $\bar{X}$ je průměrná hmotnost sušenek a $\mu$ je
+    testovaná střední hodnota. Alternativní hypotéza je $H_1 : \bar{X} \neq \mu$.
+  \item $t = \dfrac{102 - 100}{2/\sqrt{100}} = 10$, má t rozdělení s $99$ stupni volnosti.
+  \item Spočítaná $t$-hodnota je větší než kritická hodnota, zamítáme tedy nulovou hypotézu. Průměrná
+    hmotnost sušenek se liší od deklarované hmotnosti.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Hypotézy se formulují pro \emph{střední hodnotu} $\mu$ rozdělení hmotnosti, ne pro výběrový průměr $\bar X$ (ten je statistika spočtená z~dat): $H_0\colon \mu=100$, $H_1\colon \mu\neq 100$ (oboustranný test). Statistika $t=(\bar X-\mu_0)/(s/\sqrt n)$ má za~$H_0$ Studentovo rozdělení s~$n-1=99$ stupni volnosti; přesná kritická hodnota je $t_{99;\,0{,}975}\approx 1{,}98$. Protože $|t|=10$ leží hluboko v~kritickém oboru, $H_0$ na hladině $0{,}05$ zamítáme (p-hodnota je prakticky nulová).

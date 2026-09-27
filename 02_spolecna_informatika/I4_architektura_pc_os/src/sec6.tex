@@ -1,0 +1,217 @@
+% ============================================================
+\section{Virtuální paměť a překlad adres}
+% ============================================================
+
+Procesy nepracují s~fyzickými adresami operační paměti přímo, ale se svým vlastním \emph{virtuálním} adresovým prostorem. Mezi ně vstupuje překlad adres, který je jádrem ochrany a~sdílení paměti. Požadavky chtějí umět rozlišit virtuální a~fyzickou adresu, vysvětlit komponenty adresy (číslo stránky, číslo rámce, offset), \emph{spočítat} překlad nad jednoúrovňovou stránkovací tabulkou a~vysvětlit roli virtuálních prostorů v~ochraně paměti.
+
+\subsection{Virtuální vs. fyzická adresa}
+
+\begin{definice}[Virtuální a fyzická adresa]
+\emph{Fyzická adresa} (FA) adresuje skutečnou buňku operační paměti; používá ji paměťový řadič. \emph{Virtuální adresa} (VA) je adresa ve virtuálním adresovém prostoru procesu; používají ji \emph{všechny} přístupy z~instrukcí (včetně načítání samotných instrukcí). Překlad VA na FA provádí hardwarová jednotka \emph{MMU} (Memory Management Unit) v~procesoru podle datových struktur, které pro každý proces připraví operační systém. Pokud pro danou VA mapování neexistuje, vznikne výjimka (\emph{výpadek stránky}, page fault).
+\end{definice}
+
+\begin{intuice}
+Proč vůbec překládat? (1)~\textbf{Ochrana}: každý proces má vlastní mapování, takže se navzájem „nevidí`` a~nemohou si přepsat paměť. (2)~\textbf{Jednoduchý model}: proces se tváří, že má souvislou paměť jen pro sebe, ač je fyzicky rozházená po rámcích. (3)~\textbf{Iluze velikosti}: virtuální prostor může být větší než fyzická paměť (nepoužité stránky odložené na disk). Otázka „je tahle adresa virtuální, nebo fyzická?`` se pozná podle toho, kdo ji vidí: cokoli v~kódu procesu (ukazatele, cíle skoků, operandy load/store) je \emph{virtuální}; teprve výstup MMU, který jde na sběrnici do paměti, je \emph{fyzický}. Výjimkou jsou pole stránkovací tabulky -- ta obsahují \emph{fyzická} čísla rámců, protože sama MMU je čte z~fyzické paměti. \emph{Příklad rozhodování:} v~ovladači disku (sekce~4) je parametr \texttt{register\_address} \emph{virtuální} (ukazatel v~kódu, přes který přistupujeme k~mapovaným registrům), kdežto \texttt{data\_phys\_addr} předávaná DMA řadiči je \emph{fyzická} (řadič ji klade přímo na sběrnici, mimo MMU).
+\end{intuice}
+
+\subsection{Stránkování: stránky, rámce, stránkovací tabulka}
+
+Nejběžnějším mechanismem překladu je \emph{stránkování} (paging).
+
+\begin{definice}[Stránka, rámec, stránkovací tabulka]
+Virtuální prostor je rozdělen na \emph{stránky} (pages) o~pevné velikosti $2^{k}$~bajtů, fyzický prostor na stejně velké \emph{rámce} (frames). Jedna stránka se vejde přesně do jednoho rámce. Virtuální adresa se rozpadá na \emph{číslo stránky} (VPN, horní bity) a~\emph{offset} (dolních $k$~bitů, pozice uvnitř stránky). \emph{Stránkovací tabulka} (page table) je pole indexované číslem stránky; každá položka (PTE) obsahuje \emph{číslo rámce} (PFN) a~příznaky (alespoň bit platnosti). Tabulka leží v~paměti zvlášť pro každý proces.
+\end{definice}
+
+\begin{center}
+\scalebox{1.2}{%
+\begin{tikzpicture}[every node/.append style={font=\small}]
+% Virtualni adresa (nahore)
+\node[anchor=south,font=\scriptsize] at (1.9,3.95) {virtuální adresa};
+\node[bunka,minimum width=2.2cm,fill=blue!8] (vp) at (0,3.2) {VPN $=p$};
+\node[bunka,minimum width=1.6cm,fill=green!10] (vo) at (2.2,3.2) {offset};
+% Strankovaci tabulka (sloupec pod VPN); cervena = pouzita polozka (dole)
+\foreach \i in {0,1,2,3} \draw (0,1.2+\i*0.4) rectangle (2.2,1.6+\i*0.4);
+\draw[fill=red!12] (0,1.2) rectangle (2.2,1.6);
+\node[font=\scriptsize] at (1.1,1.4) {$p$:\ \ $f$\,(příznaky)};
+\node[anchor=east,font=\scriptsize,align=right] at (-0.2,2.2) {stránkovací\\ tabulka};
+% Fyzicka adresa (dole)
+\node[bunka,minimum width=2.2cm,fill=red!8] (fp) at (0,-0.4) {PFN $=f$};
+\node[bunka,minimum width=1.6cm,fill=green!10] (fo) at (2.2,-0.4) {offset};
+\node[anchor=north,font=\scriptsize] at (1.9,-0.55) {fyzická adresa};
+% sipky (svisly tok; offset prochazi vpravo beze zmeny)
+\draw[ptr] (1.1,3.2) -- node[right,font=\scriptsize]{index $p$} (1.1,2.85);
+\draw[ptr] (1.1,1.2) -- node[right,font=\scriptsize]{rámec $f$} (1.1,0.4);
+\draw[ptr,green!45!black] (3.0,3.2) -- node[right,font=\scriptsize]{beze změny} (3.0,0.4);
+\end{tikzpicture}}%
+\obrpopis{Překlad virtuální adresy jednoúrovňovou stránkovací tabulkou. Horní bity VA (číslo stránky $p$) indexují tabulku; přečtená položka dá číslo rámce $f$. Fyzická adresa vznikne \emph{spojením} čísla rámce a~původního offsetu -- offset se nepřekládá (poloha uvnitř stránky i~rámce je stejná). Není-li položka platná, nastane výpadek stránky.}
+\end{center}
+
+\subsection{Překlad adresy nad jednoúrovňovou tabulkou}
+
+Postup překladu VA na FA má tři kroky, které stačí umět spočítat ručně:
+\begin{enumerate}
+\item \textbf{Rozlož VA} na číslo stránky a~offset. Při velikosti stránky $2^{k}$ je offset dolních $k$~bitů ($\text{offset}=\text{VA}\bmod 2^{k}$), číslo stránky zbytek ($\text{VPN}=\lfloor\text{VA}/2^{k}\rfloor$).
+\item \textbf{Najdi položku} ve stránkovací tabulce: její adresa je $\text{báze tabulky}+\text{VPN}\cdot(\text{velikost položky})$. Přečti položku; pokud je neplatná, nastane výpadek stránky.
+\item \textbf{Sestav FA} spojením čísla rámce z~položky a~původního offsetu: $\text{FA}=(\text{PFN}\cdot 2^{k})+\text{offset}$.
+\end{enumerate}
+
+\begin{poznamka}
+Jednoúrovňová tabulka pro 32-bit adresy a~4\,KiB stránky má $2^{20}$ položek po 4~B, tj.\ 4~MiB na proces -- proto se v~praxi používají víceúrovňové tabulky (chybějící podtabulky se neukládají) a~překlad se urychluje TLB (níže). Požadavky okruhu i~řešené příklady pracují s~jednoúrovňovou tabulkou.
+\end{poznamka}
+
+\begin{priklad}[SZZ léto 2023 č.~17: Překlad adresy stránkováním]
+\szzotazka{léto 2023}{17}{Překlad adresy (stránkování)}\par
+\noindent\textit{(Pozn.: v~rámci současné akreditace nešlo o~společnou otázku (q1--q4), ale o~otázku jiné specializace (specializační sekce, systémové zaměření, ne UI). Do společného okruhu I4 tedy formálně nepatří; tematicky sem ovšem spadá a~je výborná k~procvičení.)}\par
+\textbf{Zadání.}\par
+Hypotetický procesor, 16-bitový virtuální i~fyzický prostor, 1-úrovňové stránkování s~64\,B stránkami. Záznamy tabulky jsou 16-bitové; offsetové bity slouží jako příznaky, \emph{nejméně významný bit} je příznak platnosti ($1=$ platný). Stránkovací tabulka je na adrese \texttt{0x1d40} (její výpis je ve složce \texttt{priklady/} jako oříznutá tabulka z~PDF). Přelož virtuální adresu \texttt{0x328f} ($=\texttt{0b0011001010001111}$): (1)~číslo stránky a~offset, (2)~fyzickou adresu položky tabulky, (3)~výslednou fyzickou adresu.
+
+\medskip
+\textbf{Řešení.}\par
+\textbf{(1)~Rozklad VA.} Stránka má $64=2^{6}$~B, takže offset jsou dolní \emph{6}~bitů, číslo stránky horních \emph{10}~bitů:
+\[
+\texttt{0x328f}=\underbrace{\texttt{0b0011001010}}_{\text{číslo stránky}}\,\underbrace{\texttt{001111}}_{\text{offset}}.
+\]
+Číslo stránky $=\texttt{0b0011001010}=\boxed{\texttt{0xCA}=202}$, offset $=\texttt{0b001111}=\boxed{\texttt{0x0F}=15}$.
+
+\textbf{(2)~Adresa položky.} Položky jsou 16-bitové, tj.\ 2~B; položka pro stránku $202$ je na adrese
+\[
+\texttt{0x1d40}+202\cdot 2=\texttt{0x1d40}+\texttt{0x194}=\boxed{\texttt{0x1ED4}}.
+\]
+
+\textbf{(3)~Výsledná FA.} Položka stránkovací tabulky na adrese \texttt{0x1ED4} má hodnotu \texttt{0xFBF7} (odečteno ze zadaného výpisu tabulky, viz \texttt{priklady/}). Nejnižší bit je $1$, položka je tedy \emph{platná}. Číslo rámce tvoří horních $10$~bitů (dolních $6$~bitů jsou příznaky): \texttt{0xFBF7}~\texttt{\&}~\texttt{0xFFC0}~$=\texttt{0xFBC0}$. Fyzická adresa vznikne spojením s~offsetem (dolních 6 bitů):
+\[
+\text{FA}=\texttt{0xFBC0}\;|\;\texttt{0x0F}=\boxed{\texttt{0xFBCF}}.
+\]
+\textit{Pozn.: Tato otázka nemá v~PDF náčrt řešení; výpočet (vč.\ odečtu hodnoty \texttt{0xFBF7} z~tabulky) jsme ověřili skriptem \texttt{verify\_szz.py}.}
+\end{priklad}
+
+\subsection{TLB: urychlení překladu}
+
+Každý přístup do paměti by jinak vyžadoval \emph{další} přístup do paměti kvůli stránkovací tabulce. Proto má MMU malou rychlou cache překladů.
+
+\begin{definice}[TLB (Translation Lookaside Buffer)]
+\emph{TLB} je asociativní cache nedávno použitých překladů: klíčem je číslo stránky, hodnotou číslo rámce (a~příznaky). Při překladu MMU nejdřív zkusí TLB; při \emph{zásahu} (hit) získá rámec rovnou, při \emph{minutí} (miss) projde stránkovací tabulku a~výsledek do TLB uloží. TLB využívá časovou a~prostorovou lokalitu (kód i~data se chvíli drží v~téže stránce).
+\end{definice}
+
+\begin{center}
+\scalebox{1.2}{%
+\begin{tikzpicture}[every node/.append style={font=\small}]
+\node[bunka,minimum width=2cm,fill=blue!8] (vp) at (0,1.6) {VPN $=p$};
+\node[bunka,minimum width=1.4cm,fill=green!10] (vo) at (2,1.6) {offset};
+% TLB
+\node[komp,minimum width=3.2cm,minimum height=1.5cm] (tlb) at (5.2,1.6) {};
+\node[anchor=south,font=\scriptsize] at (5.2,2.45) {TLB (asociativní)};
+\node[font=\scriptsize,align=center] at (5.2,1.6) {VPN\ $\to$\ PFN\\[1pt] $p\ \to\ f$};
+% vystup
+\node[bunka,minimum width=2cm,fill=red!8] (out) at (9.4,1.6) {PFN $=f$};
+\draw[ptr] (vp.east) -- (tlb.west);
+\draw[ptr] (tlb.east) -- node[above,font=\scriptsize]{zásah} (out.west);
+% miss
+\node[komp,minimum width=3.4cm,minimum height=0.8cm,fill=black!4] (ptw) at (5.2,-0.3)
+  {\footnotesize průchod stránkovací tabulkou};
+\draw[ptr,dashed] (tlb.south) -- node[right,font=\scriptsize]{minutí} (ptw.north);
+\draw[ptr,dashed] (ptw.east) -| (out.south);
+\end{tikzpicture}}%
+\obrpopis{Překlad s~TLB. Při zásahu dá TLB číslo rámce $f$ okamžitě (bez přístupu do paměti). Při minutí se projde stránkovací tabulka a~nalezený překlad se do TLB doplní. Offset se opět nepřekládá. Při více procesech musí TLB rozlišovat adresové prostory -- buď se při přepnutí kontextu vyprázdní, nebo každá položka nese identifikátor prostoru (ASID).}
+\end{center}
+
+\begin{priklad}[SZZ léto 2023 č.~15: Stránkování a TLB]
+\szzotazka{léto 2023}{15}{Stránkování (TLB)}\par
+\noindent\textit{(Pozn.: v~rámci současné akreditace nešlo o~společnou otázku (q1--q4), ale o~otázku jiné specializace (specializační sekce, systémové zaměření, ne UI). Do společného okruhu I4 tedy formálně nepatří; tematicky sem ovšem spadá a~je výborná k~procvičení.)}\par
+\textbf{Zadání.}\par
+Procesor s~32-bitovými (4\,B) virtuálními i~fyzickými adresami, softwarově plněný TLB, pevná velikost stránky 4\,MB. Položka TLB má 4~B a~obsahuje (od nejvyšších bitů) potřebnou část virtuální a~fyzické adresy, ASID (identifikátor adresového prostoru), a~bity \emph{dirty} a~\emph{valid}; dva nejnižší bity jsou rezervované (0). Aktuální ASID je \texttt{0x12}. Obsah TLB (devět 32-bitových položek):
+\begin{center}\ttfamily
+0x35C0C124\quad 0x35C0613C\quad 0x35C08120\\
+0x36005134\quad 0x36009128\quad 0x3600D12C\\
+0x3640E124\quad 0x3640A120\quad 0x3640413C
+\end{center}
+Co se stane při přístupech \texttt{0x35803580} (zápis), \texttt{0x35CD35CD} (čtení), \texttt{0x36003600} (čtení), \texttt{0x36403640} (zápis)?
+
+\medskip
+\textbf{Řešení.}\par
+\textbf{Formát položky.} Stránka má $4\,\text{MB}=2^{22}$~B, takže offset je 22~bitů a~číslo stránky (i~rámce) má $32-22=10$~bitů. Položka má 32~bitů: od nejvyšších $10$~bitů VPN, $10$~bitů PFN, pak ASID, dirty, valid a~2 rezervované; na ASID tedy zbývá $32-10-10-1-1-2=\mathbf{8}$~bitů.
+\begin{center}
+\scalebox{1.2}{%
+\begin{tikzpicture}
+\node[bit,minimum width=2.0cm,fill=blue!10]  (v) at (0,0)   {VPN (10)};
+\node[bit,minimum width=2.0cm,fill=red!10]   (f) at (2.0,0) {PFN (10)};
+\node[bit,minimum width=1.6cm,fill=green!10] (a) at (4.0,0) {ASID (8)};
+\node[bit,minimum width=0.6cm,fill=yellow!20](d) at (5.6,0) {D};
+\node[bit,minimum width=0.6cm,fill=yellow!20](vl) at (6.2,0) {V};
+\node[bit,minimum width=0.7cm,fill=black!8]  (r) at (6.8,0) {00};
+\node[font=\scriptsize,anchor=south] at (1.0,0.55) {31\,$\ldots$\,22};
+\node[font=\scriptsize,anchor=south] at (3.0,0.55) {21\,$\ldots$\,12};
+\node[font=\scriptsize,anchor=south] at (4.8,0.55) {11\,$\ldots$\,4};
+\node[font=\scriptsize,anchor=south] at (5.9,0.55) {3};
+\node[font=\scriptsize,anchor=south] at (6.5,0.55) {2};
+\node[font=\scriptsize,anchor=south] at (7.15,0.55) {1\,0};
+\end{tikzpicture}}%
+\obrpopis{Formát 32-bitové položky TLB: VPN $[31{:}22]$, PFN $[21{:}12]$, ASID $[11{:}4]$, dirty $[3]$, valid $[2]$, rezervované $[1{:}0]$. Dekódování položky: např.\ \texttt{0x35C0C124} dá VPN~\texttt{0x0D7}, PFN~\texttt{0x00C}, ASID~\texttt{0x12}, $D{=}0$, $V{=}1$.}
+\end{center}
+
+\textbf{Vyhodnocení přístupů.} U~každé adresy vezmeme horních 10~bitů jako VPN a~hledáme v~TLB položku se \emph{shodným VPN}, \emph{platnou} ($V{=}1$) a~se \emph{shodným ASID} (\texttt{0x12}); jinak je to minutí. Fyzická adresa je $\text{PFN}\cdot2^{22}+\text{offset}$, kde offset jsou dolní 22~bity VA.
+\begin{enumerate}
+\item \cd!write 0x35803580!: VPN $=\texttt{0x0D6}$. Žádná položka s~tímto VPN v~TLB \emph{není} $\Rightarrow$ \textbf{minutí TLB}. Protože je TLB plněn softwarově, procesor vyvolá výjimku „TLB miss``; obslužná rutina OS dohledá překlad ve stránkovací tabulce a~doplní TLB (a~instrukci zopakuje), případně -- pokud mapování neexistuje -- vyvolá výpadek stránky. Výslednou FA nelze z~TLB určit.
+\item \cd!read 0x35CD35CD!: VPN $=\texttt{0x0D7}$. Tři položky mají toto VPN, ale jen \texttt{0x35C0C124} má $V{=}1$ a~ASID~\texttt{0x12} (ostatní mají ASID~\texttt{0x13}, resp.\ $V{=}0$). PFN $=\texttt{0x00C}$, offset $=\texttt{0x0D35CD}$, tedy $\text{FA}=\boxed{\texttt{0x030D35CD}}$.
+\item \cd!read 0x36003600!: VPN $=\texttt{0x0D8}$. Platná položka se správným ASID je \texttt{0x3600D12C} (PFN~\texttt{0x00D}); položka \texttt{0x36009128} má sice ASID~\texttt{0x12}, ale $V{=}0$, a~\texttt{0x36005134} má ASID~\texttt{0x13}. Offset $=\texttt{0x003600}$, tedy $\text{FA}=\boxed{\texttt{0x03403600}}$.
+\item \cd!write 0x36403640!: VPN $=\texttt{0x0D9}$. Platná položka se správným ASID je \texttt{0x3640E124} (PFN~\texttt{0x00E}, $D{=}0$). Offset $=\texttt{0x003640}$, překlad tedy vede na $\text{FA}=\boxed{\texttt{0x03803640}}$. Jde ale o~\emph{zápis} na stránku s~$D{=}0$, takže zápis hned neproběhne: procesor vyvolá výjimku (u~MIPS „TLB modified``). OS ověří, že stránka je zapisovatelná, nastaví v~položce $D{=}1$ (a~stránku si poznamená jako změněnou) a~instrukci zopakuje; zápis pak proběhne na uvedenou FA. Není-li stránka zapisovatelná, jde o~porušení ochrany.
+\end{enumerate}
+\textit{Pozn.: Tato otázka nemá v~PDF náčrt řešení; dekódování položek i~všechny čtyři překlady jsme ověřili skriptem \texttt{verify\_szz.py}. Poučení: položky s~jiným ASID nebo $V{=}0$ se \emph{nesmí} použít -- právě ASID umožňuje držet v~TLB překlady více procesů zároveň.}
+\end{priklad}
+
+\subsection{Ochrana paměti}
+
+\begin{definice}[Ochrana paměti virtuálními adresovými prostory]
+Každý proces má \emph{vlastní} stránkovací tabulku, tedy vlastní mapování VA na rámce. Stránka jednoho procesu se mapuje na jiné rámce než stejně číslovaná stránka jiného procesu, takže se procesy svými virtuálními adresami \emph{nemohou} dostat do cizí paměti -- přístup mimo namapovanou oblast skončí výpadkem stránky. Příznaky v~položce navíc omezují způsob přístupu (jen pro čtení, neexekuovatelné). Vlákna téhož procesu naopak \emph{sdílejí} jeden adresový prostor (jednu tabulku), proto se musí synchronizovat (sekce~7).
+\end{definice}
+
+\begin{intuice}
+Ochrana je „zadarmo`` jako vedlejší efekt překladu: stačí, že OS do tabulky procesu nevloží žádné mapování na cizí rámce. Sdílení paměti mezi procesy se pak dělá naopak záměrně -- OS namapuje tytéž rámce do tabulek dvou procesů (typicky na různé virtuální adresy). Přepnutí kontextu mezi procesy proto zahrnuje i~výměnu stránkovací tabulky (a~většinou vyprázdnění nebo přeznačení TLB).
+\end{intuice}
+
+\begin{priklad}[SZZ podzim 2022 č.~2: Virtuální paměť -- stránkování 32-bit]
+\szzotazka{podzim 2022}{2}{Virtuální paměť (stránkování, 32-bit)}\par
+\textbf{Zadání.}\par
+Procesor se stránkováním, 32-bit virtuální i~fyzická adresa, jednoúrovňová stránkovací tabulka, stránka 4\,KiB. \textbf{(A)} Navrhněte formát položky tabulky (PTE) a~spočítejte, kolik položek tabulka má a~kolik paměti zabere. \textbf{(B)} V~pseudokódu napište \texttt{create\_pte(phys\_addr, present, writable, executable)} a~\texttt{set\_mapping(page\_table, virt\_addr, entry)}. \textbf{(C)} Souvislý blok 4 stránek od \texttt{0x0000B000} (heap: čte se a~modifikuje, nelze spouštět) je namapován na souvislý blok rámců; čtení 4\,B z~\texttt{0x0000CE90} se přeložilo na \texttt{0xA1018E90}, zápis proběhl na \texttt{0x0000D854}. Tabulka leží od \texttt{0x13400000}. Určete fyzické adresy položek pro tento blok a~jejich hexadecimální hodnoty včetně atributů.
+
+\medskip
+\textbf{Řešení.}\par
+\textbf{(A) Rozměry a~PTE.} Stránka má $4\,\text{KiB}=2^{12}$~B, takže offset jsou dolní $\boxed{12}$~bitů a~číslo stránky horních $32-12=\boxed{20}$~bitů. Tabulka má proto $2^{20}=\boxed{1\,048\,576}$ položek; při 4\,B na položku zabere $2^{20}\cdot4\,\text{B}=\boxed{4\,\text{MiB}}$ na proces. Číslo rámce (PFN) má rovněž 20~bitů a~vejde se do horních bitů $[31{:}12]$; dolních 12~bitů zbývá na příznaky. Zvolíme rozložení: bity $[31{:}12]$ PFN, bit~6 \textbf{D} (Dirty), bit~5 \textbf{A} (Accessed), bit~2 \textbf{X} (eXecutable), bit~1 \textbf{W} (Writable), bit~0 \textbf{P} (Present); A a~D nastavuje hardware, ostatní OS. 4-bytová položka stačí na jedno čtení z~paměti.
+
+\textbf{(B) Pseudokód.}
+\begin{lstlisting}
+function create_pte(phys_addr, present, writable, executable):
+    pte = phys_addr & 0xFFFFF000          // PFN v hornich 20 bitech
+    if present:    pte = pte | 0x1        // bit 0: Present
+    if writable:   pte = pte | 0x2        // bit 1: Writable
+    if executable: pte = pte | 0x4        // bit 2: eXecutable
+    return pte
+
+procedure set_mapping(page_table, virt_addr, entry):
+    index = virt_addr >> 12               // cislo stranky = hornich 20 bitu
+    page_table[index] = entry
+\end{lstlisting}
+
+\textbf{(C) Překlad a~položky.} Čtená VA \texttt{0x0000CE90}: stránka \texttt{0xC}, offset \texttt{0xE90}; FA \texttt{0xA1018E90} má stejný offset a~rámec \texttt{0xA1018}. Blok 4 stránek od \texttt{0x0000B000} jsou stránky \texttt{0xB},\,\texttt{0xC},\,\texttt{0xD},\,\texttt{0xE}; mapování je souvislé, takže rámce navazují:
+\[
+\texttt{0xB}\to\texttt{0xA1017},\quad
+\texttt{0xC}\to\texttt{0xA1018},\quad
+\texttt{0xD}\to\texttt{0xA1019},\quad
+\texttt{0xE}\to\texttt{0xA101A}.
+\]
+Adresy položek (báze \texttt{0x13400000} $+$ číslo stránky $\cdot\,4$):
+\[
+\texttt{0xB}\!\to\!\boxed{\texttt{0x1340002C}},\quad
+\texttt{0xC}\!\to\!\boxed{\texttt{0x13400030}},\quad
+\texttt{0xD}\!\to\!\boxed{\texttt{0x13400034}},\quad
+\texttt{0xE}\!\to\!\boxed{\texttt{0x13400038}}.
+\]
+Příznaky: heap $\Rightarrow$ u~všech P=1, W=1, X=0 (příznakový byte \texttt{0x03}). Čtení ze stránky \texttt{0xC} $\Rightarrow$ A=1 (přidá bit~5, \texttt{0x23}); zápis na \texttt{0x0000D854} (stránka \texttt{0xD}) $\Rightarrow$ A=1 i~D=1 (přidá bit~6, \texttt{0x63}); stránky \texttt{0xB},\,\texttt{0xE} nepoužity. Hodnota položky $=(\text{PFN}\,{\ll}\,12)\,|\,\text{příznaky}$:
+\[
+\texttt{0xB}\!\to\!\boxed{\texttt{0xA1017003}},\quad
+\texttt{0xC}\!\to\!\boxed{\texttt{0xA1018023}},\quad
+\texttt{0xD}\!\to\!\boxed{\texttt{0xA1019063}},\quad
+\texttt{0xE}\!\to\!\boxed{\texttt{0xA101A003}}.
+\]
+\textit{Pozn.: Tato otázka nemá v~PDF náčrt řešení; číselné výsledky jsme ověřili numericky (viz \texttt{priklady/}). Příznakové byty závisejí na zvoleném rozložení PTE; PFN a~adresy položek na něm nezávisejí.}
+\end{priklad}

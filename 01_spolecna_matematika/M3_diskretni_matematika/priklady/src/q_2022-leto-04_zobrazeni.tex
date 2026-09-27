@@ -1,0 +1,28 @@
+% Zdroj: PDF priklady-leto-2022-one.pdf (sešit S1, PGVVH+UI), fyzická str. 2. Značka: společné okruhy. Zařazeno: M3. Výpočty ověřeny.
+\section{Zobrazení}
+\szzotazka{léto 2022}{4}{Zobrazení (injekce, surjekce, počty)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Definujte, kdy je zobrazení $f\colon X\to Y$ prosté (injektivní) a kdy \uv{na} (surjektivní).
+  \item Pro $n\in\mathbb{N}$ určete, kolik existuje prostých zobrazení z $\{1,\dots,n\}$ do $\{1,\dots,2n\}$. Zdůvodněte.
+  \item Pro $n\in\mathbb{N}$ určete, kolik existuje zobrazení $\{1,\dots,2n\}$ na $\{1,\dots,n\}$ takových, že pro každé $k\in\{1,\dots,n\}$ existují právě dvě hodnoty $i,j$ s~$f(i)=f(j)=k$. Zdůvodněte.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Zobrazení $f$ je \emph{prosté (injektivní)}, pokud různé vzory mají různé obrazy, tj. $\forall a,b\in X:\ f(a)=f(b)\Rightarrow a=b$. Zobrazení $f$ je \emph{na (surjektivní)}, pokud každý prvek $Y$ je obrazem aspoň jednoho prvku $X$, tj. $\forall y\in Y\ \exists x\in X:\ f(x)=y$.
+  \item Prosté zobrazení $\{1,\dots,n\}\to\{1,\dots,2n\}$ stavíme po prvcích: pro obraz prvního prvku je $2n$ možností, pro druhý $2n-1$ (jeden cíl je obsazený), \dots, pro $n$-tý $2n-(n-1)=n+1$. Celkem
+    \[
+      2n\cdot(2n-1)\cdots(n+1)=\frac{(2n)!}{n!}.
+    \]
+  \item Každá z $n$ hodnot je obrazem právě dvojice vzorů; hledáme tedy rozdělení $2n$ prvků do $n$ \emph{označených} dvojic (dvojice pro $k=1$, pro $k=2$, \dots). Uspořádaných $2n$-tic je $(2n)!$, ale uvnitř každé z $n$ dvojic na pořadí nezáleží, tedy dělíme $2!$ za každou dvojici:
+    \[
+      \frac{(2n)!}{(2!)^n}=\frac{(2n)!}{2^n}.
+    \]
+    \emph{Kontrola} pro $n=2$: prostých zobrazení $4\cdot3=12=\frac{4!}{2!}$, takových surjekcí $\frac{4!}{2^2}=6$.
+\end{enumerate}
+
+\medskip
+\noindent\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu, výpočty ověřeny.)}

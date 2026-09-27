@@ -1,0 +1,194 @@
+\section{Statistické testy}\label{sec:testy}
+
+Statistický test rozhoduje \emph{ano/ne} otázku o~datech: liší se průměrná hmotnost sušenek od deklarované? Liší se počty zákazníků mezi dny? Tato látka patří do \textbf{pravděpodobnosti a~statistiky} (okruh \textbf{M5}, předmět NMAI059), ne do strojového učení v~užším smyslu; požadavky S3 ji ale jmenují, protože se ve strojovém učení používá k~ověření, zda je rozdíl mezi dvěma modely (nebo mezi pozorováním a~předpokladem) \emph{statisticky významný}, nebo jen náhodný šum. Zde proto zopakujeme obecný rámec testování hypotéz (podrobně viz M5) a~rozebereme tři testy z~požadavků: \emph{jednovýběrový} a~\emph{dvouvýběrový Studentův t-test} a~\emph{chí-kvadrát test dobré shody}.
+
+\begin{poznamka}[Rozsah]
+Držíme se přesně požadavků: u~chí-kvadrát testu jen \emph{test dobré shody} (ne test nezávislosti v~kontingenční tabulce), u~t-testu jednovýběrovou a~dvouvýběrovou variantu. Resamplingové testy (bootstrap, permutační test) z~NPFL129 (přednáška~12) ani ANOVA do požadavků nepatří, neuvádíme je.
+\end{poznamka}
+
+\subsection{Rámec testování hypotéz}
+
+Připomeňme z~M5 stavební kameny každého testu. Cíl je jediný: rozhodnout, zda data dostatečně silně \emph{odporují} výchozímu předpokladu.
+
+\begin{definice}[Hypotézy, testová statistika, kritický obor]
+\begin{itemize}
+  \item \textbf{Nulová hypotéza} $H_0$: výchozí, konzervativní tvrzení („nic zajímavého se neděje`` -- sušenky váží přesně tolik, kolik mají; zákazníci přicházejí každý den stejně).
+  \item \textbf{Alternativní hypotéza} $H_1$: tvrzení, které přijmeme, pokud $H_0$ zamítneme (hmotnost se liší; rozdělení neodpovídá).
+  \item \textbf{Testová statistika} $T$: číslo spočtené z~dat, jehož rozdělení \emph{za platnosti $H_0$} známe (zde $t$-rozdělení nebo $\chi^2$-rozdělení).
+  \item \textbf{Hladina významnosti} $\alpha$ (typicky $0{,}05$): maximální přípustná pravděpodobnost \emph{chyby 1.~druhu}, tj.\ zamítnutí $H_0$, ačkoli platí.
+  \item \textbf{Kritická hodnota} $c$ a~\textbf{kritický obor} $W$: hranice a~množina hodnot $T$, pro které $H_0$ zamítáme. $W$ se volí tak, aby $P(T\in W\mid H_0)=\alpha$.
+\end{itemize}
+\end{definice}
+
+\begin{intuice}
+Postup je vždy stejný: (1)~formuluj $H_0$ a~$H_1$; (2)~zvol $\alpha$; (3)~spočti testovou statistiku $T$ z~dat; (4)~urči kritickou hodnotu z~příslušného rozdělení (z~tabulek nebo softwaru); (5)~je-li $T$ v~kritickém oboru (zde $T$ \uv{příliš velké}), \textbf{zamítni} $H_0$, jinak ji \emph{nezamítej}. Logika je důkazem sporem: předpokládáme $H_0$ a~ptáme se, jak nepravděpodobná jsou pak pozorovaná data. Pokud velmi (statistika padne do ocasu), $H_0$ zavrhneme.
+\end{intuice}
+
+\begin{poznamka}[p-hodnota]
+Ekvivalentní pohled: \textbf{p-hodnota} je pravděpodobnost (za~$H_0$), že bychom dostali výsledek \emph{aspoň tak extrémní} jako pozorovaný. Rozhodovací pravidlo $T\in W$ je totéž co $p\le\alpha$. P-hodnota navíc říká, \emph{jak silně} data $H_0$ porušují. Pozor: p-hodnota \emph{není} pravděpodobnost, že $H_0$ platí. Rámec p-hodnoty viz M5.
+\end{poznamka}
+
+\subsection{Studentův t-test}
+
+T-test porovnává \emph{střední hodnoty} u~normálně rozdělených dat, když \textbf{neznáme rozptyl} a~musíme ho odhadnout z~výběru. Právě nahrazení neznámého $\sigma$ výběrovou směrodatnou odchylkou $s$ vede místo normálního rozdělení na \emph{$t$-rozdělení} (Studentovo) s~$\nu$ \emph{stupni volnosti}: je symetrické kolem nuly, ale má těžší ocasy než $N(0,1)$; s~rostoucím $\nu$ se k~$N(0,1)$ blíží (pro $\nu\gtrsim 30$ jsou prakticky k~nerozeznání).
+
+\subsubsection*{Jednovýběrový t-test}
+
+\begin{definice}[Jednovýběrový t-test]
+Máme výběr $X_1,\dots,X_n$ z~normálního rozdělení s~neznámou střední hodnotou $\mu$ a~neznámým rozptylem. Testujeme, zda se $\mu$ rovná dané konstantě $\mu_0$:
+\[ H_0\colon \mu=\mu_0, \qquad H_1\colon \mu\neq\mu_0 \quad(\text{oboustranně}). \]
+Testová statistika je
+\[ t=\frac{\bar X-\mu_0}{s/\sqrt{n}}, \qquad \bar X=\frac1n\sum_{i=1}^n X_i,\quad s^2=\frac{1}{n-1}\sum_{i=1}^n (X_i-\bar X)^2, \]
+kde $\bar X$ je výběrový průměr a~$s$ výběrová směrodatná odchylka. Za~$H_0$ má $t$ \textbf{Studentovo $t$-rozdělení s~$n-1$ stupni volnosti}. $H_0$ na hladině $\alpha$ zamítáme, pokud $|t|\ge t_{n-1,\,1-\alpha/2}$ (kritická hodnota oboustranného testu).
+\end{definice}
+
+\begin{intuice}
+Čitatel $\bar X-\mu_0$ měří, jak daleko je pozorovaný průměr od testované hodnoty; jmenovatel $s/\sqrt{n}$ je \emph{směrodatná chyba průměru}, tedy typický rozptyl $\bar X$. Statistika $t$ tak vyjadřuje rozdíl \emph{v~jednotkách jeho vlastní nejistoty}: $t=10$ znamená, že pozorovaný průměr je deset směrodatných chyb od $\mu_0$ -- to je za~$H_0$ extrémně nepravděpodobné. Jednostrannou variantu ($H_1\colon \mu>\mu_0$, resp.\ $<$) použijeme, je-li předem jasný směr odchylky; pak je kritická hodnota $t_{n-1,\,1-\alpha}$ a~kritický obor jen jeden ocas.
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    width=11cm, height=5.4cm,
+    axis lines=middle,
+    xlabel={$t$}, ylabel={hustota},
+    xtick={-1.98,0,1.98}, xticklabels={$-1{,}98$,$0$,$1{,}98$},
+    ytick=\empty,
+    xmin=-4.6, xmax=4.6, ymin=0, ymax=0.46,
+    enlargelimits=false, clip=false,
+    every axis x label/.style={at={(current axis.right of origin)},anchor=west},
+    every axis y label/.style={at={(current axis.above origin)},anchor=south west},
+]
+  % hustota t_99 (z .dat, scipy)
+  \addplot[blue!70!black, thick] table[x=x,y=p]{src/fig/s9_t_df99.dat};
+  % levy ocas (kriticky obor) -- vykreslime znovu jen cast a uzavreme k ose
+  \addplot[draw=none, fill=red!55, fill opacity=0.32, restrict x to domain=-4.6:-1.98]
+    table[x=x,y=p]{src/fig/s9_t_df99.dat} \closedcycle;
+  % pravy ocas (kriticky obor)
+  \addplot[draw=none, fill=red!55, fill opacity=0.32, restrict x to domain=1.98:4.6]
+    table[x=x,y=p]{src/fig/s9_t_df99.dat} \closedcycle;
+  % kriticke hodnoty (hranice kritickeho oboru) -- jen po krivku, ne az do vrcholu
+  \addplot[black, dashed] coordinates {(-1.98,0) (-1.98,0.30)};
+  \addplot[black, dashed] coordinates {(1.98,0) (1.98,0.30)};
+  \node[red!60!black, anchor=north, font=\small] at (axis cs:-2.75,0.085) {$\alpha/2$};
+  \node[red!60!black, anchor=north, font=\small] at (axis cs:2.75,0.085) {$\alpha/2$};
+  \node[anchor=center, font=\small] at (axis cs:0,0.24) {nezamítáme};
+\end{axis}
+\end{tikzpicture}
+\obrpopis{Hustota $t$-rozdělení s~$99$ stupni volnosti (oboustranný t-test, $n=100$). Při $\alpha=0{,}05$ leží kritický obor v~obou ocasech za~$\pm t_{99,\,0{,}975}\approx\pm1{,}98$ (\textcolor{red!70!black}{červeně}, dohromady míra $0{,}05$). Pro $99$ stupňů volnosti je rozdělení prakticky nerozeznatelné od $N(0,1)$ (kritická hodnota $1{,}98$ vs.\ $z_{0{,}975}=1{,}96$). Hustota generována scipy (\texttt{src/fig/gen\_s9\_dist.py}).}
+\end{center}
+
+\subsubsection*{Dvouvýběrový t-test}
+
+\begin{definice}[Dvouvýběrový t-test]
+Máme \emph{dva nezávislé} výběry $X_1,\dots,X_{n_1}$ a~$Y_1,\dots,Y_{n_2}$ z~normálních rozdělení se středními hodnotami $\mu_1,\mu_2$. Testujeme rovnost středních hodnot:
+\[ H_0\colon \mu_1=\mu_2,\qquad H_1\colon \mu_1\neq\mu_2. \]
+Při \emph{shodných rozptylech} obou skupin se testová statistika spočte ze \emph{sdruženého} odhadu rozptylu $s_p^2$:
+\[ t=\frac{\bar X-\bar Y}{s_p\sqrt{\tfrac{1}{n_1}+\tfrac{1}{n_2}}},\qquad
+   s_p^2=\frac{(n_1-1)s_1^2+(n_2-1)s_2^2}{n_1+n_2-2}, \]
+kde $\bar X,\bar Y$ jsou výběrové průměry a~$s_1^2,s_2^2$ výběrové rozptyly. Za~$H_0$ má $t$ Studentovo rozdělení s~$n_1+n_2-2$ stupni volnosti; $H_0$ zamítáme při $|t|\ge t_{n_1+n_2-2,\,1-\alpha/2}$.
+\end{definice}
+
+\begin{intuice}
+Myšlenka je stejná jako u~jednovýběrového testu, jen místo „průměr vs.\ konstanta`` porovnáváme „průměr vs.\ průměr``: čitatel je rozdíl průměrů $\bar X-\bar Y$, jmenovatel jeho směrodatná chyba. Sdružený rozptyl $s_p^2$ je vážený průměr rozptylů obou skupin (váhami jsou stupně volnosti) -- nejlepší společný odhad společného $\sigma^2$. Nelze-li předpokládat shodné rozptyly, používá se \emph{Welchova} varianta (jiný jmenovatel a~stupně volnosti); princip rozhodování zůstává.
+\end{intuice}
+
+\begin{poznamka}[Párový vs.\ nepárový]
+Jsou-li data \emph{párovaná} (např.\ stejní pacienti před a~po léčbě), počítáme rozdíly $D_i=X_i-Y_i$ a~aplikujeme \emph{jednovýběrový} t-test na $H_0\colon \mu_D=0$. Výše uvedený dvouvýběrový test předpokládá \emph{nezávislé} skupiny.
+\end{poznamka}
+
+\begin{priklad}[Dvouvýběrový t-test -- ilustrace]
+\textbf{Zadání.} Dvě skupiny studentů (každá $n=8$) psaly stejný test. Skupina A měla průměr $80$ a~výběrovou směrodatnou odchylku $4$, skupina B průměr $74$ a~odchylku $4$. Liší se průměry statisticky významně na hladině $\alpha=0{,}05$ (předpokládáme normalitu a~shodné rozptyly)?
+
+\smallskip
+\textbf{Řešení.} Sdružený rozptyl $s_p^2=\frac{7\cdot 16+7\cdot 16}{14}=16$, tedy $s_p=4$. Testová statistika
+\[ t=\frac{80-74}{4\sqrt{\tfrac18+\tfrac18}}=\frac{6}{4\cdot 0{,}5}=\boxed{3{,}0},\qquad \text{df}=n_1+n_2-2=14. \]
+Kritická hodnota $t_{14,\,0{,}975}\approx 2{,}14$. Protože $|3{,}0|\ge 2{,}14$, $H_0$ \textbf{zamítáme} -- skupiny se liší.
+\end{priklad}
+
+\begin{priklad}[SZZ jaro 2024 č.~26: Jednovýběrový t-test (sušenky)]
+\szzotazka{jaro 2024}{26}{Statistické testy -- t-test}\par
+\textbf{Zadání.} Výrobce deklaruje hmotnost sušenek $100\,$g. Z~kontroly: $n=100$ sušenek, průměrná hmotnost $\bar X=102\,$g, výběrová směrodatná odchylka $s=2\,$g. T-testem rozhodněte, zda se průměrná hmotnost liší od deklarovaných $100\,$g. (1)~Hypotézy. (2)~Testová statistika a~její rozdělení. (3)~Rozhodnutí, je-li kritická hodnota na $\alpha=0{,}05$ přibližně $2$.
+
+\smallskip
+\textbf{Řešení.}
+
+\emph{(1)~Hypotézy.} Jednovýběrový t-test proti deklarované hodnotě $\mu_0=100$:
+\[ H_0\colon \mu=100,\qquad H_1\colon \mu\neq 100 \quad(\text{oboustranný}). \]
+
+\emph{(2)~Testová statistika.} Dosadíme do vzorce $t=(\bar X-\mu_0)/(s/\sqrt n)$:
+\[ t=\frac{102-100}{2/\sqrt{100}}=\frac{2}{2/10}=\frac{2}{0{,}2}=\boxed{10}. \]
+Za~$H_0$ má $t$-rozdělení s~$n-1=\boxed{99}$ stupni volnosti.
+
+\emph{(3)~Rozhodnutí.} Kritická hodnota je $t_{99,\,0{,}975}\approx 2$ (přesně $1{,}984$). Protože $|t|=10\gg 2$, statistika leží hluboko v~kritickém oboru, \textbf{$H_0$ zamítáme}. Průměrná hmotnost sušenek se na hladině $\alpha=0{,}05$ \emph{statisticky významně liší} od deklarovaných $100\,$g (p-hodnota je prakticky nulová).
+\end{priklad}
+
+\subsection{Chí-kvadrát test dobré shody}
+
+Zatímco t-test pracuje se \emph{spojitými} daty a~jejich průměrem, \textbf{chí-kvadrát test dobré shody} (goodness-of-fit) pracuje s~\emph{kategoriálními} daty: máme pozorované počty (četnosti) v~několika kategoriích a~ptáme se, zda odpovídají nějakému teoretickému rozdělení.
+
+\begin{definice}[Chí-kvadrát test dobré shody]
+Pozorování je rozděleno do $k$ kategorií s~\emph{pozorovanými četnostmi} $O_1,\dots,O_k$ (celkem $n=\sum_i O_i$). Za~$H_0$ jsou teoretické pravděpodobnosti kategorií $p_1,\dots,p_k$ ($\sum p_i=1$), což dává \emph{očekávané četnosti} $E_i=n\,p_i$:
+\[ H_0\colon \text{pozorované četnosti odpovídají očekávaným } (E_i=n p_i), \qquad H_1\colon \text{neodpovídají}. \]
+Testová statistika je
+\[ \chi^2=\sum_{i=1}^k \frac{(O_i-E_i)^2}{E_i}. \]
+Za~$H_0$ má pro dostatečně velká $n$ přibližně \textbf{$\chi^2$-rozdělení s~$k-1$ stupni volnosti}. $H_0$ zamítáme, pokud $\chi^2\ge \chi^2_{k-1,\,1-\alpha}$ (test je vždy \emph{jednostranný} -- velká hodnota svědčí proti shodě).
+\end{definice}
+
+\begin{intuice}
+Každý sčítanec $(O_i-E_i)^2/E_i$ měří, jak moc se pozorovaná četnost v~kategorii odchýlila od očekávané, \emph{relativně} k~očekávané (dělení $E_i$ normuje měřítko). Když data sedí, jsou rozdíly malé a~$\chi^2$ je malé; velký nesoulad v~kterékoli kategorii statistiku nafoukne. Stupňů volnosti je $k-1$, ne $k$, protože jedna vazba $\sum_i O_i=n$ ubírá jeden stupeň volnosti (poslední četnost je dopočitatelná z~ostatních). Pravidlo: aproximace $\chi^2$-rozdělením je spolehlivá, jen když jsou očekávané četnosti dost velké (obvykle $E_i\ge 5$).
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    width=11cm, height=5.4cm,
+    axis lines=middle,
+    xlabel={$\chi^2$}, ylabel={hustota},
+    xtick={0,5,9.49,15,20}, xticklabels={$0$,$5$,$9{,}49$,$15$,$20$},
+    ytick=\empty,
+    xmin=0, xmax=20.5, ymin=0, ymax=0.20,
+    enlargelimits=false, clip=false,
+    every axis x label/.style={at={(current axis.right of origin)},anchor=west},
+    every axis y label/.style={at={(current axis.above origin)},anchor=south west},
+]
+  % hustota chi^2_4 (z .dat, scipy)
+  \addplot[blue!70!black, thick] table[x=x,y=p]{src/fig/s9_chi2_df4.dat};
+  % kriticky obor: pravy ocas x >= 9.49
+  \addplot[draw=none, fill=red!55, fill opacity=0.32, restrict x to domain=9.49:20.5]
+    table[x=x,y=p]{src/fig/s9_chi2_df4.dat} \closedcycle;
+  % kriticka hodnota (hranice kritickeho oboru)
+  \addplot[black, dashed] coordinates {(9.49,0) (9.49,0.105)};
+  % pozorovana statistika (pozorovana hodnota chi^2)
+  \addplot[black!55!red, thick] coordinates {(10.1,0) (10.1,0.155)};
+  % popisek kriticke hodnoty -- vlevo dole, jasne oddeleny
+  \node[anchor=south east, font=\small] at (axis cs:9.35,0.108) {$c=9{,}49$};
+  % popisek pozorovane statistiky -- vyse a vpravo, bez kolize s c
+  \node[black!55!red, anchor=south west, font=\small] at (axis cs:10.25,0.155) {$\chi^2=10{,}1$};
+  \node[red!60!black, anchor=west, font=\small] at (axis cs:12.0,0.05) {kritický obor ($\alpha=0{,}05$)};
+\end{axis}
+\end{tikzpicture}
+\obrpopis{Hustota $\chi^2$-rozdělení se~$4$ stupni volnosti (pět kategorií, $k-1=4$). Kritický obor na hladině $\alpha=0{,}05$ je pravý ocas za~kritickou hodnotou $c=\chi^2_{4,\,0{,}95}\approx 9{,}49$ (\textcolor{red!70!black}{červeně}, míra $0{,}05$). Pozorovaná statistika $\chi^2=10{,}1$ leží v~kritickém oboru, takže $H_0$ \emph{zamítáme}. Rozdělení je nesymetrické a~kladné (statistika je součet čtverců). Hustota generována scipy (\texttt{src/fig/gen\_s9\_dist.py}).}
+\end{center}
+
+\begin{priklad}[SZZ podzim 2023 č.~29: Chí-kvadrát test dobré shody (zákazníci)]
+\szzotazka{podzim 2023}{29}{chí-kvadrát test (test dobré shody)}\par
+\textbf{Zadání.} (1)~Popište $\chi^2$ test dobré shody: hypotézy, testová statistika, její rozdělení. (2)~Obchod měl za pět pracovních dní celkem $100$ zákazníků; po dnech (po--pá) postupně $25$, $30$, $15$, $14$, $16$. Rozhodněte $\chi^2$ testem, zda se počty mezi dny statisticky významně liší. \textit{Nápověda:} kritické hodnoty na $\alpha=0{,}05$ jsou $7{,}8$ (df${}=3$), $9{,}5$ (df${}=4$), $11{,}1$ (df${}=5$), $12{,}6$ (df${}=6$).
+
+\smallskip
+\textbf{Řešení.}
+
+\emph{(1)~Popis testu.} $H_0$: pozorované četnosti odpovídají očekávaným; $H_1$: neodpovídají. Statistika $\chi^2=\sum_i (O_i-E_i)^2/E_i$ má za~$H_0$ rozdělení $\chi^2$ s~$k-1$ stupni volnosti, kde $k$ je počet kategorií. Velká hodnota svědčí proti $H_0$.
+
+\emph{(2)~Výpočet.} \uv{Zákazníků je každý den stejně}: $5$ kategorií, $n=100$, takže za~$H_0$ je $p_i=\tfrac15$ a~očekávaná četnost $E_i=n p_i=100\cdot\tfrac15=20$ pro každý den. Dosadíme pozorované četnosti:
+\[ \chi^2=\frac{(25-20)^2}{20}+\frac{(30-20)^2}{20}+\frac{(15-20)^2}{20}+\frac{(14-20)^2}{20}+\frac{(16-20)^2}{20}. \]
+Čitatelé jsou $5^2,10^2,(-5)^2,(-6)^2,(-4)^2=25,100,25,36,16$, součet $202$, tedy
+\[ \chi^2=\frac{25+100+25+36+16}{20}=\frac{202}{20}=\boxed{10{,}1}. \]
+Stupně volnosti: $k-1=5-1=4$, kritická hodnota z~nápovědy $c=\chi^2_{4,\,0{,}95}=9{,}5$.
+
+\emph{Rozhodnutí.} $\chi^2=10{,}1>9{,}5=c$, statistika padla do kritického oboru, \textbf{$H_0$ zamítáme}. Počty zákazníků v~jednotlivých dnech se na hladině $\alpha=0{,}05$ \emph{statisticky významně liší} (rozdíl není jen náhodný šum; p-hodnota $\approx 0{,}039<0{,}05$). Největší příspěvek ke statistice dává úterý ($30$ zákazníků, příspěvek $100/20=5$ z~celkových $10{,}1$), ostatní dny přispívají nejvýše $1{,}8$ (čtvrtek).
+\end{priklad}
+
+\begin{poznamka}[Když test nezamítá]
+Pozor na interpretaci: \emph{nezamítnutí} $H_0$ neznamená, že $H_0$ \uv{platí} -- jen že data nemají dost síly ji vyvrátit. U~obou příkladů by stačil výrazně menší rozdíl (sušenky $100{,}3\,$g, vyrovnanější počty zákazníků) k~tomu, aby test nezamítl, ač $H_0$ doslova neplatí. Statistická významnost také není totéž co \emph{praktická} významnost: u~obrovského vzorku zamítneme $H_0$ i~při zanedbatelném rozdílu.
+\end{poznamka}

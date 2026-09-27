@@ -1,0 +1,51 @@
+% !TeX program = lualatex
+% Agregátor reálných otázek SZZ pro okruh S1. Jednotlivé otázky jsou v souborech q_*.tex.
+% Sestavení: ./build.sh 03_specializace_ui_su/S1_zaklady_ui/priklady   (nebo cd .../priklady && latexmk)
+\documentclass[11pt,a4paper]{article}
+\usepackage{szzpriklady}
+% Build běží z adresáře priklady/ (CWD), obrázky jsou v src/fig/.
+\graphicspath{{src/fig/}{fig/}}
+
+\title{Příklady otázek -- Základy umělé inteligence\\[0.3em]\large Reálné otázky ze SZZ 2022--2026 (S1)}
+\author{Jakub Klesa}
+\date{Pokryté předměty: NAIL120 (Úvod do umělé inteligence)}
+
+\begin{document}
+\sloppy
+\maketitle
+\tableofcontents
+\bigskip
+
+\begin{poznamka}
+Tento dokument obsahuje reálné otázky z minulých termínů SZZ (2022--2026) zařazené do
+okruhu S1. U otázek s obrázkem je grafika oříznutá z originálního PDF (viz odkaz na
+zdroj). Text, číselná data a tabulky jsou přepsané věrně.
+Zadání i oficiální náčrty řešení pocházejí ze sad zveřejněných na webu MFF UK:\par
+{\raggedright\url{https://www.mff.cuni.cz/cs/studenti/bakalarske-studium/statni-zaverecne-zkousky/bakalarske-statni-zkousky-studijniho-programu-informatika}\par}
+Náčrty označené jako doplněné jsou vlastní, oficiální sada je k~dané otázce neobsahuje.
+Vlastní doplnění k~oficiálnímu náčrtu jsou zřetelně oddělena.
+Pojmy a~značení odpovídají přednáškám předmětu NAIL120 \emph{Úvod do umělé inteligence}
+(R.~Barták, \url{https://ktiml.mff.cuni.cz/~bartak/ui_intro/}) a~učebnici S.~Russella
+a~P.~Norviga \emph{Artificial Intelligence: A~Modern Approach} (\url{https://aima.cs.berkeley.edu/}).
+\end{poznamka}
+\bigskip
+
+% === Otázky (chronologicky). Doplň \input řádky a soubory q_*.tex do src/. ===
+% Příklad: \input{q_2024-leto-28_bayesovske-site}
+% ZACATEK-OTAZEK
+\input{src/q_2022-leto-09_n-kralovny}
+\input{src/q_2022-podzim-17_barveni-grafu-dpll}
+\input{src/q_2023-jaro-05_planovani}
+\input{src/q_2023-leto-05_hmm}
+\input{src/q_2023-podzim-28_csp}
+\input{src/q_2024-jaro-32_informovane-prohledavani}
+\input{src/q_2024-leto-28_bayesovske-site}
+\input{src/q_2024-podzim-28_minimax}
+\input{src/q_2025-jaro-27_dpll-parovani}
+\input{src/q_2025-jaro-30_bayesovske-uceni}
+\input{src/q_2025-leto-29_bellmanova-rovnice}
+\input{src/q_2025-podzim-27_jednotahove-hry}
+\input{src/q_2026-jaro-27_csp}
+% KONEC-OTAZEK
+
+\end{document}

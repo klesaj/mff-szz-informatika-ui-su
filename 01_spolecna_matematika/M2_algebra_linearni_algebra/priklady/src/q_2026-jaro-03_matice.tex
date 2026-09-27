@@ -1,0 +1,33 @@
+% Zdroj: PDF priklady-jaro-2026.pdf, fyzická str. 3. Značka: společné okruhy. Zařazeno: M2.
+\section{Matice}
+\szzotazka{jaro 2026}{3}{Matice}
+
+\noindent\textbf{Zadání.}\par
+Uvažujme matici $A \in \mathbb{R}^{3 \times 3}$, jejíž řádkový prostor má bázi tvořenou pouze vektorem $(1,2,3)^T$.
+\begin{enumerate}
+  \item Najděte odstupňovaný tvar matice $A$.
+  \item Napište definici determinantu a spočítejte konkrétní hodnotu $\det(A)$.
+  \item Najděte ortogonální bázi jádra matice $A$.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item
+    \[
+      \begin{pmatrix}
+        1 & 2 & 3 \\
+        0 & 0 & 0 \\
+        0 & 0 & 0
+      \end{pmatrix}.
+    \]
+  \item
+    \[
+      \det(A) = \sum_{p \in S_n} \operatorname{sgn}(p) \prod_{i=1}^{n} a_{i,p(i)}.
+    \]
+    V našem případě má matice $A$ hodnost 1, čili je singulární a $\det(A) = 0$.
+  \item Jádro matice $A$ má dimenzi 2 a bázi tvoří např.\ vektory $(2,-1,0)^T$, $(3,0,-1)^T$. Gramovou--Schmidtovou ortogonalizací dostaneme ortogonální bázi $(2,-1,0)^T$, $(3,6,-5)^T$.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} (1)~Všechny řádky $A$ jsou násobky $(1,2,3)$ a~aspoň jeden je nenulový; eliminací (a~vydělením pivotu) zbude jediný nenulový řádek $(1,2,3)$. (3)~Jádro je množina $x$ s~$x_1+2x_2+3x_3=0$ (dimenze $3-1=2$). Gram--Schmidt na $v_1=(2,-1,0)^T$, $v_2=(3,0,-1)^T$: $\langle v_2,v_1\rangle=6$, $\langle v_1,v_1\rangle=5$, takže $v_2-\tfrac65v_1=\tfrac15(3,6,-5)^T$; po vynásobení pěti dostaneme $(3,6,-5)^T$. Zkouška: $(2,-1,0)\cdot(3,6,-5)=0$ a~$3+2\cdot6+3\cdot(-5)=0$, vektor tedy leží v~jádře.

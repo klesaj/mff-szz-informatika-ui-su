@@ -1,0 +1,55 @@
+% Zdroj: PDF priklady-leto-2025.pdf, fyzická str. 4-5. Značka: společné okruhy. Zařazeno: M2.
+\section{Skalární součin}
+\szzotazka{léto 2025}{3}{Skalární součin}
+
+\noindent\textbf{Zadání.}\par
+Uvažujme zobrazení ve tvaru $\langle x, y \rangle = x^T A y$ pro symetrickou matici $A \in \mathbb{R}^{n \times n}$.
+\begin{enumerate}
+  \item Rozhodněte o platnosti výroků:
+    \begin{enumerate}
+      \item[(a)] Je-li $\langle x, y \rangle = x^T A y$ skalární součin na $\mathbb{R}^n$, pak $\det(A) > 0$.
+      \item[(b)] Je-li $B \in \mathbb{R}^{n \times n}$ symetrická regulární matice, pak $\langle x, y \rangle = x^T B^2 y$ je skalární součin na $\mathbb{R}^n$.
+    \end{enumerate}
+  \item Uvažujme skalární součin na $\mathbb{R}^n$ zadaný ve tvaru $\langle x, y \rangle = x^T A y$ pro nějakou vhodnou matici $A \in \mathbb{R}^{n \times n}$. Zapište Cauchyho--Schwarzovu nerovnost tak, aby místo normy a skalárního součinu byly použity maticové a aritmetické operace.
+  \item Rozhodněte, zda pro všechna přirozená $n \ge 1$ platí, že matice
+    \[
+      A = \begin{pmatrix}
+        1 & \cdots & \cdots & 1 \\
+        \vdots & 2 & \cdots & 2 \\
+        \vdots & \vdots & \ddots & \vdots \\
+        1 & 2 & \cdots & n
+      \end{pmatrix}
+    \]
+    (tj.\ $A \in \mathbb{R}^{n \times n}$ s prvky $a_{i,j} = \min(i,j)$) je pozitivně definitní. Formulujte příslušné kritérium a ověřte ho, případně ukažte protipříklad.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item
+    \begin{enumerate}
+      \item[(a)] Ano, matice je pozitivně definitní, má tedy kladná vlastní čísla i determinant.
+      \item[(b)] Ano, $B^2$ je symetrická s kladnými vlastními čísly, tedy pozitivně definitní.
+    \end{enumerate}
+  \item Cauchyho--Schwarzova nerovnost: Pro každé $x, y \in V$ platí
+    \[
+      |\langle x, y \rangle| \le \|x\| \cdot \|y\|.
+    \]
+    V našem případě má nerovnost tvar
+    \[
+      |x^T A y| \le \sqrt{x^T A x}\, \sqrt{y^T A y}.
+    \]
+  \item Ano, matice $A$ je pozitivně definitní. Například Choleského rozklad má tvar $A = LL^T$, kde
+    \[
+      L = \begin{pmatrix}
+        1 & 0 & \cdots & 0 \\
+        \vdots & \ddots & \ddots & \vdots \\
+        \vdots & & \ddots & 0 \\
+        1 & \cdots & \cdots & 1
+      \end{pmatrix}.
+    \]
+    Snadno lze ověřit i Gaussovou eliminací nebo Sylvestrovým kritériem.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} (1b)~Protože $B$ je symetrická, je $B^2=B^TB$ symetrická a~její vlastní čísla jsou $\lambda^2$ pro vlastní čísla $\lambda$ matice $B$; regulární $B$ nemá vlastní číslo~$0$, takže $\lambda^2>0$. Přímo: $x^TB^2x=\|Bx\|^2>0$ pro $x\neq o$. (3)~Pro dolní trojúhelníkovou $L$ se samými jedničkami na diagonále i~pod ní je $(LL^T)_{ij}=\sum_k L_{ik}L_{jk}$ počet indexů $k$ s~$k\le i$ a~$k\le j$, tedy $\min(i,j)=a_{ij}$. $L$ má kladnou diagonálu, takže jde o~Choleského rozklad a~$A$ je pozitivně definitní pro každé $n$.

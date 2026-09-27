@@ -1,0 +1,51 @@
+% Zdroj: PDF priklady-podzim-2025.pdf, fyzická str. 22-23. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S3.
+\section{Evaluace binárního klasifikátoru}
+\szzotazka{podzim 2025}{28}{Evaluace binárního klasifikátoru}
+
+\noindent\textbf{Zadání.}\par
+Představte si, že vaším úkolem je vybrat nástroj pro analýzu počítačových logů a vyhledávání anomálií
+v nich (ty mohou být způsobené například selháním hardware, kybernetickým útokem, apod.). Máte možnost
+si vybrat ze dvou nástrojů. Z dostupných marketingových materiálů jste se o prvním nástroji dozvěděli,
+že má úspěšnost (accuracy) $99{,}5\,\%$ a umí správně odhalit $90\,\%$ anomálií. U druhého nástroje se uvádí,
+že odhalí $81\,\%$ anomálií a jen $10\,\%$ nahlášených anomálií jsou falešně pozitivní.
+
+\medskip
+Předpokládejte, že oba nástroje byly vyhodnoceny na stejných datech obsahujících $10\,000$ instancí,
+z nichž pouze $1\,\%$ jsou anomálie.
+
+\begin{enumerate}
+  \item Spočítejte chybovou matici (matice konfuze, confusion matrix) obou nástrojů a tyto metriky pro
+    binární klasifikaci: úspěšnost (accuracy), přesnost (precision), úplnost (recall), F1-skóre.
+  \item Popište výhody a nevýhody jednotlivých nástrojů při praktickém nasazení. Který z nich byste
+    použili? Zdůvodněte. (\textit{Zde není nutné jediná správná odpověď.})
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+O datech víme, že obsahují celkem $9\,900$ negativních instancí (nejsou anomálie) a $100$ pozitivních instancí.
+\begin{enumerate}
+  \item První nástroj správně detekuje $90$ ze $100$ anomálií. Tedy $\mathrm{TP} = 90$, z toho plyne, že
+    $\mathrm{FN} = 10$. Tento nástroj také správně určí $9\,950$ z $10\,000$ instancí. Tedy musí správně určit
+    $9\,950 - \mathrm{TP} = 9\,860$ negativních instancí. Tedy $\mathrm{TN} = 9\,860$ a $\mathrm{FP} = 40$.
+    Recall je $0.9$ (ze zadání), precision je $\mathrm{TP}/(\mathrm{TP}+\mathrm{FP}) = 90/130$ (cca $0.69$).
+    F1-skóre je $0.78$, accuracy (ze zadání) $0.995$.
+
+    \medskip
+    Druhý nástroj správně detekuje $80$ ze $100$ anomálií.\footnote{V originálním PDF je zde uvedeno
+    \uv{$\mathrm{TP}=81$, a $\mathrm{FN}=19$}, dále \uv{$\mathrm{FN}=81/9=9$} a accuracy $0.997$;
+    tyto hodnoty jsou v PDF nekonzistentní (recall $0.81$ při $100$ pozitivních dává $\mathrm{TP}=81$,
+    ne $80$). Také je v PDF u precision uveden vzorec $\mathrm{TP}/(\mathrm{TP}+\mathrm{FN})$, správně má
+    být $\mathrm{TP}/(\mathrm{TP}+\mathrm{FP})$. Zde přepsáno věrně dle PDF až na opravu vzorce precision;
+    případné aritmetické nekonzistence v originálu ponechány.}
+    Tedy $\mathrm{TP} = 81$, a $\mathrm{FN} = 19$. Ze zadání jen $10\,\%$ nahlášených jsou FP, tedy
+    precision je $0.9 = \mathrm{TP}/(\mathrm{TP}+\mathrm{FP})$ a tedy $\mathrm{FN} = 81/9 = 9$. Zbytek instancí
+    ($9\,891$) je TN. Recall je tedy $0.81$ (ze zadání), precision je $0.9$ (ze zadání), F1-skóre je $0.85$,
+    accuracy $0.997$.
+  \item Druhý nástroj je lepší ve všech metrikách (kromě recall) než nástroj první. Jeho výhodou může být to,
+    že hlásí mnohem méně falešně pozitivních výsledků, nezaměstnává tedy správce systému zbytečnými hlášeními.
+    Na druhou stranu, pokud jsou anomálie kritické, může být lepší použít první nástroj, který jich detekuje
+    více za cenu toho, že okolo $30\,\%$ detekcí jsou falešně pozitivní.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Konzistentní hodnoty pro druhý nástroj: recall $0{,}81$ při $100$ anomáliích dává $\mathrm{TP}=81$, $\mathrm{FN}=19$; precision $0{,}9$ dává $\mathrm{FP}=81/9=9$ (v~náčrtu omylem označeno FN) a~$\mathrm{TN}=9\,900-9=9\,891$. Accuracy je $(81+9\,891)/10\,000=0{,}9972$ a~$F_1=\frac{2\cdot0{,}9\cdot0{,}81}{0{,}9+0{,}81}\approx0{,}85$. U~prvního nástroje je $F_1=\frac{2\cdot(90/130)\cdot0{,}9}{90/130+0{,}9}\approx0{,}78$ a~podíl falešných poplachů mezi hlášeními $40/130\approx31\,\%$.

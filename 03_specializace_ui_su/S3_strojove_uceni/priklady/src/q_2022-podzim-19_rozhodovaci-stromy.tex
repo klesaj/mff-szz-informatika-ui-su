@@ -1,0 +1,39 @@
+% Zdroj: PDF priklady-podzim-2022.pdf, fyzická str. 8. Značka: specializace UI-SU. Zařazeno: S3. Číselné výsledky ověřeny numericky.
+\section{Rozhodovací stromy}
+\szzotazka{podzim 2022}{19}{Rozhodovací stromy}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Definujte rozhodovací strom. Popište algoritmus pro trénování rozhodovacího stromu.
+  \item Definujte kritéria pro výběr atributu pro větvení pro klasifikaci a~pro regresi (alespoň jedno pro klasifikaci a~alespoň jedno pro regresi).
+  \item Mějme data s~kategorickými atributy $A_1$, $A_2$ a~cílovou hodnotou $C$ (tabulka níže). Podle kterého atributu budeme data dělit v~kořeni rozhodovacího stromu pro \emph{regresi} a~proč?
+\end{enumerate}
+
+\begin{center}
+\begin{tabular}{ccc}
+\toprule
+$A_1$ & $A_2$ & $C$ \\
+\midrule
+0 & 0 & 5 \\
+0 & 0 & 3 \\
+0 & 1 & 4 \\
+1 & 0 & 6 \\
+1 & 1 & 2 \\
+1 & 1 & 4 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, výpočet ověřen numericky.)}\par
+\begin{enumerate}[nosep]
+  \item Rozhodovací strom je stromový model, jehož vnitřní uzly testují atribut, větve odpovídají jeho hodnotám a~listy nesou predikci (třídu nebo číselnou hodnotu). Trénuje se hladově shora dolů (rozděl a~panuj): v~každém uzlu se vybere atribut podle zvoleného kritéria, data se podle něj rozdělí a~rekurzivně se pokračuje, dokud nejsou listy „čisté", nedojdou atributy nebo není splněna zastavovací podmínka.
+  \item Pro \emph{klasifikaci}: maximalizace informačního zisku (pokles entropie) nebo minimalizace Gini indexu. Pro \emph{regresi}: minimalizace vážené sumy čtvercových odchylek (SSE) v~dětech, ekvivalentně maximalizace redukce rozptylu.
+  \item Pro regresi počítáme redukci rozptylu (resp.\ SSE). Celkový průměr je $\bar{C}=4$ a~SSE rodiče $=10$.
+    \begin{itemize}
+      \item Dělení podle $A_1$: $A_1{=}0 \to \{5,3,4\}$, průměr $4$, SSE $2$; $A_1{=}1 \to \{6,2,4\}$, průměr $4$, SSE $8$. Celkem SSE $=10$, redukce $=0$.
+      \item Dělení podle $A_2$: $A_2{=}0 \to \{5,3,6\}$, průměr $\approx 4{,}67$, SSE $\approx 4{,}67$; $A_2{=}1 \to \{4,2,4\}$, průměr $\approx 3{,}33$, SSE $\approx 2{,}67$. Celkem SSE $\approx 7{,}33$, redukce $\approx 2{,}67$.
+    \end{itemize}
+    V~kořeni proto dělíme podle $\boldsymbol{A_2}$ (větší redukce rozptylu). Atribut $A_1$ nedává žádnou redukci, protože obě jeho větve mají stejný průměr $4$ jako rodič.
+\end{enumerate}
+

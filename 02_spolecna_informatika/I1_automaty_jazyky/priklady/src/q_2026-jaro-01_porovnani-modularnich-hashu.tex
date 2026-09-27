@@ -1,0 +1,58 @@
+% Zdroj: PDF priklady-jaro-2026.pdf, fyzická str. 1-2. Značka: společné okruhy. Zařazeno: I1.
+% Obrázek: stavový diagram automatu A_2 oříznut z PDF str. 2 (src/fig/modularni-hashe-dfa.png).
+\section{Porovnání modulárních hashů}
+\szzotazka{jaro 2026}{1}{Porovnání modulárních hashů (definice DFA, konstrukce DFA)}
+
+\noindent\textbf{Zadání.}\par
+Mějme dané prvočíslo $p \geq 2$. Pro slovo $w \in \{0,1\}^*$ nechť $h(w)$ je zbytek
+modulo $p$ z~nezáporného celého čísla, jehož binární reprezentace je $w$, přičemž
+povolujeme úvodní nuly. Přesněji, definujeme funkci $h\colon \{0,1\}^* \to
+\{0, 1, \dots, p-1\}$ následovně:
+\[ h(w) = \left( \sum_{i=1}^{|w|} w_i\, 2^{|w|-i} \right) \bmod p, \]
+kde $w = w_1 w_2 \cdots w_{|w|}$ a~$w_i \in \{0, 1\}$. (Pro prázdné slovo je tedy
+$h(\varepsilon) = 0$.)
+
+Nyní uvažte následující jazyk nad abecedou $\Sigma = \{0, 1, \#\}$:
+\[ L_p = \{u \# v \mid u, v \in \{0,1\}^* \text{ a~platí } h(u) = h(v)\}. \]
+\begin{enumerate}
+\item Uveďte formální definici \textit{deterministického konečného automatu (DFA)}.
+\item Formálně popište konstrukci DFA $A_p$, který rozpoznává jazyk $L_p$, v~závislosti
+  na parametru $p$.
+\item Nakreslete stavový diagram automatu $A_2$ (rozpoznávajícího jazyk $L_2$).
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+\item DFA je pětice $A = (Q, \Sigma, \delta, q_0, F)$, kde:
+  \begin{itemize}
+  \item $Q$ je konečná neprázdná množina stavů,
+  \item $\Sigma$ je konečná neprázdná abeceda,
+  \item $\delta\colon Q \times \Sigma \to Q$ je (parciální) přechodová funkce,
+  \item $q_0 \in Q$ je počáteční stav,
+  \item $F \subseteq Q$ je množina přijímajících stavů.
+  \end{itemize}
+
+\item DFA $A_p = (Q, \Sigma, \delta, q_0, F)$ zkonstruujeme takto:
+  \begin{itemize}
+  \item $Q = [p] \cup [p] \times [p]$ kde $[p] = \{0, 1, \dots, p-1\}$ (stav $i$
+    znamená, že jsme přečetli prefix $u'$ slova $u$ a~$i = h(u')$, stav $(i, j)$
+    znamená, že jsme přečetli prefix $v'$ slova $v$, $i = h(u)$ a~$j = h(v')$).
+  \item $\Sigma = \{0, 1, \#\}$,
+  \item $q_0 = 0$,
+  \item $F = \{(i, i) \mid i \in \{0, 1, \dots, p-1\}\}$,
+  \item přechodová funkce $\delta$ je definována takto (kde $i, j \in [p]$):
+    \begin{itemize}
+    \item $\delta(i, 0) = 2i \bmod p$,
+    \item $\delta(i, 1) = (2i + 1) \bmod p$,
+    \item $\delta(i, \#) = (i, 0)$,
+    \item $\delta((i, j), 0) = (i, 2j \bmod p)$,
+    \item $\delta((i, j), 1) = (i, (2j+1) \bmod p)$,
+    \end{itemize}
+    a~zbývající přechody jsou nedefinované (anebo vedou do implicitního mrtvého stavu,
+    tzv.\ žumpy).
+  \end{itemize}
+
+\item Stavový diagram automatu $A_2$:
+  \begin{center}\includegraphics[width=0.8\linewidth]{modularni-hashe-dfa.png}\end{center}
+\end{enumerate}

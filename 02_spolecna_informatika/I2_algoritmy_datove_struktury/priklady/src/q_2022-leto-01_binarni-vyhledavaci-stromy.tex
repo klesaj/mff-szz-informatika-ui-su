@@ -1,0 +1,69 @@
+% Zdroj: PDF priklady-leto-2022-one.pdf (sešit S1, PGVVH+UI), fyzická str. 1. Značka: společné okruhy. Zařazeno: I2.
+\section{Binární vyhledávací stromy}
+\szzotazka{léto 2022}{1}{Binární vyhledávací stromy}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+\item Definujte binární vyhledávací strom (BVS).
+\item Implementujte vložení prvku do BVS (bez vyvažování) a~rozeberte časovou
+  složitost v~nejlepším a~nejhorším případě.
+\item Implementujte nalezení následníka, tj.\ pro daný klíč $x$ vrchol s~nejmenším
+  klíčem ostře větším než $x$, a~rozeberte časovou složitost v~nejlepším
+  a~nejhorším případě.
+\end{enumerate}
+Implementaci popište pseudokódem.
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+
+\textbf{(1)} \emph{Binární vyhledávací strom} je binární strom, v~němž každý vrchol
+nese klíč a~pro každý vrchol platí \emph{uspořádací vlastnost}: všechny klíče
+v~levém podstromu jsou menší než klíč vrcholu a~všechny klíče v~pravém podstromu
+jsou větší než klíč vrcholu.
+
+\textbf{(2) Vložení.} Sestupujeme od kořene a~podle porovnání klíče jdeme doleva,
+nebo doprava; nový prvek vložíme jako list na místo, kde sestup narazí na prázdný
+podstrom.
+\begin{lstlisting}
+Insert(strom T, klic k):
+  if T.koren == null:
+    T.koren = new Uzel(k); return
+  v = T.koren
+  loop:
+    if k == v.klic: return      // klic uz ve strome je
+    if k < v.klic:
+      if v.levy == null: v.levy = new Uzel(k); return
+      else: v = v.levy
+    else:                       // k > v.klic
+      if v.pravy == null: v.pravy = new Uzel(k); return
+      else: v = v.pravy
+\end{lstlisting}
+Vložení projde jednou cestou od kořene nejvýše k~listu, stojí tedy $O(h)$, kde $h$ je
+hloubka stromu. Nejhorší případ: degenerovaný strom (liána, např.\ vzniklý vkládáním
+setříděných klíčů) má $h=n-1$ a~nový klíč se připojí pod jeho dolní konec, tj.\ $\Theta(n)$.
+Nejlepší případ: sestup skončí hned pod kořenem, tj.\ $\Theta(1)$ (např.\ do liány
+$1,2,\dots,n$ s~kořenem $1$ vkládáme $0$). Uvažujeme-li nejlepší \emph{tvar} stromu
+při nejhorší volbě klíče, je to vyvážený strom s~$h=\Theta(\log n)$, tedy $\Theta(\log n)$.
+
+\textbf{(3) Následník.} Pokud má vrchol pravý podstrom, následník je jeho nejlevější
+vrchol. Jinak stoupáme nahoru, dokud nejsme levým synem; tento rodič je následník
+(neexistuje-li, $x$ byl maximum a~následník není).
+\begin{lstlisting}
+Successor(uzel x):
+  if x.pravy != null:                 // nejmensi v pravem podstromu
+    v = x.pravy
+    while v.levy != null: v = v.levy
+    return v
+  v = x; r = x.rodic                  // vystup nahoru, dokud nejsem levy syn
+  while r != null and v == r.pravy:
+    v = r; r = r.rodic
+  return r
+\end{lstlisting}
+Obě větve projdou jednu cestu stromem, takže složitost je $O(h)$. Nejhorší případ
+$\Theta(n)$: ve stromu vzniklém vkládáním $1,n,n-1,\dots,2$ je následník kořene $1$
+klíč $2$ na dně levé větve pod~$n$, cesta má $n-1$ hran. Nejlepší případ $\Theta(1)$:
+pravý syn $x$ je list, nebo $x$ je levý syn bez pravého podstromu. Ve vyváženém stromu
+je i~nejhorší případ jen $\Theta(\log n)$.
+
+\medskip
+\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu.)}

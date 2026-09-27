@@ -1,0 +1,50 @@
+% Zdroj: PDF priklady-podzim-2022.pdf, fyzická str. 2. Značka: společné okruhy. Zařazeno: M2. Číselné výsledky ověřeny numericky.
+\section{Báze a ortogonální báze}
+\szzotazka{podzim 2022}{4}{Báze a ortogonální báze}
+
+\noindent\textbf{Zadání.}\par
+Uvažujme matici $A = BC$, kde
+\[
+  B = \begin{pmatrix}
+    1 & 3 \\
+    2 & 2 \\
+    1 & 2 \\
+    1 & 0 \\
+    1 & -1
+  \end{pmatrix},
+  \qquad
+  C = \begin{pmatrix}
+    1 & 2 & 3 & 4 & 5 \\
+    5 & 4 & 3 & 2 & 1
+  \end{pmatrix}.
+\]
+\begin{enumerate}
+  \item Najděte bázi sloupcového prostoru matice $A$.
+  \item Definujte pojem ortogonální báze.
+  \item Najděte ortogonální bázi sloupcového prostoru matice $A$.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Matice $A = BC$ je typu $5 \times 5$, ale $\operatorname{rank}(A) = \operatorname{rank}(B) = 2$. Platí totiž rovnost sloupcových prostorů $\operatorname{col}(A) = \operatorname{col}(B)$: každý sloupec $A$ je tvaru $B \cdot (\text{sloupec } C)$, takže $\operatorname{col}(A) = \{Ax : x \in \mathbb{R}^5\} = \{B(Cx) : x \in \mathbb{R}^5\}$. Protože $C$ má plnou řádkovou hodnost $2$, je $\{Cx : x \in \mathbb{R}^5\} = \mathbb{R}^2$, a tedy $\operatorname{col}(A) = \{By : y \in \mathbb{R}^2\} = \operatorname{col}(B)$. Bázi proto tvoří dva (lineárně nezávislé) sloupce matice $B$:
+    \[
+      b_1 = (1,2,1,1,1)^{\mathrm{T}}, \qquad b_2 = (3,2,2,0,-1)^{\mathrm{T}}.
+    \]
+  \item \emph{Ortogonální báze} prostoru (se skalárním součinem) je báze, jejíž každé dva různé vektory jsou na sebe kolmé, tj.\ mají nulový skalární součin.
+  \item Použijeme Gramovu--Schmidtovu ortogonalizaci na $b_1, b_2$:
+    \[
+      u_1 = b_1 = (1,2,1,1,1)^{\mathrm{T}}, \qquad \|u_1\|^2 = 8.
+    \]
+    Dále $b_2 \cdot u_1 = 8$, takže
+    \[
+      u_2 = b_2 - \frac{b_2 \cdot u_1}{\|u_1\|^2}\, u_1 = b_2 - \frac{8}{8}\, u_1 = b_2 - u_1 = (2,0,1,-1,-2)^{\mathrm{T}}.
+    \]
+    Kontrola: $u_1 \cdot u_2 = 0$. Hledaná ortogonální báze je tedy
+    \[
+      \{(1,2,1,1,1)^{\mathrm{T}},\ (2,0,1,-1,-2)^{\mathrm{T}}\}.
+    \]
+\end{enumerate}
+
+\medskip
+\noindent\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu, výpočet ověřen numericky.)}

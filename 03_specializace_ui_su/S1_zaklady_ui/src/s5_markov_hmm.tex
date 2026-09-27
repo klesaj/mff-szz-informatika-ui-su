@@ -1,0 +1,326 @@
+\section{Reprezentace znalostí (situační kalkulus, Markovovy modely, HMM)}
+
+Tato kapitola se zabývá \emph{reprezentací znalostí o~měnícím se světě}. Nejdřív logicky: \emph{situační kalkulus} pojmenuje jednotlivé stavy světa termy prvořádové logiky a~vyřeší \emph{problém rámce}. Pak pravděpodobnostně: agent svět nepozoruje úplně ani spolehlivě, a~proto skrytý stav $X_t$ pouze \emph{odhaduje} z~posloupnosti zašuměných pozorování $E_{1:t}$. To vede k~\emph{uvažování v~čase} s~Markovovými předpoklady, ke čtyřem základním inferenčním úlohám (filtrace, predikce, vyhlazování, nejpravděpodobnější průchod) a~ke \emph{skrytým Markovovým modelům} (HMM) coby maticově řešitelnému speciálnímu případu \emph{dynamických Bayesovských sítí} (DBN).
+
+\subsection{Situační kalkulus a problém rámce}
+
+Měnící se svět by se dal popsat výrokovými proměnnými \emph{indexovanými časem} (tzv.\ \emph{fluenty}), např.\ $L^t_{x,y}$ -- „agent je v~poli $(x,y)$ v~čase $t$`` (takto s~nimi pracuje např.\ výrokový plánovač SATPlan). Takový popis funguje, ale je upovídaný: tytéž axiomy musíme opisovat pro každý čas $t$ zvlášť. \emph{Situační kalkulus} totéž dělá elegantněji v~\emph{prvořádové logice}: stavy (situace) dostanou jména v~podobě termů, takže o~změnách lze uvažovat čistou logickou inferencí.
+
+\begin{definice}[Situační kalkulus]
+Svět popisujeme termy a~relacemi prvořádové logiky:
+\begin{itemize}
+  \item \textbf{situace} (stavy) jsou pojmenovány termy: $s_0$ je počáteční situace a~$\textsc{Result}(s,a)$ je situace vzniklá provedením akce $a$ v~situaci $s$;
+  \item \textbf{fluenty} jsou relace, jejichž platnost \emph{závisí na situaci} -- přidají argument situace, např.\ $\mathit{at}(\mathit{robot},\mathit{loc},s)$. Relace, které se v~čase nemění (\emph{rigidní} predikáty), argument situace nemají, např.\ $\mathit{connected}(l,l')$;
+  \item \textbf{axiom použitelnosti} (possibility axiom) říká, kdy je akce proveditelná: $\Phi(s) \Rightarrow \mathit{Poss}(a,s)$, kde $\Phi(s)$ popisuje předpoklady akce. Např.\ $\mathit{at}(a,l,s)\wedge \mathit{connected}(l,l') \Rightarrow \mathit{Poss}(\mathit{go}(a,l,l'),s)$;
+  \item \textbf{plánování} se převede na logický dotaz: existuje situace, v~níž platí cíl?\quad $\exists s:\ \mathit{HaveGold}(a,s)\wedge \mathit{ClimbedOut}(a,s)$.
+\end{itemize}
+\end{definice}
+
+\paragraph{Problém rámce.} Jak v~situačním kalkulu popsat \emph{účinek} akce? Nejpřímější způsob jsou \emph{efektové axiomy} -- co se po akci změní (např.\ akce \emph{Grab} způsobí $\mathit{Holding}$). Tyto axiomy ale mlčí o~tom, co se \emph{nezměnilo}. Z~„agent jde dopředu`` nelze odvodit, že stále drží šíp, protože žádný axiom to neříká. To je \textbf{problém rámce} (frame problem): bez explicitního popisu setrvačnosti se po každé akci „rozpadne`` celý zbytek poznání o~světě.
+
+Naivní řešení jsou \emph{rámcové axiomy} (frame axioms) -- pro každou akci a~každý fluent vyjmenovat, že se nemění, např.\ $\mathit{Forward}^t \Rightarrow (\mathit{HaveArrow}^t \Leftrightarrow \mathit{HaveArrow}^{t+1})$. Těch je ale obrovské množství (akce $\times$ fluenty) a~uvažování se zahltí.
+
+\begin{definice}[Successor-state axiom (řešení problému rámce)]
+Místo axiomů o~akcích píšeme \emph{jeden axiom na každý fluent} -- tzv.\ \textbf{successor-state axiom} (axiom následnického stavu), který určuje pravdivost fluentu v~situaci $\textsc{Result}(s,a)$ vyčerpávajícím způsobem:
+\[
+  \mathit{Poss}(a,s) \Rightarrow \Big(F(\textsc{Result}(s,a)) \Leftrightarrow
+  \underbrace{a\ \text{činí}\ F\ \text{pravdivým}}_{\text{efekt akce}}
+  \ \vee\
+  \underbrace{\big(F(s)\wedge \neg(a\ \text{činí}\ F\ \text{nepravdivým})\big)}_{\text{setrvačnost}}\Big).
+\]
+Fluent $F$ platí po akci právě tehdy, když ho akce \emph{nastavila}, \emph{nebo} platil už předtím a~akce ho \emph{nezrušila}. Příklad: $\mathit{HaveArrow}^{t+1} \Leftrightarrow \big(\mathit{HaveArrow}^t \wedge \neg \mathit{Shoot}^t\big)$.
+\end{definice}
+
+\begin{intuice}
+Klíčový obrat: efektový axiom je orientovaný „na akci`` (co tahle akce udělá), zatímco successor-state axiom je orientovaný „na fluent`` (jak se tento fluent vyvíjí pod \emph{všemi} akcemi). Tím že do pravé strany ekvivalence zahrneme i~větev setrvačnosti, je popis \emph{úplný} -- co axiom neuvede jako příčinu změny, se prostě nemění, a~problém rámce mizí. Cena: pro každý fluent musíme vyjmenovat všechny akce, které ho ovlivňují.
+\end{intuice}
+
+Situační kalkulus tak umožní plánovat čistou logickou inferencí, bez programového „obalu``. Klasickému plánování s~operátory (faktorová reprezentace, dopředné a~zpětné plánování) se věnuje samostatná sekce o~automatickém plánování.
+
+\subsection{Uvažování v čase: Markovovy předpoklady}
+
+Přejděme k~nejistotě. Svět vnímáme jako posloupnost \emph{časových řezů} (time slices). V~každém čase $t$ je
+\begin{itemize}
+  \item \textbf{skrytý stav} $X_t$ -- náhodná veličina (či vektor veličin), kterou \emph{nepozorujeme} (skutečné počasí, poloha robota);
+  \item \textbf{pozorování} $E_t$ s~pozorovanou hodnotou $e_t$ -- to, co o~stavu \emph{vidíme} (zda kolega přinesl deštník, údaje senzorů).
+\end{itemize}
+Čas bereme diskrétní s~rovnoměrným krokem. Zápis $X_{a:b}$ značí posloupnost $X_a,\dots,X_b$. Abychom mohli uvažovat, potřebujeme popsat (1) jak se stavy vyvíjejí a~(2) jak na stavu závisejí pozorování. Obojí zjednoduší \emph{Markovovy předpoklady}.
+
+\begin{definice}[Přechodový a senzorový model, Markovovy předpoklady]
+\textbf{Přechodový model} udává rozdělení dalšího stavu vzhledem k~minulosti $\mathbf{P}(X_t\mid X_{0:t-1})$. \emph{Markovův předpoklad (prvního řádu)}: stav závisí jen na bezprostředně předchozím stavu,
+\[
+  \mathbf{P}(X_t \mid X_{0:t-1}) = \mathbf{P}(X_t \mid X_{t-1}).
+\]
+\textbf{Senzorový model} udává, jak pozorování závisí na stavech $\mathbf{P}(E_t\mid X_{0:t},E_{1:t-1})$. \emph{Senzorový Markovův předpoklad}: pozorování závisí jen na aktuálním stavu,
+\[
+  \mathbf{P}(E_t \mid X_{0:t},E_{1:t-1}) = \mathbf{P}(E_t \mid X_t).
+\]
+\textbf{Stacionarita}: tabulky $\mathbf{P}(X_t\mid X_{t-1})$ a~$\mathbf{P}(E_t\mid X_t)$ jsou \emph{stejné pro všechna $t$} (proces se v~čase nemění).
+\end{definice}
+
+\begin{intuice}
+Markovův předpoklad říká, že \emph{přítomnost stíní minulost}: jakmile znám stav $X_{t-1}$, starší stavy mi o~$X_t$ už nic dalšího neřeknou. Stacionarita znamená, že stačí \emph{jedna} přechodová a~\emph{jedna} senzorová tabulka, ne nová pro každý čas. Spolu s~priorem $\mathbf{P}(X_0)$ tím dostáváme úplné sdružené rozdělení
+\[
+  \mathbf{P}(X_{0:t},E_{1:t}) = \mathbf{P}(X_0)\prod_{i=1}^{t} \mathbf{P}(X_i\mid X_{i-1})\,\mathbf{P}(E_i\mid X_i).
+\]
+\end{intuice}
+
+Tyto závislosti lze nakreslit jako Bayesovskou síť rozprostřenou v~čase: řetěz skrytých stavů s~„visícími`` pozorováními.
+
+\begin{center}
+\begin{tikzpicture}[
+  bn/.style={circle,draw=blue!55!black,fill=blue!8,thick,minimum size=10mm,inner sep=1pt,font=\small},
+  obs/.style={circle,draw=black!60,fill=black!8,thick,minimum size=10mm,inner sep=1pt,font=\small},
+  sip/.style={->,>=Stealth,thick},
+  x=2.2cm]
+% hidden chain
+\node[bn] (xm) at (0,1.4) {$X_{t-1}$};
+\node[bn] (x0) at (1,1.4) {$X_{t}$};
+\node[bn] (xp) at (2,1.4) {$X_{t+1}$};
+\node (xL) at (-0.7,1.4) {$\cdots$};
+\node (xR) at (2.7,1.4) {$\cdots$};
+% observations
+\node[obs] (em) at (0,0) {$E_{t-1}$};
+\node[obs] (e0) at (1,0) {$E_{t}$};
+\node[obs] (ep) at (2,0) {$E_{t+1}$};
+% transition arrows
+\draw[sip] (xL) -- (xm);
+\draw[sip] (xm) -- (x0);
+\draw[sip] (x0) -- (xp);
+\draw[sip] (xp) -- (xR);
+% sensor arrows
+\draw[sip] (xm) -- (em);
+\draw[sip] (x0) -- (e0);
+\draw[sip] (xp) -- (ep);
+% labels
+\node[font=\small,blue!55!black] at (1.5,1.85) {$\mathbf{P}(X_t\mid X_{t-1})$};
+\node[font=\small,black!60] at (1.55,0.6) {$\mathbf{P}(E_t\mid X_t)$};
+\end{tikzpicture}
+\obrpopis{Markovův model jako Bayesovská síť v~čase (svět deštníku). Horní řada jsou \emph{skryté} stavy (počasí) spojené \emph{přechodovým modelem} $\mathbf{P}(X_t\mid X_{t-1})$; svislé hrany dolů jsou \emph{senzorový model} $\mathbf{P}(E_t\mid X_t)$, který každý stav spojuje s~jeho pozorováním (deštník). Šedé uzly jsou pozorované, modré skryté. Stacionarita znamená, že obě tabulky jsou ve všech řezech stejné.}
+\end{center}
+
+\subsection{Čtyři základní inferenční úlohy}
+
+Nad takovým modelem se ptáme na čtyři typické otázky. Liší se tím, \emph{který} stav nás zajímá vůči času, do něhož máme pozorování.
+
+\begin{definice}[Filtrace, predikce, vyhlazování, nejpravděpodobnější průchod]
+Mějme pozorování $e_{1:t}$ do času $t$. Pak:
+\begin{itemize}
+  \item \textbf{Filtrace} (filtering): rozdělení \emph{nynějšího} stavu, $\mathbf{P}(X_t\mid e_{1:t})$ -- „kde jsem teď?“
+  \item \textbf{Predikce} (prediction): rozdělení \emph{budoucího} stavu, $\mathbf{P}(X_{t+k}\mid e_{1:t})$ pro $k>0$ -- „kde budu?“
+  \item \textbf{Vyhlazování} (smoothing): rozdělení \emph{minulého} stavu, $\mathbf{P}(X_k\mid e_{1:t})$ pro $0\le k<t$ -- „kde jsem byl?“
+  \item \textbf{Nejpravděpodobnější průchod} (most likely explanation): \emph{posloupnost} stavů, která nejpravděpodobněji vygenerovala pozorování, $\argmax_{x_{1:t}} P(x_{1:t}\mid e_{1:t})$ -- „kudy jsem šel?“
+\end{itemize}
+\end{definice}
+
+\begin{intuice}
+Rozdíl mezi nimi je, jaký díl pozorování o~daném stavu „ví``. \emph{Filtrace} odhaduje stav z~pozorování \emph{do} tohoto okamžiku; je to běžný režim agenta v~reálném čase. \emph{Predikce} jde dál do budoucnosti bez nových dat (po jisté době konverguje k~\emph{stacionárnímu rozdělení} procesu). \emph{Vyhlazování} se ohlíží zpět a~minulý stav přehodnocuje i~podle \emph{pozdějších} pozorování, takže je přesnější než filtrace v~témže okamžiku. \emph{Nejpravděpodobnější průchod} hledá nejlepší \emph{celou cestu} -- a~pozor, to \textbf{není} totéž co vzít v~každém čase nejpravděpodobnější vyhlazený stav (po sobě jdoucí lokálně nejlepší stavy nemusí tvořit přípustnou ani nejpravděpodobnější trajektorii).
+\end{intuice}
+
+\subsection{Filtrace a dopředná rovnice}
+
+Klíčová vlastnost filtrace: lze ji počítat \emph{rekurzivně}, bez vracení se k~celé historii. Udržujeme aktuální odhad a~jen ho aktualizujeme novým pozorováním (\emph{rekurzivní odhad}). Hledáme funkci $f$ takovou, že
+\[
+  \mathbf{P}(X_{t+1}\mid e_{1:t+1}) = f\big(e_{t+1},\, \mathbf{P}(X_t\mid e_{1:t})\big).
+\]
+
+\begin{veta}[Dopředná rovnice filtrace]
+Označme \emph{dopřednou zprávu} (forward message) $f_{1:t} = \mathbf{P}(X_t\mid e_{1:t})$. Platí rekurze
+\[
+  \boxed{\ \mathbf{P}(X_{t+1}\mid e_{1:t+1}) \;=\; \alpha\,\underbrace{\mathbf{P}(e_{t+1}\mid X_{t+1})}_{\text{aktualizace senzorem}}\,
+  \sum_{x_t}\underbrace{\mathbf{P}(X_{t+1}\mid x_t)\,\mathbf{P}(x_t\mid e_{1:t})}_{\text{predikce z minula}}\ }
+\]
+s~inicializací $f_{1:0}=\mathbf{P}(X_0)$, kde $\alpha$ je normalizační konstanta (aby vyšel pravděpodobnostní vektor). Zkráceně $f_{1:t+1} = \alpha\,\textsc{Forward}(f_{1:t},e_{t+1})$.
+\end{veta}
+
+\begin{intuice}
+Krok rekurze má dvě fáze. Nejprve \textbf{predikce}: starý odhad $\mathbf{P}(x_t\mid e_{1:t})$ protáhneme přechodovým modelem do času $t+1$ (suma přes $x_t$). Pak \textbf{aktualizace}: výsledek převážíme tím, jak dobře každý stav vysvětluje nové pozorování $e_{t+1}$ (násobení $\mathbf{P}(e_{t+1}\mid X_{t+1})$), a~znormalizujeme. Odvození využije Bayesovo pravidlo, senzorový Markovův předpoklad a~podmiňování přes $x_t$; jde o~výpočet, ne o~důkaz k~memorování.
+\end{intuice}
+
+\paragraph{Predikce.} Predikci dostaneme jako filtraci \emph{bez} přidávání nových pozorování -- jen opakovaně aplikujeme přechodový model:
+\[
+  \mathbf{P}(X_{t+k+1}\mid e_{1:t}) = \sum_{x_{t+k}} \mathbf{P}(X_{t+k+1}\mid x_{t+k})\,\mathbf{P}(x_{t+k}\mid e_{1:t}).
+\]
+
+\subsection{Vyhlazování a zpětná rovnice}
+
+Vyhlazování $\mathbf{P}(X_k\mid e_{1:t})$ pro $k<t$ kombinuje pozorování \emph{před} časem $k$ (dopředná zpráva $f_{1:k}$) a~\emph{po} něm (zpětná zpráva, backward message). Rozštěpíme pozorování na $e_{1:k}$ a~$e_{k+1:t}$:
+\[
+  \mathbf{P}(X_k\mid e_{1:t}) = \alpha\,\underbrace{\mathbf{P}(X_k\mid e_{1:k})}_{f_{1:k}}\;\underbrace{\mathbf{P}(e_{k+1:t}\mid X_k)}_{b_{k+1:t}} = \alpha\, f_{1:k}\times b_{k+1:t},
+\]
+kde $\times$ je po složkách. Backward zpráva se počítá rekurzí \emph{zprava doleva}:
+\[
+  \mathbf{P}(e_{k+1:t}\mid X_k) = \sum_{x_{k+1}} \mathbf{P}(e_{k+1}\mid x_{k+1})\,\mathbf{P}(e_{k+2:t}\mid x_{k+1})\,\mathbf{P}(x_{k+1}\mid X_k),
+\]
+zkráceně $b_{k+1:t} = \textsc{Backward}(b_{k+2:t},e_{k+1})$ s~inicializací $b_{t+1:t}=\mathbf{1}$ (prázdná evidence). Algoritmus \textbf{forward--backward} provede jeden průchod dopředu (uloží všechny $f_{1:k}$) a~jeden zpět (násobí backward zprávou), čímž vyhladí celou posloupnost v~čase $O(t)$.
+
+\begin{algo}[Forward--backward (vyhlazování celé posloupnosti)]
+\ttfamily\small
+FORWARD-BACKWARD(ev, prior):\\
+\hspace*{1.5em}fv[0] $\leftarrow$ prior \cmt{forward zprávy}\\
+\hspace*{1.5em}\textbf{for} i = 1 \textbf{to} t: fv[i] $\leftarrow$ FORWARD(fv[i-1], ev[i])\\
+\hspace*{1.5em}b $\leftarrow$ vektor samých 1 \cmt{backward zpráva}\\
+\hspace*{1.5em}\textbf{for} i = t \textbf{downto} 1:\\
+\hspace*{3em}sv[i] $\leftarrow$ NORMALIZE(fv[i] $\times$ b)\\
+\hspace*{3em}b $\leftarrow$ BACKWARD(b, ev[i])\\
+\hspace*{1.5em}\textbf{return} sv \cmt{vyhlazené odhady pro 1,\dots,t}
+\end{algo}
+
+\begin{poznamka}
+Pro vyhlazování s~\emph{pevným zpožděním} $d$ (online: vydávej vyhlazený odhad $X_{t-d}$, jakmile dorazí $e_t$) existuje algoritmus \textsc{Fixed-Lag-Smoothing}, který udržuje forward zprávu a~maticovou transformaci pro posledních $d$ kroků, takže pracuje v~konstantním čase i~paměti na krok (nezávisle na celkové délce sekvence).
+\end{poznamka}
+
+\subsection{Nejpravděpodobnější průchod: Viterbi}
+
+Najít nejpravděpodobnější \emph{celou cestu} $\argmax_{x_{1:t}} P(x_{1:t}\mid e_{1:t})$ řeší \textbf{Viterbiho algoritmus}. Je analogický filtraci, jen \emph{sumu nahradí maximem}: pravděpodobnost nejlepší cesty končící ve stavu $X_{t+1}$ je
+\[
+  m_{1:t+1} = \mathbf{P}(e_{t+1}\mid X_{t+1})\,\max_{x_t}\big(\mathbf{P}(X_{t+1}\mid x_t)\,m_{1:t}\big),
+\]
+kde $m_{1:t}(x) = \max_{x_1,\dots,x_{t-1}} P(x_1,\dots,x_{t-1},X_t{=}x\mid e_{1:t})$ je pravděpodobnost nejlepší cesty do stavu $x$ v~čase $t$. Algoritmus jde mříží (trellis) zleva doprava, pro každý stav si pamatuje nejlepšího předchůdce (ukazatel zpět), a~po dosažení času $t$ \emph{zpětně} cestu rekonstruuje od argmaxu.
+
+\begin{center}
+\begin{tikzpicture}[
+  vn/.style={circle,draw=blue!55!black,fill=blue!8,thick,minimum size=8mm,inner sep=1pt,font=\small},
+  faint/.style={->,>=Stealth,draw=black!25,thin},
+  best/.style={->,>=Stealth,draw=red!70!black,very thick},
+  x=2.3cm,y=1.6cm]
+% time labels
+\foreach \t in {1,2,3,4,5}{\node[font=\small\bfseries] at (\t,2.0) {$t{=}\t$};}
+% nodes: row P at y=1, row S at y=0
+\foreach \t in {1,2,3,4,5}{
+  \node[vn] (P\t) at (\t,1) {$P$};
+  \node[vn] (S\t) at (\t,0) {$S$};
+}
+% all transitions faint
+\foreach \t in {1,2,3,4}{
+  \pgfmathtruncatemacro{\n}{\t+1}
+  \draw[faint] (P\t)--(P\n); \draw[faint] (P\t)--(S\n);
+  \draw[faint] (S\t)--(P\n); \draw[faint] (S\t)--(S\n);
+}
+% best path P-P-S-P-P (evidence D,D,N,D,D)
+\draw[best] (P1)--(P2);
+\draw[best] (P2)--(S3);
+\draw[best] (S3)--(P4);
+\draw[best] (P4)--(P5);
+% m-values under (maxima podel nejlepsi cesty)
+\node[font=\scriptsize] at (1,-0.7) {$.8182$};
+\node[font=\scriptsize] at (2,-0.7) {$.5155$};
+\node[font=\scriptsize] at (3,-0.7) {$.1237$};
+\node[font=\scriptsize] at (4,-0.7) {$.0334$};
+\node[font=\scriptsize] at (5,-0.7) {$.0210$};
+\node[font=\scriptsize,anchor=east] at (0.55,1) {$m_{1:t}(P)$};
+\node[font=\scriptsize,anchor=east] at (0.55,0) {$m_{1:t}(S)$};
+\node[font=\small] at (3,-1.2) {pozorování: $D,D,N,D,D$};
+\end{tikzpicture}
+\obrpopis{Viterbiho mříž (trellis) pro svět deštníku: dva stavy $\{P,S\}$ v~každém čase. Tenké šedé hrany jsou všechny možné přechody, \textcolor{red!70!black}{tlustá červená cesta} je nejpravděpodobnější průchod (zde $P,P,S,P,P$) pro pozorování $D,D,N,D,D$. Pod každým sloupcem je hodnota nejlepší cesty do stavu na červené cestě (maxima $m_{1:t}$, odpovídají standardnímu příkladu z~AIMA/slidů). Na rozdíl od vyhlazování (které pro každý čas vrací \emph{marginální} rozdělení nezávisle) Viterbi vrací jednu \emph{souvislou} trajektorii s~ukazateli zpět.}
+\end{center}
+
+\subsection{Skryté Markovovy modely (HMM) a maticová formulace}
+
+\begin{definice}[Skrytý Markovův model (HMM)]
+\textbf{Skrytý Markovův model} (HMM) je Markovův model, v~němž je stav procesu popsán \emph{jedinou} diskrétní náhodnou veličinou $X_t$ (a~je i~\emph{jediná} pozorovací veličina $E_t$). Nechť $X_t$ nabývá hodnot z~$\{1,\dots,S\}$. HMM je dán:
+\begin{itemize}
+  \item priorem $\mathbf{P}(X_0)$,
+  \item přechodovým modelem $\mathbf{P}(X_t\mid X_{t-1})$ -- matice $\mathbf{T}$ velikosti $S\times S$, $\mathbf{T}(i,j)=P(X_t{=}j\mid X_{t-1}{=}i)$,
+  \item senzorovým modelem $\mathbf{P}(E_t\mid X_t)$, který pro pozorovanou hodnotu $e_t$ zapíšeme jako \emph{diagonální} matici $\mathbf{O}_t$ s~$\mathbf{O}_t(i,i)=P(E_t{=}e_t\mid X_t{=}i)$.
+\end{itemize}
+\end{definice}
+
+Omezení na jednu stavovou veličinu se vyplatí: všechny čtyři úlohy se zapíšou jako \emph{maticové operace}. Pokud dopřednou zprávu $f_{1:t}$ bereme jako sloupcový vektor, pak
+\[
+  \boxed{\,f_{1:t+1} = \alpha\,\mathbf{O}_{t+1}\,\mathbf{T}^{\!\top} f_{1:t}\,}\qquad\text{(filtrace)},\qquad
+  b_{k+1:t} = \mathbf{T}\,\mathbf{O}_{k+1}\,b_{k+2:t}\quad\text{(vyhlazování)}.
+\]
+Násobení $\mathbf{T}^{\!\top}$ provede predikční krok (suma přes předchozí stavy), násobení diagonální $\mathbf{O}_{t+1}$ provede aktualizaci senzorem. Vyhlazování v~jedné formuli je $\mathbf{P}(X_k\mid e_{1:t}) = \alpha\, f_{1:k}\times b_{k+1:t}$.
+
+\subsection{HMM versus dynamické Bayesovské sítě (DBN)}
+
+\begin{definice}[Dynamická Bayesovská síť (DBN)]
+\textbf{Dynamická Bayesovská síť} (DBN) je Bayesovská síť reprezentující časový pravděpodobnostní model, v~níž jsou proměnné a~hrany \emph{přesně replikovány z~řezu na řez}. Díky tomu stačí popsat \emph{jeden} řez: prior $\mathbf{P}(X_0)$, přechodový model $\mathbf{P}(X_1\mid X_0)$ a~senzorový model $\mathbf{P}(E_1\mid X_1)$. Každá stavová proměnná má rodiče buď ve stejném, nebo v~předchozím řezu (Markovův předpoklad).
+\end{definice}
+
+\begin{intuice}
+Vztah HMM a~DBN je tentýž jako mezi \emph{plně tabelovaným sdruženým rozdělením} a~\emph{Bayesovskou sítí}: oba popisují totéž, ale DBN \emph{strukturovaně} (více menších CPT pro jednotlivé proměnné řezu), zatímco HMM \emph{monoliticky} (jedna veličina, jedna velká tabulka). Každý HMM je speciální případ DBN a~naopak každou DBN lze zakódovat jako HMM tak, že vytvoříme \emph{jednu} veličinu, jejíž hodnoty jsou $n$-tice hodnot stavových proměnných DBN. To je ale draho:
+\end{intuice}
+
+\begin{poznamka}[Proč na struktuře záleží]
+DBN s~$20$ booleovskými stavovými proměnnými, každá se třemi rodiči, má přechodový model o~$20\cdot 2^3 = 160$ pravděpodobnostech. Tatáž věc jako HMM má \emph{jednu} veličinu s~$2^{20}$ hodnotami a~přechodovou matici o~$2^{20}\times 2^{20}\approx 10^{12}$ číslech. HMM tedy potřebuje řádově víc paměti a~inference je výrazně dražší. \textbf{Závěr:} HMM je elegantní pro \emph{málo} stavů (maticové vzorce), DBN se vyplatí, jakmile stav rozpadá na \emph{mnoho} dílčích proměnných. (Pro DBN existuje i~přibližná inference \emph{částicovým filtrem}, který populaci vzorků převáží podle evidence.)
+\end{poznamka}
+
+\subsection{Řešený příklad SZZ}
+
+\begin{priklad}[SZZ léto 2023 č.~5: Skrytý Markovův model (deštník)]
+\szzotazka{léto 2023}{5}{Skrytý Markovův model (HMM)}\par
+\textbf{Zadání.} Definujte HMM a~Markovův předpoklad; vysvětlete rozdíl mezi filtrací, predikcí a~vyhlazováním. Počasí ve dni $i$ je $X_i\in\{P=\text{déšť},\,S=\text{slunečno}\}$, pozorujeme jen, zda kolega přinesl deštník $E_i\in\{D,N\}$. Přechod $P(X_i{=}P\mid X_{i-1}{=}P)=0{,}7$, $P(X_i{=}P\mid X_{i-1}{=}S)=0{,}3$; senzor $P(D\mid P)=0{,}9$, $P(D\mid S)=0{,}2$; prior $P(X_0{=}P)=P(X_0{=}S)=0{,}5$. Pomocí
+\[
+  \mathbf{P}(X_t\mid e_{1:t}) = \alpha\,\mathbf{P}(e_t\mid X_t)\sum_{x_{t-1}}\mathbf{P}(X_t\mid x_{t-1})\,\mathbf{P}(x_{t-1}\mid e_{1:t-1})
+\]
+určete $P(X_2{=}P\mid E_1{=}D,E_2{=}D)$.
+
+\medskip
+\textbf{Řešení.}
+
+\textbf{Pojmy.} \emph{HMM} je Markovův model s~jedinou skrytou stavovou veličinou $X_t$ a~jedinou pozorovací veličinou $E_t$, daný priorem, přechodovou maticí $\mathbf{T}$ a~senzorovým modelem. \emph{Markovův předpoklad}: $X_t$ závisí jen na $X_{t-1}$ (a~$E_t$ jen na $X_t$). \emph{Filtrace} počítá $\mathbf{P}(X_t\mid e_{1:t})$ (nynější stav z~dosavadních pozorování) -- to je náš případ; \emph{predikce} $\mathbf{P}(X_{t+k}\mid e_{1:t})$ míří do budoucna bez nových dat; \emph{vyhlazování} $\mathbf{P}(X_k\mid e_{1:t})$, $k<t$, přehodnocuje minulý stav i~podle pozdějších pozorování.
+
+Použijeme dvoukrokovou filtraci. Forward zprávu píšeme jako vektor $\langle P,\,S\rangle$. Zaokrouhlujeme na 4 desetinná místa.
+
+\smallskip
+\textbf{Inicializace.} $f_0 = \mathbf{P}(X_0) = \langle 0{,}5;\ 0{,}5\rangle$.
+
+\textbf{Den 1 -- predikce.} Protáhneme přechodovým modelem:
+\[
+  P(X_1{=}P) = 0{,}7\cdot 0{,}5 + 0{,}3\cdot 0{,}5 = 0{,}5,\qquad P(X_1{=}S)=0{,}5.
+\]
+\textbf{Den 1 -- aktualizace $E_1{=}D$.} Vynásobíme $P(D\mid X_1)=\langle 0{,}9;\,0{,}2\rangle$:
+\[
+  \langle 0{,}9\cdot 0{,}5;\ 0{,}2\cdot 0{,}5\rangle = \langle 0{,}45;\ 0{,}10\rangle,\quad \text{součet } 0{,}55,
+\]
+\[
+  f_1 = \tfrac{1}{0{,}55}\langle 0{,}45;\ 0{,}10\rangle = \langle 0{,}8182;\ 0{,}1818\rangle.
+\]
+\textbf{Den 2 -- predikce.}
+\[
+  P(X_2{=}P) = 0{,}7\cdot 0{,}8182 + 0{,}3\cdot 0{,}1818 = 0{,}6273,\quad
+  P(X_2{=}S) = 0{,}3\cdot 0{,}8182 + 0{,}7\cdot 0{,}1818 = 0{,}3727.
+\]
+\textbf{Den 2 -- aktualizace $E_2{=}D$.}
+\[
+  \langle 0{,}9\cdot 0{,}6273;\ 0{,}2\cdot 0{,}3727\rangle = \langle 0{,}5645;\ 0{,}0745\rangle,\quad \text{součet } 0{,}6391,
+\]
+\[
+  f_2 = \tfrac{1}{0{,}6391}\langle 0{,}5645;\ 0{,}0745\rangle = \langle 0{,}8834;\ 0{,}1166\rangle.
+\]
+
+\smallskip
+\textbf{Odpověď.} $\boxed{P(X_2{=}P\mid E_1{=}D,E_2{=}D) \approx 0{,}883}$ (tj.\ asi $88{,}3\,\%$). Dva po sobě jdoucí deštníky výrazně posílily víru v~déšť (z~priorních $50\,\%$ na téměř $90\,\%$).
+
+\begin{center}
+\begin{tikzpicture}[
+  vn/.style={circle,draw=blue!55!black,fill=blue!8,thick,minimum size=9mm,inner sep=1pt,font=\small},
+  sip/.style={->,>=Stealth,thick,draw=black!40},
+  x=3.0cm,y=1.7cm]
+\foreach \t in {0,1,2}{\node[font=\small\bfseries] at (\t,2.1) {den $\t$};}
+\foreach \t in {0,1,2}{
+  \node[vn] (P\t) at (\t,1) {$P$};
+  \node[vn] (S\t) at (\t,0) {$S$};
+}
+\foreach \t in {0,1}{
+  \pgfmathtruncatemacro{\n}{\t+1}
+  \draw[sip] (P\t)--(P\n); \draw[sip] (P\t)--(S\n);
+  \draw[sip] (S\t)--(P\n); \draw[sip] (S\t)--(S\n);
+}
+% filtered values
+\node[font=\scriptsize,anchor=south] at (0,1.35) {$0{,}5$};
+\node[font=\scriptsize,anchor=north] at (0,-0.35) {$0{,}5$};
+\node[font=\scriptsize,anchor=south] at (1,1.35) {$0{,}8182$};
+\node[font=\scriptsize,anchor=north] at (1,-0.35) {$0{,}1818$};
+\node[font=\scriptsize,anchor=south] at (2,1.35) {$\mathbf{0{,}8834}$};
+\node[font=\scriptsize,anchor=north] at (2,-0.35) {$0{,}1166$};
+\node[font=\small] at (0.5,-1.0) {$E_1{=}D$};
+\node[font=\small] at (1.5,-1.0) {$E_2{=}D$};
+\end{tikzpicture}
+\obrpopis{Dvoukroková filtrace pro svět deštníku. Pod každým uzlem je vyfiltrovaná pravděpodobnost $P(X_t\mid e_{1:t})$ po aktualizaci pozorováním $E_t{=}D$. Hodnota pro $P$ roste $0{,}5 \to 0{,}8182 \to \mathbf{0{,}8834}$: každý pozorovaný deštník posiluje víru v~déšť.}
+\end{center}
+\end{priklad}
+
+\noindent V~\texttt{priklady/} je u~této otázky původní zadání s~tabulkami (sada léto 2023; originál byl v~PDF bez náčrtu řešení, výpočet výše je ověřen numericky).

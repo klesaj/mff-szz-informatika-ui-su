@@ -1,0 +1,31 @@
+% Zdroj: PDF priklady-jaro-2025.pdf, fyzická str. 3--4. Značka: společné okruhy. Zařazeno: M4.
+\section{Eulerovské grafy}
+\szzotazka{jaro 2025}{4}{Eulerovské grafy}
+
+\noindent\textbf{Zadání.}\par
+Nechť $n$ je přirozené číslo větší než 1. Definujeme graf $G_n$ takto: jeho vrcholy jsou všechny množiny $A \subset \{1, \dots, n\}$, pro něž platí $|A| < n$. Dvě (různé) z nich jsou spojeny hranou právě tehdy, když jsou disjunktní. Například pro $n = 3$ dostaneme tento graf:
+
+\begin{center}\includegraphics[width=0.7\linewidth]{eulerovske-grafy.png}\end{center}
+
+\begin{enumerate}
+  \item Pro která $n > 1$ je graf $G_n$ souvislý?
+  \item Nechť $A \subset \{1, \dots, n\}$ je množina velikosti menší než $n$. Jaký je stupeň vrcholu, který odpovídá množině $A$? (Závisí nějak na velikosti množiny $A$, na $n$, nebo případně na něčem jiném)?
+  \item Formulujte, co znamená pojem eulerovský graf a rozhodněte pro která $n > 1$ je graf $G_n$ eulerovský?
+\end{enumerate}
+Odpovědi přiměřeně zdůvodněte.
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Vrchol odpovídající $\emptyset$ je spojen se všemi ostatními vrcholy grafu, takže graf je souvislý vždy.
+  \item Je-li $|A| = k > 0$, je odpovídající vrchol spojen se všemi vrcholy z podmnožin $\{1, \dots, n\} \setminus A$ a má tak stupeň $2^{n-k}$. Pro $A = \emptyset$ je stupeň $2^n - 2$ (chybí hrany do $\emptyset$ a $\{1, \dots, n\}$) a tedy všechny vrcholy mají sudé stupně.
+  \item Graf je eulerovský pro všechna $n > 1$ dle Eulerovy věty: $G$ (bez izol. vrcholů) je eulerovský $\iff$ $G$ souvislý a všechny vrcholy mají sudý stupeň.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):}
+\begin{itemize}
+  \item \emph{Pojem (bod 3 chce i definici).} Graf je \emph{eulerovský}, má-li uzavřený tah (sled bez opakování hran), který obsahuje každou hranu grafu právě jednou; vrcholy se v~něm opakovat smějí.
+  \item \emph{K bodu 2.} Pro $|A|=k$, $1\leq k\leq n-1$, jsou sousedé $A$ právě podmnožiny $B\subseteq\{1,\dots,n\}\setminus A$. Všechny jsou vrcholy grafu ($|B|\leq n-k<n$) a žádná z~nich není rovna $A$ (disjunktní s~neprázdnou $A$), proto $\deg(A)=2^{n-k}$. Protože $k<n$, je $n-k\geq 1$ a stupeň je sudý. Stupeň $2^n-2$ vrcholu $\emptyset$ je sudý pro každé $n\geq 2$.
+  \item \emph{Ověřeno programem} pro $n=2,\dots,6$: souvislost, stupně i eulerovskost.
+\end{itemize}

@@ -1,0 +1,205 @@
+\section{Lineární regrese}\label{sec:linreg}
+
+Lineární regrese je nejjednodušší regresní model: predikuje cíl jako \emph{lineární kombinaci} příznaků. Přesto je klíčová -- má \textbf{analytické (uzavřené) řešení} metodou nejmenších čtverců, dá se trénovat i~\textbf{gradientním sestupem} (SGD) a~na jejím příkladu se nejlépe ukáže $L^2$ regularizace. Okruh S1 ji zmiňuje přehledově; zde rozebíráme obojí řešení do hloubky, kterou S1 přenechává tomuto okruhu.
+
+\subsection{Model a chybová funkce}
+
+\begin{definice}[Model lineární regrese]
+Pro vstup $\mathbf{x}\in\mathbb{R}^D$ predikuje \textbf{lineární regrese}
+\[ y(\mathbf{x};\mathbf{w},b)= w_1 x_1 + w_2 x_2 + \dots + w_D x_D + b = \mathbf{x}^{\!\top}\mathbf{w} + b. \]
+Vektor $\mathbf{w}\in\mathbb{R}^D$ jsou \emph{váhy}, $b$ je \emph{bias} (posun, absolutní člen). Ve statistickém značení regrese se píší jako koeficienty $\beta_1,\dots,\beta_D$ (váhy) a~$\beta_0$ (bias); jde o~totéž.
+\end{definice}
+
+\begin{intuice}[Bias jako další váha (padding jedničkou)]
+S~biasem se nepohodlně počítá zvlášť. Trik: každý vstup \textbf{rozšíříme o~konstantní příznak~$1$}, tj.\ $\mathbf{x}\mapsto(x_1,\dots,x_D,1)$, a~bias se stane poslední váhou. Pak píšeme jednotně $y(\mathbf{x})=\mathbf{x}^{\!\top}\mathbf{w}$ a~„váhy`` už zahrnují i~bias. V~maticovém zápisu to znamená přidat do datové matice $\mathbf{X}$ \emph{sloupec jedniček}. Této úmluvy se držíme v~celé sekci.
+\end{intuice}
+
+\begin{definice}[Chybová funkce: MSE a součet čtverců]
+Máme trénovací data $\mathbf{x}_1,\dots,\mathbf{x}_N$ s~cíli $t_1,\dots,t_N$. Kvalitu vah měříme \textbf{střední kvadratickou chybou} (mean squared error)
+\[ \mathrm{MSE}(\mathbf{w})=\frac1N\sum_{i=1}^N\big(y(\mathbf{x}_i;\mathbf{w})-t_i\big)^2. \]
+Často se místo ní minimalizuje \textbf{součet čtverců} (sum of squares)
+\[ E(\mathbf{w})=\frac12\sum_{i=1}^N\big(y(\mathbf{x}_i;\mathbf{w})-t_i\big)^2. \]
+Obě mají \emph{stejné minimum} (MSE má před součtem faktor $\tfrac1N$, součet čtverců faktor $\tfrac12$ -- liší se tedy jen kladnou multiplikativní konstantou), ale součet čtverců se příjemněji derivuje -- faktor $\tfrac12$ se vykrátí proti dvojce z~derivace kvadrátu.
+\end{definice}
+
+\begin{intuice}
+Hledáme přímku (obecně nadrovinu), která prochází mraku bodů „co nejblíž`` -- tak, aby \emph{součet čtverců svislých vzdáleností} bodů od přímky byl nejmenší. Svislá vzdálenost $\hat t_i - t_i$ se nazývá \emph{reziduum}. Kvadrát (místo absolutní hodnoty) penalizuje velké odchylky silněji a~činí funkci hladkou a~konvexní, takže každé lokální minimum je globální (a~jediné, je-li $\mathbf{X}^{\!\top}\mathbf{X}$ regulární, viz níže). Vztah k~věrohodnosti: pro normálně rozdělený šum kolem přímky dává metoda nejmenších čtverců přesně maximum likelihood estimation (MLE, maximálně věrohodný odhad; viz sekce~\ref{sec:evaluace}).
+\end{intuice}
+
+\subsection{Analytické řešení: metoda nejmenších čtverců}
+
+Vyjádříme součet čtverců maticově. Datová matice $\mathbf{X}\in\mathbb{R}^{N\times D}$ má příklad $\mathbf{x}_i^{\!\top}$ na $i$-tém řádku (po paddingu jedničkou má $D$ sloupců včetně biasu), $\mathbf{t}\in\mathbb{R}^N$ je vektor cílů. Pak $(\mathbf{X}\mathbf{w})_i=\mathbf{x}_i^{\!\top}\mathbf{w}$ a
+\[ E(\mathbf{w})=\frac12\sum_{i=1}^N(\mathbf{x}_i^{\!\top}\mathbf{w}-t_i)^2=\frac12\,\|\mathbf{X}\mathbf{w}-\mathbf{t}\|^2. \]
+
+\begin{veta}[Normální rovnice nejmenších čtverců]
+Minimum součtu čtverců $E(\mathbf{w})=\tfrac12\|\mathbf{X}\mathbf{w}-\mathbf{t}\|^2$ splňuje \textbf{normální rovnice}
+\[ \mathbf{X}^{\!\top}\mathbf{X}\,\mathbf{w}=\mathbf{X}^{\!\top}\mathbf{t}. \]
+Je-li matice $\mathbf{X}^{\!\top}\mathbf{X}$ (rozměru $D\times D$) regulární, má řešení tvar
+\[ \boxed{\;\mathbf{w}=(\mathbf{X}^{\!\top}\mathbf{X})^{-1}\mathbf{X}^{\!\top}\mathbf{t}.\;} \]
+\end{veta}
+
+\begin{intuice}[Odvození přes nulový gradient (Fermat)]
+Toto \emph{není} formální důkaz, jen výpočet -- ukázka, jak se ke vzorci dojde. Funkce $E$ je hladká a~konvexní, takže její minimum je tam, kde je gradient nulový (Fermatova věta o~vnitřním extrému, vícerozměrná verze: $\nabla_{\mathbf{w}}E=\mathbf{0}$). Krok po kroku:
+\begin{enumerate}
+  \item \textbf{Parciální derivace podle jedné váhy $w_j$.} Z~$E=\tfrac12\sum_i(\mathbf{x}_i^{\!\top}\mathbf{w}-t_i)^2$ řetízkovým pravidlem
+  \[ \frac{\partial E}{\partial w_j}=\frac12\sum_{i=1}^N 2(\mathbf{x}_i^{\!\top}\mathbf{w}-t_i)\,x_{ij}=\sum_{i=1}^N x_{ij}(\mathbf{x}_i^{\!\top}\mathbf{w}-t_i). \]
+  \item \textbf{Položíme rovno nule pro všechna $j$.} Suma $\sum_i x_{ij}(\dots)$ je skalární součin $j$-tého sloupce $\mathbf{X}$ s~vektorem $(\mathbf{X}\mathbf{w}-\mathbf{t})$, tj.\ $\mathbf{X}_{*,j}^{\!\top}(\mathbf{X}\mathbf{w}-\mathbf{t})=0$.
+  \item \textbf{Sebereme rovnice přes všechna $j$ do matice.} Dostaneme $\mathbf{X}^{\!\top}(\mathbf{X}\mathbf{w}-\mathbf{t})=\mathbf{0}$, tj.\ $\mathbf{X}^{\!\top}\mathbf{X}\mathbf{w}=\mathbf{X}^{\!\top}\mathbf{t}$.
+  \item \textbf{Invertujeme} (je-li $\mathbf{X}^{\!\top}\mathbf{X}$ regulární): $\mathbf{w}=(\mathbf{X}^{\!\top}\mathbf{X})^{-1}\mathbf{X}^{\!\top}\mathbf{t}$.
+\end{enumerate}
+Že jde o~minimum (ne maximum/sedlo), plyne z~konvexity $E$: její Hessián $\mathbf{X}^{\!\top}\mathbf{X}$ je pozitivně semidefinitní.
+\end{intuice}
+
+\begin{poznamka}[Singularita a SVD]
+Matice $\mathbf{X}^{\!\top}\mathbf{X}$ je singulární (neinvertibilní), pokud sloupce $\mathbf{X}$ jsou lineárně závislé -- typicky když je příznaků víc než příkladů ($D>N$) nebo jsou některé příznaky kolineární. Pak normální rovnice nemá jednoznačné řešení. Místo přímé inverze se používá \textbf{SVD} (singulární rozklad) $\mathbf{X}$, který spolehlivě najde řešení (přes pseudoinverzi) i~v~singulárním a~numericky špatně podmíněném případě; je to i~standardní postup uvnitř knihovních funkcí (\texttt{numpy.linalg.lstsq}). Alternativně singularitu odstraní $L^2$ regularizace (níže).
+\end{poznamka}
+
+\begin{algo}[Analytické řešení lineární regrese]
+\textbf{Vstup:} data $\mathbf{X}\in\mathbb{R}^{N\times D}$ (se sloupcem jedniček), cíle $\mathbf{t}\in\mathbb{R}^N$.\\
+\textbf{Výstup:} váhy $\mathbf{w}$ minimalizující MSE.
+\begin{enumerate}
+  \item Sestav $\mathbf{X}^{\!\top}\mathbf{X}$ a~$\mathbf{X}^{\!\top}\mathbf{t}$. \cmt{$D\times D$ matice, $D$-vektor}
+  \item Je-li $\mathbf{X}^{\!\top}\mathbf{X}$ regulární: $\mathbf{w}\leftarrow(\mathbf{X}^{\!\top}\mathbf{X})^{-1}\mathbf{X}^{\!\top}\mathbf{t}$. \cmt{jinak řeš přes SVD}
+\end{enumerate}
+Složitost $\mathcal{O}(N D^2)$ (sestavení $\mathbf{X}^{\!\top}\mathbf{X}$) za předpokladu $N\ge D$.
+\end{algo}
+
+\begin{priklad}[SZZ léto 2024 č.~31: Metoda nejmenších čtverců]
+\szzotazka{léto 2024}{31}{Metoda nejmenších čtverců}\par
+\textbf{Zadání.} Data s~jedním číselným atributem $x$ a~cílem $y$: $(1,1),(2,3),(3,2)$. (1)~Popište lineární model a~metodu nejmenších čtverců. (2)~Odhadněte koeficienty modelu. (3)~Spočtěte střední kvadratickou chybu modelu.
+
+\smallskip
+\textbf{Řešení.} (1)~Model je přímka $\hat y=\beta_0+\beta_1 x$ ($\beta_0$ posun, $\beta_1$ směrnice); koeficienty odhadneme tak, aby \emph{součet čtverců reziduí} $\sum_i(\beta_0+\beta_1 x_i-y_i)^2$ byl nejmenší (nulový gradient $\Rightarrow$ normální rovnice).
+
+(2)~Pro jednu proměnnou stačí uzavřené vzorce s~průměry $\bar x=2$, $\bar y=2$:
+\[ \beta_1=\frac{\sum_i(x_i-\bar x)(y_i-\bar y)}{\sum_i(x_i-\bar x)^2}=\frac{(-1)(-1)+0\cdot1+1\cdot0}{(-1)^2+0^2+1^2}=\frac{1}{2},\qquad \beta_0=\bar y-\beta_1\bar x=2-\tfrac12\cdot2=1. \]
+Tedy $\boxed{\hat y=1+\tfrac12 x}$ (totéž dá maticově $(\mathbf{X}^{\!\top}\mathbf{X})^{-1}\mathbf{X}^{\!\top}\mathbf{t}$ se sloupcem jedniček).
+
+(3)~Predikce $\hat y=(1{,}5;\,2;\,2{,}5)$, rezidua $y-\hat y=(-0{,}5;\,1;\,-0{,}5)$. Pak
+\[ \mathrm{MSE}=\frac13\big((-0{,}5)^2+1^2+(-0{,}5)^2\big)=\frac{0{,}25+1+0{,}25}{3}=\frac{1{,}5}{3}=\boxed{0{,}5}. \]
+\emph{(Ověřeno \texttt{numpy}: \texttt{lstsq} dá $(\beta_1,\beta_0)=(0{,}5;\,1)$, MSE $=0{,}5$, součet čtverců reziduí $=1{,}5$.)}
+
+\smallskip
+Geometricky: přímka prokládá tři body s~minimálním součtem čtverců svislých úseček (reziduí).
+\begin{center}
+\begin{tikzpicture}[x=2.0cm,y=1.6cm]
+  \draw[osa] (0,0) -- (3.6,0) node[right,font=\scriptsize]{$x$};
+  \draw[osa] (0,0) -- (0,3.4) node[above,font=\scriptsize]{$y$};
+  \foreach \xv in {1,2,3}{\draw (\xv,0.03)--(\xv,-0.03) node[below,font=\tiny]{\xv};}
+  \foreach \yv in {1,2,3}{\draw (0.02,\yv)--(-0.02,\yv) node[left,font=\tiny]{\yv};}
+  % regresni primka y=1+0.5x na intervalu x in [0.4,3.4]
+  \draw[hranice,blue!60!black] (0.4,1.2) -- (3.4,2.7);
+  \node[blue!60!black,font=\scriptsize,anchor=south west] at (3.0,2.55) {$\hat y=1+\tfrac12 x$};
+  % rezidua (svisle usecky od bodu k primce)
+  \draw[red!70!black,thick] (1,1) -- (1,1.5);
+  \draw[red!70!black,thick] (2,3) -- (2,2);
+  \draw[red!70!black,thick] (3,2) -- (3,2.5);
+  % popisek rezidua (k nejdelsimu, vlevo od usecky, mimo primku i body)
+  \node[red!70!black,font=\scriptsize,anchor=east] at (1.9,2.6) {reziduum};
+  % body
+  \node[cls1] at (1,1) {}; \node[cls1] at (2,3) {}; \node[cls1] at (3,2) {};
+  % predikce na primce (prazdne)
+  \node[circle,draw=blue!60!black,fill=white,inner sep=0pt,minimum size=3pt] at (1,1.5) {};
+  \node[circle,draw=blue!60!black,fill=white,inner sep=0pt,minimum size=3pt] at (2,2) {};
+  \node[circle,draw=blue!60!black,fill=white,inner sep=0pt,minimum size=3pt] at (3,2.5) {};
+\end{tikzpicture}
+\obrpopis{Proložení nejmenšími čtverci dat $(1,1),(2,3),(3,2)$ přímkou $\hat y=1+\tfrac12 x$. Plné body jsou data, prázdné kroužky predikce na přímce, červené svislé úsečky jsou rezidua $y_i-\hat y_i=(-0{,}5;\,1;\,-0{,}5)$. Metoda minimalizuje součet jejich čtverců ($=1{,}5$).}
+\end{center}
+\end{priklad}
+
+\begin{priklad}[SZZ podzim 2025 č.~30: Lineární regrese a~L2 (centrovaná data)]
+\szzotazka{podzim 2025}{30}{Lineární regrese, L2 regularizace}\par
+\textbf{Zadání.} Data $(x,y)$: $(-1,1),(0,3),(1,2)$. (1)~Popište model a~MNČ. (2)~Spočtěte OLS koeficienty (bez regularizace). (3)~Popište cílovou funkci s~$L^2$ a~určete \emph{směr} změny koeficientu u~$x$ oproti OLS.
+
+\smallskip
+\textbf{Řešení.} (1)~Model $f(x)=\beta_0+\beta_1 x$, MNČ minimalizuje $\sum_i(f(x_i)-y_i)^2$, řešení $\boldsymbol\beta=(\mathbf{X}^{\!\top}\mathbf{X})^{-1}\mathbf{X}^{\!\top}\mathbf{y}$ se sloupcem jedniček.
+
+(2)~Data jsou \emph{centrovaná} ($\bar x=0$), takže $\mathbf{X}^{\!\top}\mathbf{X}$ vyjde diagonální a~výpočet je krátký. Se sloupcem jedniček $\mathbf{X}=\begin{psmallmatrix}1&-1\\1&0\\1&1\end{psmallmatrix}$:
+\[ \mathbf{X}^{\!\top}\mathbf{X}=\begin{psmallmatrix}3&0\\0&2\end{psmallmatrix},\qquad \mathbf{X}^{\!\top}\mathbf{y}=\begin{psmallmatrix}1+3+2\\-1\cdot1+0\cdot3+1\cdot2\end{psmallmatrix}=\begin{psmallmatrix}6\\1\end{psmallmatrix},\qquad \boldsymbol\beta=\begin{psmallmatrix}3&0\\0&2\end{psmallmatrix}^{-1}\begin{psmallmatrix}6\\1\end{psmallmatrix}=\begin{psmallmatrix}\boxed{2}\\[1pt]\boxed{1/2}\end{psmallmatrix}. \]
+Tedy $\beta_0=2$, $\beta_1=\tfrac12$, model $\hat y=2+\tfrac12 x$. \emph{(Ověřeno \texttt{numpy}: $\boldsymbol\beta=(2;\,0{,}5)$.)}
+
+(3)~$L^2$ minimalizuje $\sum_i(f(x_i)-y_i)^2+\lambda\beta_1^2$ ($\lambda>0$, bias $\beta_0$ se nepenalizuje). Penalizace táhne $\beta_1$ k~nule, takže \emph{$|\beta_1|$ klesne} (přímka se zploští), znaménko zůstane kladné. Intercept $\beta_0$ se zde nezmění (data jsou centrovaná, $\bar x=0$); obecně se měnit může.
+\end{priklad}
+
+\subsection{Trénování pomocí SGD}
+
+Analytické řešení vyžaduje invertovat $D\times D$ matici, což je pro velké $D$ pomalé a~paměťově náročné. Iterativní alternativa je \textbf{gradientní sestup}: opakovaně se posouváme proti gradientu chyby.
+
+\begin{definice}[Gradientní sestup, SGD, minibatch]
+Minimalizujeme-li chybu $E(\mathbf{w})$, \textbf{gradientní sestup} opakuje krok
+\[ \mathbf{w}\leftarrow\mathbf{w}-\alpha\,\nabla_{\mathbf{w}}E(\mathbf{w}), \]
+kde $\alpha>0$ je \textbf{rychlost učení} (learning rate, délka kroku). Podle toho, z~kolika příkladů gradient odhadujeme:
+\begin{itemize}
+  \item \textbf{(dávkový) gradientní sestup} -- z~\emph{celé} trénovací množiny (přesný gradient, drahý krok);
+  \item \textbf{stochastický gradientní sestup (SGD)} -- z~\emph{jednoho náhodného} příkladu (nestranný, ale zašuměný odhad gradientu, levný krok);
+  \item \textbf{minibatch SGD} -- kompromis: z~náhodné podmnožiny $\mathbb{B}$ o~$B$ příkladech.
+\end{itemize}
+Jeden průchod všemi trénovacími daty (rozdělenými na minibatche náhodnou permutací) se nazývá \textbf{epocha}.
+\end{definice}
+
+Pro lineární regresi s~chybou $\tfrac12(\mathbf{x}^{\!\top}\mathbf{w}-t)^2$ (a~volitelně $L^2$ členem $\tfrac\lambda2\|\mathbf{w}\|^2$) je gradient přes minibatch
+\[ \nabla_{\mathbf{w}}E(\mathbf{w})\approx\frac{1}{|\mathbb{B}|}\sum_{i\in\mathbb{B}}\big(\mathbf{x}_i^{\!\top}\mathbf{w}-t_i\big)\mathbf{x}_i+\lambda\mathbf{w}. \]
+Reziduum $(\mathbf{x}_i^{\!\top}\mathbf{w}-t_i)$ škáluje příspěvek vstupu $\mathbf{x}_i$; $L^2$ člen přidá $\lambda\mathbf{w}$ (tlak vah k~nule, \emph{weight decay}); složka odpovídající biasu se v~praxi obvykle nepenalizuje.
+
+\begin{algo}[Lineární regrese minibatch SGD]
+\textbf{Vstup:} data $(\mathbf{X},\mathbf{t})$, rychlost učení $\alpha>0$, síla $L^2$ $\lambda\ge0$.\\
+\textbf{Výstup:} váhy $\mathbf{w}$ (přibližně) minimalizující regularizovanou MSE.
+\begin{enumerate}
+  \item $\mathbf{w}\leftarrow\mathbf{0}$ (nebo náhodně). \cmt{inicializace}
+  \item Opakuj do konvergence (přes epochy):
+  \begin{enumerate}
+    \item navzorkuj minibatch indexů $\mathbb{B}$; \cmt{náhodná permutace $\to$ chunky velikosti $B$ = epocha}
+    \item $\mathbf{w}\leftarrow\mathbf{w}-\alpha\,\dfrac{1}{|\mathbb{B}|}\displaystyle\sum_{i\in\mathbb{B}}\big(\mathbf{x}_i^{\!\top}\mathbf{w}-t_i\big)\mathbf{x}_i-\alpha\lambda\mathbf{w}.$ \cmt{krok proti gradientu}
+  \end{enumerate}
+\end{enumerate}
+\end{algo}
+
+\begin{poznamka}[Konvergence a normalizace]
+Součet čtverců je \emph{konvexní} funkce vah, takže gradientní sestup s~dostatečně malým krokem konverguje ke globálnímu optimu (pro konvexní hladkou ztrátu; přesněji SGD konverguje skoro jistě, klesá-li krok dostatečně, ale ne moc rychle -- podmínky $\sum_i\alpha_i=\infty$, $\sum_i\alpha_i^2<\infty$). Příznaky v~různých škálách potřebují různé kroky; proto se před SGD obvykle \textbf{normalizují} -- min--max škálováním do $[0,1]$, nebo \emph{standardizací} $x'=\frac{x-\hat\mu}{\hat\sigma}$ (nulový průměr, jednotkový rozptyl). $L^2$ regularizaci a~výběr $\lambda$/stupně polynomu coby hyperparametrů řešíme obecně v~sekci~\ref{sec:preuceni}.
+\end{poznamka}
+
+\begin{priklad}[SZZ jaro 2024 č.~27: Krok SGD s~L2 regularizací]
+\szzotazka{jaro 2024}{27}{Lineární regrese a~regularizace}\par
+\textbf{Zadání.} Model $y=\beta_1 x_1+\beta_2 x_2+\beta_0$, data $\{(0,2;3),(2,3;9),(1,1;2),(2,0;2)\}$ (řádky $x_1,x_2;y$). Učící konstanta $\alpha=0{,}1$, $L^2$ síla $\lambda=0{,}5$. (1)~Definujte chybovou funkci (součet čtverců $+$ $L^2$). (2)~Z~odhadu $\beta_1=1,\beta_2=3,\beta_0=-1$ proveďte \emph{jeden} krok gradientní metody.
+
+\smallskip
+\textbf{Řešení.} (1)~$E=\sum_{i=1}^{N}(y_i-\hat y_i)^2+\lambda\sum_{j\ge1}\beta_j^2$, kde $\hat y_i=\beta_1 x_{i1}+\beta_2 x_{i2}+\beta_0$; bias $\beta_0$ se do regularizace nezahrnuje.
+
+(2)~Gradient počítáme jako \emph{součet přes všechny čtyři vzory} (zde dávkový krok). Pro tuto formu chyby (\emph{bez} faktoru $\tfrac12$) je $\frac{\partial E}{\partial\beta_0}=\sum_i -2(y_i-\hat y_i)$, $\frac{\partial E}{\partial\beta_j}=\sum_i -2(y_i-\hat y_i)x_{ij}+2\lambda\beta_j$. Spočteme predikce a~rezidua $r_i=\hat y_i-y_i$:
+\[
+\begin{array}{c|cc|c|c|c}
+i & x_1 & x_2 & y & \hat y=\beta_1x_1+\beta_2x_2+\beta_0 & r=\hat y-y\\\hline
+1 & 0 & 2 & 3 & 0+6-1=5 & 2\\
+2 & 2 & 3 & 9 & 2+9-1=10 & 1\\
+3 & 1 & 1 & 2 & 1+3-1=3 & 1\\
+4 & 2 & 0 & 2 & 2+0-1=1 & -1
+\end{array}
+\]
+Derivace součtu čtverců $E_{\mathrm{RSS}}$ (nepenalizovaná část chyby; pozor: $-2(y-\hat y)=2r$, sčítáme příspěvky $2r_i$, resp.\ $2r_i x_{ij}$):
+\[
+\frac{\partial E_{\mathrm{RSS}}}{\partial\beta_0}=2(2+1+1-1)=6,\quad
+\frac{\partial E_{\mathrm{RSS}}}{\partial\beta_1}=2(2\cdot0+1\cdot2+1\cdot1-1\cdot2)=2,\quad
+\frac{\partial E_{\mathrm{RSS}}}{\partial\beta_2}=2(2\cdot2+1\cdot3+1\cdot1-1\cdot0)=16.
+\]
+Regularizační člen přidá $\frac{\partial}{\partial\beta_j}\lambda\beta_j^2=2\lambda\beta_j=2\cdot0{,}5\cdot\beta_j=\beta_j$ (jen k~vahám, ne k~$\beta_0$): $+\beta_1=1$, $+\beta_2=3$. Celkové gradienty:
+\[ g_0=6,\qquad g_1=2+1=3,\qquad g_2=16+3=19. \]
+Krok $\beta\leftarrow\beta-\alpha\,g$ s~$\alpha=0{,}1$:
+\[ \boxed{\beta_0=-1-0{,}1\cdot6=-1{,}6,\quad \beta_1=1-0{,}1\cdot3=0{,}7,\quad \beta_2=3-0{,}1\cdot19=1{,}1.} \]
+\emph{(Ověřeno \texttt{numpy}: $g=(6;\,3;\,19)$, nové $\beta=(-1{,}6;\,0{,}7;\,1{,}1)$ -- shoduje se s~oficiálním náčrtem.)}
+\end{priklad}
+
+\subsection{OLS vs. SGD a krátce o nelinearitě}
+
+\begin{priklad}[SZZ léto 2025 č.~30: Lineární regrese -- analyticky vs.~SGD]
+\szzotazka{léto 2025}{30}{Lineární regrese}\par
+\textbf{Zadání (zkráceně).} (1)~Zformulujte model a~chybovou funkci. (2)~Jak získat optimum \emph{explicitně}? (3)~Zformulujte optimalizaci pomocí SGD. (4)~Výhody a~nevýhody obou, zejména z~hlediska kontroly chyby na validačních datech.
+
+\smallskip
+\textbf{Řešení.} (1)~$y(\mathbf{x})=\mathbf{x}^{\!\top}\mathbf{w}$ (bias paddingem 1), minimalizujeme součet čtverců $\tfrac12\|\mathbf{X}\mathbf{w}-\mathbf{t}\|^2$. (2)~\emph{Analyticky}: položíme gradient roven nule, dostaneme normální rovnice $\mathbf{X}^{\!\top}\mathbf{X}\mathbf{w}=\mathbf{X}^{\!\top}\mathbf{t}$ a~řešíme přes inverzi $\mathbf{w}=(\mathbf{X}^{\!\top}\mathbf{X})^{-1}\mathbf{X}^{\!\top}\mathbf{t}$, resp.\ přes SVD při singularitě. (3)~\emph{SGD}: opakuj $\mathbf{w}\leftarrow\mathbf{w}-\alpha\frac{1}{|\mathbb{B}|}\sum_{i\in\mathbb{B}}(\mathbf{x}_i^{\!\top}\mathbf{w}-t_i)\mathbf{x}_i$ po minibatchích/epochách.
+
+(4)~\textbf{Analytické řešení:} přesné, v~jednom kroku, bez ladění; ale inverze $D\times D$ matice je drahá a~paměťově náročná pro velké $D$, a~přesné optimum na trénovacích datech může způsobit \emph{overfitting} (přeučení). \textbf{SGD:} škáluje na velká data a~málo paměti, snadno přidá regularizaci -- a~hlavně \emph{můžeme v~průběhu sledovat chybu na validační množině} a~zastavit, než nastane overfitting (\textbf{early stopping}); naopak vyžaduje ladit $\alpha$, počet epoch a~konverguje jen přibližně. Stručně: \emph{malé $D$ a~potřeba přesnosti $\to$ analyticky; velká data a~kontrola overfittingu $\to$ SGD}.
+\end{priklad}
+
+\begin{poznamka}[Polynomiální příznaky: most k~nelinearitě]
+Lineární regrese modeluje jen přímky/nadroviny, ale „lineární`` se vztahuje k~\emph{vahám}, ne ke vstupu. Rozšíříme-li vstup $x$ o~mocniny, příznaky $(x^0,x^1,\dots,x^M)$, predikce $w_0+w_1x+\dots+w_Mx^M$ je polynom stupně $M$ -- model zůstává lineární ve~$\mathbf{w}$, takže platí všechny vzorce výše. Vyšší $M$ zvyšuje kapacitu (riziko overfittingu, viz sekce~\ref{sec:preuceni}). Obecněji se konstruují \emph{příznaky} (feature engineering), např.\ one-hot kódování kategorických hodnot.
+\end{poznamka}

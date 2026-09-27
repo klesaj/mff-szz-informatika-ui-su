@@ -1,0 +1,27 @@
+% Zdroj: PDF priklady-leto-2024.pdf, fyzická str. 23-24. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S3.
+\section{PCA analýza}
+\szzotazka{léto 2024}{29}{PCA analýza}
+
+\noindent\textbf{Zadání.}\par
+Mějme data se dvěma atributy a ze třech tříd zobrazená na obrázku níže.
+
+\begin{center}
+\includegraphics[width=0.7\linewidth]{pca-leto2024.png}
+\end{center}
+
+\begin{enumerate}
+  \item Vysvětlete, jak funguje PCA analýza. Jakým způsobem můžeme spočítat hlavní komponenty?
+  \item Bez počítání odhadněte, jaké budou směry dvou hlavních komponent pro data na obrázku výše. Zakreslete je do
+    obrázku.
+  \item Uvažujme klasifikátor založený na metodě $k$ nejbližších sousedů pro vhodné $k$ a předpokládejme, že jsme v rámci
+    předzpracování dat použili PCA analýzu pro snížení počtu dimenzí na 1. Jaká bude přesnost tohoto klasifikátoru v
+    porovnání s přesností stejného klasifikátoru trénovaného na původních datech? Vysvětlete.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení.)}\par
+\begin{enumerate}[nosep]
+  \item PCA: data se vycentrují (odečte se průměr), spočte se \emph{kovarianční matice} a~její \emph{vlastní vektory} -- to jsou hlavní komponenty, seřazené sestupně podle vlastních čísel (každé udává rozptyl zachycený v~daném směru). Redukce dimenze = projekce na prvních pár komponent.
+  \item První hlavní komponenta míří ve směru \emph{největšího rozptylu} dat (podél protáhlého mraku, zhruba po antidiagonále), druhá kolmo na ni.
+  \item Přesnost se spíš \emph{zhorší}. PCA je metoda \emph{bez učitele} -- maximalizuje rozptyl, nikoli oddělitelnost tříd. Na těchto datech leží rozdíl mezi třídami převážně ve směru \emph{kolmém} na 1.~komponentu, takže projekce na $1$D třídy překryje a~$k$-NN ztratí informaci potřebnou k~jejich rozlišení.
+\end{enumerate}

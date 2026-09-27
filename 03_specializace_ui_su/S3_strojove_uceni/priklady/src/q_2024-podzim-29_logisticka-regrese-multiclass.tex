@@ -1,0 +1,28 @@
+% Zdroj: PDF priklady-podzim-2024.pdf, fyzická str. 23. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S3.
+\section{Logistická regrese}
+\szzotazka{podzim 2024}{29}{Logistická regrese}
+
+\noindent\textbf{Zadání.}\par
+Chceme použít logistickou regresi k vytvoření modelu, který bude předpovídat pravděpodobnost
+úspěchu studentů u zkoušky v závislosti na době učení. Pro získání dat jsme se po zkoušce ptali
+studentů, jak dlouho se učili. Jejich odpovědi společně s informací, jestli zkouška byla úspěšná,
+jsou v obrázku níže, který zobrazuje úspěch (1) a neúspěch (0) v závislosti na době učení.
+
+\begin{center}\includegraphics[width=0.7\linewidth]{logisticka-regrese-multiclass.png}\end{center}
+
+\begin{enumerate}
+  \item Popište model logistické regrese. Jak se spočítá jeho výstup? Jakým způsobem se trénují
+    jeho parametry? Jaká se používá ztrátová funkce?
+  \item Do obrázku výše zakreslete přibližně výstup modelu natrénovaného na zadaných datech.
+    Nemusíte nic počítat.
+  \item Jakým způsobem by se model lišil, pokud bychom klasifikovali do více než dvou tříd
+    (např. pokud bychom chtěli předpovídat i známku)?
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení.)}\par
+\begin{enumerate}[nosep]
+  \item Logistická regrese modeluje pravděpodobnost úspěchu $P(\text{úspěch}\mid x)=\sigma(wx+b)$ se sigmoidou $\sigma(z)=1/(1+e^{-z})$; predikuje úspěch, je-li výstup $\ge 0{,}5$. Parametry se učí maximalizací věrohodnosti, tj.\ minimalizací \emph{křížové entropie} (negative log-likelihood); v~SGD se používá gradient $(\sigma(wx+b)-t)\,x$.
+  \item Výstup je rostoucí \emph{sigmoidní} křivka: u~krátké doby učení blízko $0$, u~dlouhé blízko $1$, s~přechodem (hodnota $0{,}5$) v~oblasti, kde se mísí úspěchy a~neúspěchy.
+  \item Pro více než dvě třídy (např.\ predikce známky) se sigmoida nahradí \emph{softmaxem}: model má sadu vah pro každou třídu, $P(C_k\mid x)=e^{w_k^\top x}/\sum_j e^{w_j^\top x}$, a~trénuje se kategorickou křížovou entropií.
+\end{enumerate}

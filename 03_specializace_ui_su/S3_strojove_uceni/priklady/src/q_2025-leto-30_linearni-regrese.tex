@@ -1,0 +1,26 @@
+% Zdroj: PDF priklady-leto-2025.pdf, fyzická str. 23. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S3.
+\section{Lineární regrese}
+\szzotazka{léto 2025}{30}{Lineární regrese}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Pro trénovací dataset $X_{train}$ a cílové hodnoty $t_{train}$ zformulujte model lineární
+    regrese a chybovou funkci, kterou v lineární regresi minimalizujeme.
+  \item Ukažte, jakým způsobem lze explicitně získat optimální řešení na trénovacích datech.
+  \item Zformulujte optimalizaci pomocí stochastic gradient descent.
+  \item Okomentujte výhody a nevýhody obou přístupů, především z hlediska možnosti kontroly chyby
+    na případných validačních datech.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+Definice modelu a podrobnější odvození jsou ve slidech k prvním dvěma přednáškám z NPFL129.
+
+Je třeba spočítat derivaci chyby, tu pak položit rovnou nule a vyřešit buď s využitím inverzní
+matice nebo s pomocí SVD dekompozice. Nevýhoda je, že invertování matice je pomalé a matice je
+velká. Optimální řešení na trénovací množině nemusí být to, co chceme, protože může dojít
+k přeučení. SGD bude méně náročné na paměť, navíc můžeme kontrolovat loss na validační množině
+a udělat early stopping a vyhnout se přeučení.
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Model $y(\boldsymbol{x})=\boldsymbol{x}^T\boldsymbol{w}$ (bias jako váha u~přidaného konstantního příznaku $1$), chyba $E(\boldsymbol{w})=\frac12\|X\boldsymbol{w}-\boldsymbol{t}\|^2$ (případně MSE, liší se jen kladnou konstantou). Gradient $\nabla_{\boldsymbol{w}}E=X^T(X\boldsymbol{w}-\boldsymbol{t})$ položený roven nule dává normální rovnice $X^TX\boldsymbol{w}=X^T\boldsymbol{t}$, tedy $\boldsymbol{w}=(X^TX)^{-1}X^T\boldsymbol{t}$, je-li $X^TX$ regulární (jinak pseudoinverze přes SVD). Minimum je globální, protože $E$ je konvexní (Hessián $X^TX$ je pozitivně semidefinitní). SGD: pro náhodnou minibatch $\mathbb{B}$ opakuj $\boldsymbol{w}\leftarrow\boldsymbol{w}-\alpha\frac{1}{|\mathbb{B}|}\sum_{i\in\mathbb{B}}(\boldsymbol{x}_i^T\boldsymbol{w}-t_i)\,\boldsymbol{x}_i$. Explicitní řešení stojí $\mathcal{O}(ND^2+D^3)$ a~vrací jen konečné optimum; SGD dává průběžně posloupnost modelů, takže lze po každé epoše měřit validační chybu a~zastavit v~jejím minimu (early stopping).

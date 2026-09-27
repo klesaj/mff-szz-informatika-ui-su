@@ -1,0 +1,25 @@
+% Zdroj: PDF priklady-podzim-2024.pdf, fyzická str. 24. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S3.
+\section{Evaluace binárního klasifikátoru}
+\szzotazka{podzim 2024}{30}{Evaluace binárního klasifikátoru}
+
+\noindent\textbf{Zadání.}\par
+Testovací množina obsahuje $1000$ příkladů. Binární klasifikátor z nich $400$ klasifikoval do pozitivní
+třídy a $600$ do negativní třídy s úspěšností (accuracy) $70\,\%$ a specificitou (specificity) $80\,\%$.
+
+\begin{enumerate}
+  \item Napište kompletní matici konfuze (confusion matrix).
+  \item Vypočtěte přesnost (precision) klasifikátoru.
+  \item Vypočtěte úplnost (recall) klasifikátoru.
+  \item Je možné na základě uvedených dat vypočítat F-score? Pokud ano, jak?
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item $\mathrm{TN} = 400$, $\mathrm{FN} = 200$, $\mathrm{TP} = 300$, $\mathrm{FP} = 100$.
+  \item $P = \mathrm{TP}/(\mathrm{TP}+\mathrm{FP}) = 0.75$, $R = \mathrm{TP}/(\mathrm{TP}+\mathrm{FN}) = 0.6$.
+  \item Ano. $\mathrm{F1} = 2 \cdot P \cdot R / (P + R)$.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Soustava: $\mathrm{TP}+\mathrm{FP}=400$, $\mathrm{TN}+\mathrm{FN}=600$, $\mathrm{TP}+\mathrm{TN}=700$ (accuracy) a~$\mathrm{TN}/(\mathrm{TN}+\mathrm{FP})=0{,}8$ (specificity). Dosazením $\mathrm{FP}=400-\mathrm{TP}$ a~$\mathrm{TN}=700-\mathrm{TP}$ do poslední rovnice vyjde $\mathrm{TP}=300$, odtud ostatní hodnoty. F-skóre spočítat lze: $F_1=\frac{2\cdot0{,}75\cdot0{,}6}{0{,}75+0{,}6}=\frac23\approx0{,}67$.

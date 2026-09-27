@@ -1,0 +1,51 @@
+% Zdroj: PDF priklady-podzim-2022.pdf, fyzická str. 8. Značka: specializace UI-SU. Zařazeno: S3. Číselné výsledky ověřeny numericky.
+\section{$k$ nejbližších sousedů}
+\szzotazka{podzim 2022}{20}{$k$ nejbližších sousedů}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Popište obecně fungování techniky $k$ nejbližších sousedů (k-NN) pro klasifikaci i~pro regresi: Jak funguje trénování modelu? Jak probíhá předpovídání?
+  \item Mějme data se dvěma příznaky $A_1$, $A_2$ a~dvěma třídami $C \in \{0,1\}$ (tabulka níže). Rozhodněte, jak bude pomocí k-NN pro $k=3$ ohodnocen nový vstup $(5,5)$. Používejte Manhattanskou (L1) vzdálenost.
+  \item Změní se odpověď při změně $k$? Uveďte alespoň jeden příklad $k$, pro které je odpověď jiná (pokud existuje).
+\end{enumerate}
+
+\begin{center}
+\begin{tabular}{ccc}
+\toprule
+$A_1$ & $A_2$ & $C$ \\
+\midrule
+0 & 3 & 0 \\
+2 & 2 & 0 \\
+3 & 0 & 0 \\
+4 & 2 & 0 \\
+6 & 6 & 1 \\
+4 & 5 & 1 \\
+1 & 1 & 1 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, výpočet ověřen numericky.)}\par
+\begin{enumerate}[nosep]
+  \item k-NN je „líný" (instance-based) model: „trénování" pouze uloží trénovací data. Predikce pro nový bod: najdi $k$ nejbližších trénovacích bodů podle zvolené metriky; pro klasifikaci vrať většinovou třídu mezi nimi, pro regresi vrať průměr (případně vážený) jejich cílových hodnot.
+  \item Manhattanské vzdálenosti bodu $(5,5)$ od dat:
+    \begin{center}
+    \begin{tabular}{cc}
+    \toprule
+    bod & L1 vzdálenost \\
+    \midrule
+    $(4,5)$ & $1$ \\
+    $(6,6)$ & $2$ \\
+    $(4,2)$ & $4$ \\
+    $(2,2)$ & $6$ \\
+    $(0,3)$ & $7$ \\
+    $(3,0)$ & $7$ \\
+    $(1,1)$ & $8$ \\
+    \bottomrule
+    \end{tabular}
+    \end{center}
+    Tři nejbližší jsou $(4,5)$ s~$C{=}1$, $(6,6)$ s~$C{=}1$ a~$(4,2)$ s~$C{=}0$, tedy třídy $\{1,1,0\}$, většina $1$. Pro $k=3$ je $(5,5)$ klasifikován jako třída $\boldsymbol{1}$.
+  \item Ano, odpověď se může změnit. Pro $k=5$ je pět nejbližších bodů $(4,5){:}1$, $(6,6){:}1$, $(4,2){:}0$, $(2,2){:}0$, $(0,3){:}0$, tedy třídy $\{1,1,0,0,0\}$, většina $0$. Pro $k=5$ (a~stejně tak $k=7$) tedy vyjde třída $0$. (Na pátém místě je remíza vzdáleností: $(0,3)$ i~$(3,0)$ mají vzdálenost $7$, oba ale patří do třídy $0$, takže na výsledku nezáleží.)
+\end{enumerate}
+

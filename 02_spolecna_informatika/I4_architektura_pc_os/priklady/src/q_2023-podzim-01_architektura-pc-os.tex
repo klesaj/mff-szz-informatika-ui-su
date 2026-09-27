@@ -1,0 +1,90 @@
+% Zdroj: PDF priklady-podzim-2023.pdf, fyzická str. 1-2. Značka: společné okruhy. Zařazeno: I4.
+\section{Architektura počítačů a operačních systémů}
+\szzotazka{podzim 2023}{1}{Architektura PC a OS (race condition, kritická sekce)}
+
+\noindent\textbf{Zadání.}\par
+Mějme následující třídu v~pseudokódu:
+
+\begin{lstlisting}[language=C++,numbers=left]
+class LimitedStack {
+public:
+        LimitedStack(int md) {
+            currentDepth = 0;
+            maxDepth = md;
+            stack = new int[maxDepth];
+        }
+
+        int getDepth() {
+            return currentDepth;
+        }
+
+        bool pushValue(int v) {
+            if (currentDepth >= maxDepth)
+                return false;
+            stack[currentDepth] = v;
+            currentDepth++;
+            return true;
+        }
+
+private:
+        int      maxDepth;
+        int      currentDepth;
+        int[]    stack; // int *stack; pro C++
+};
+\end{lstlisting}
+
+Dále předpokládejme, že máme multiprocesorový systém a~program si spustí několik vláken,
+která budou mít všechna přístup ke sdílené proměnné typu \texttt{LimitedStack}. Tato vlákna
+budou volat podle své potřeby funkce \texttt{getDepth} a~\texttt{pushValue}.
+
+\begin{enumerate}
+\item Je možné, že v~programu nastane jev zvaný \textit{race condition}? Pokud ano,
+  napište rozsahy řádek nebo vyznačte přímo v~uvedeném kódu řádky, které představují
+  kritickou sekci.
+\item Je možné, aby nějakým způsobem nastala situace, kdy při volání funkce
+  \texttt{pushValue} přeteče zásobník (program se bude pokoušet zapisovat mimo alokované
+  pole)? Zdůvodněte.
+\item Pokud se domníváte, že v~uvedeném kódu může nastat race condition, pokuste se tento
+  problém odstranit úpravou programu (včetně možného přidání nějakých nových řádek).
+\end{enumerate}
+Kde je to důležité, ve své odpovědi uvažujte jazyk C\#, C++ nebo Java (a~vaši volbu vyznačte).
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+\item Ano, 10 a~14-17.
+\item Ano, T1 i~T2 vykonají řádek 14 souběžně. Přečtou shodnou proměnnou
+  \texttt{currentDepth}, která má hodnotu $\texttt{maxDepth}-1$, takže test selže.
+  Následně po testu je T2 plánovačem zastaveno, T1 funkci dokončí a~zvětší
+  \texttt{currentDepth}. Poté je T2 znovu naplánováno a~při zápisu hodnoty použije
+  zvětšený index sahající za pole.
+\item Záleží na jazyku. V~Javě triviálně použitím \texttt{synchronized} metod. C\# buď
+  použije \texttt{lock} na nějaký vedlejší objekt nebo se použije
+  \texttt{[MethodImpl(MethodImplOptions.Synchronized)]}. C++ použije třeba \texttt{Mutex}
+  a~buď explicitní \texttt{lock} a~\texttt{unlock} nebo lépe \texttt{lock\_guard}. Pozor
+  na odemknutí před každým \texttt{return}.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Řádek~10 patří do kritické
+sekce proto, že čte \texttt{currentDepth}, kterou jiné vlákno právě mění; řádky 14--17 čtou i~zapisují
+\texttt{currentDepth} a~zapisují do \texttt{stack}. Samotné \texttt{currentDepth++} navíc není atomické
+(načti, přičti, ulož), takže se dvě souběžná zvýšení mohou slít v~jedno. Zámek musí obepnout
+\emph{celý} úsek od testu na řádku~14 po inkrementaci: kdyby chránil jen zápis, dvě vlákna by dál
+mohla projít testem se stejnou hodnotou. Možná úprava v~C++:
+\begin{lstlisting}[language=C++]
+std::mutex mtx;   // nova clenska promenna
+
+int getDepth() {
+    std::lock_guard<std::mutex> g(mtx);
+    return currentDepth;
+}
+bool pushValue(int v) {
+    std::lock_guard<std::mutex> g(mtx);   // odemkne se pri kazdem return
+    if (currentDepth >= maxDepth)
+        return false;
+    stack[currentDepth] = v;
+    currentDepth++;
+    return true;
+}
+\end{lstlisting}

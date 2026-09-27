@@ -1,0 +1,393 @@
+\section{Rozhodovací stromy}\label{sec:stromy}
+
+\textbf{Rozhodovací strom} (decision tree) je model, který rozdělí prostor vstupů na \emph{obdélníkové oblasti} (osově zarovnané řezy) a~v~každé oblasti predikuje jednu hodnotu. Inference je triviální: od kořene následujeme větvící pravidla v~uzlech, až dorazíme do \emph{listu}, jehož hodnotu vrátíme. Stromy zvládají klasifikaci i~regresi, mix číselných i~kategorických příznaků, nevyžadují škálování dat a~jsou dobře \emph{interpretovatelné} -- proto jsou populární jako stavební kámen ansámblů (random forest, boosting; viz sekce~\ref{sec:kombinace}).
+
+\begin{poznamka}[Vztah k~S1]
+Okruh S1 (sekce \emph{Strojové učení}) už rozhodovací stromy zavádí na úrovni „základní principy``: definice (vnitřní uzly testují atribut, listy dávají rozhodnutí), hladová konstrukce „rozděl a~panuj`` a~kritérium \emph{informačního zisku} s~booleovskou entropií $B(q)$ a~příkladem AIMA (restaurace, Patrons vs.\ Type). Zde to \textbf{nezdvojujeme} -- entropii a~zisk jen krátce zrekapitulujeme s~konzistentním značením a~jdeme do hloubky, kterou S1 výslovně přenechává S3: \emph{Gini index} jako alternativní kritérium, \emph{regresní stromy} (rozptylové/MSE kritérium), \emph{souvislost kritérií se ztrátovou funkcí} a~především \textbf{prořezávání} (pruning).
+\end{poznamka}
+
+\subsection{Algoritmus učení: hladově shora dolů (rozděl a~panuj)}
+
+Nalézt globálně nejmenší strom konzistentní s~daty je NP-těžké; v~praxi se proto staví \textbf{hladově}: začneme jediným listem se všemi příklady a~opakovaně \emph{rozdělíme} list na rozhodovací uzel se dvěma (obecně více) potomky tak, aby rozdělení co nejvíc \emph{zlepšilo homogenitu} skupin. Hladová volba se nikdy nereviduje (greedy). Označme $I_{\mathcal{T}}$ množinu indexů trénovacích příkladů v~uzlu $\mathcal{T}$.
+
+\begin{definice}[Kritérium uzlu a~větvení]
+\textbf{Kritérium} $c(\mathcal{T})$ měří \emph{nehomogenitu} (nečistotu, impurity) příkladů v~uzlu $\mathcal{T}$ -- kolik nejistoty o~cíli v~uzlu zbývá. Při rozdělení uzlu $\mathcal{T}$ na potomky $\mathcal{T}_L$ a~$\mathcal{T}_R$ hledáme \emph{příznak} a~jeho \emph{práh} (resp.\ hodnotu), které nejvíc sníží celkové kritérium, tj.\ minimalizují
+\[ c(\mathcal{T}_L) + c(\mathcal{T}_R) - c(\mathcal{T}) \le 0. \]
+Kritéria se obvykle volí \emph{vážená velikostí uzlu}, $c(\mathcal{T}) = |I_{\mathcal{T}}|\cdot(\text{nečistota})$, takže rozdíl výše je přímo \emph{informační zisk} (až na znaménko a~násobek $|I_{\mathcal{T}}|$).
+\end{definice}
+
+\begin{algo}[Učení rozhodovacího stromu (greedy, rozděl a~panuj)]
+\ttfamily\small
+BUILD-TREE(uzel $\mathcal{T}$ s~příklady $I_{\mathcal{T}}$):\\
+\hspace*{1.5em}\textbf{if} zastavovací podmínka($\mathcal{T}$): \textbf{return} list s~predikcí z~$I_{\mathcal{T}}$ \cmt{čistý uzel / hloubka / min.\ příkladů}\\
+\hspace*{1.5em}$(j^{*}, v^{*}) \leftarrow \argmin_{j,\,v}\;\big[\,c(\mathcal{T}_L^{j,v}) + c(\mathcal{T}_R^{j,v})\,\big]$ \cmt{for přes příznaky $j$ a~jejich hodnoty $v$}\\
+\hspace*{1.5em}rozděl $I_{\mathcal{T}}$ testem „$x_{j^{*}} \le v^{*}$`` na $\mathcal{T}_L$, $\mathcal{T}_R$\\
+\hspace*{1.5em}BUILD-TREE($\mathcal{T}_L$); BUILD-TREE($\mathcal{T}_R$)\\
+\hspace*{1.5em}\textbf{return} rozhodovací uzel s~testem $(j^{*}, v^{*})$ a~podstromy $\mathcal{T}_L$, $\mathcal{T}_R$
+\end{algo}
+
+\begin{intuice}
+Hledání nejlepšího řezu je dvojitý cyklus: \emph{přes všechny příznaky} a~\emph{přes všechny prahy} (u~číselného příznaku stačí hodnoty mezi sousedními setříděnými hodnotami, u~kategorického jednotlivé hodnoty). Pro každý kandidát spočítáme kritérium obou potomků a~vybereme řez s~nejnižším součtem. Predikce listu je \emph{nejčastější třída} (klasifikace), \emph{rozdělení tříd} (pravděpodobnostní výstup) nebo \emph{průměr cílů} (regrese). Rozhodovací uzly tak postupně \emph{dělí prostor osově zarovnanými řezy} na obdélníky (viz obrázek níže).
+\end{intuice}
+
+\begin{poznamka}[Zastavovací heuristiky a~způsob stavby]
+Bez omezení strom roste, dokud nejsou listy čisté (overfitting (přeučení) -- viz prořezávání). Běžné \emph{heuristiky}: maximální \emph{hloubka}; minimální počet příkladů nutný k~dělení uzlu; maximální počet listů. Strom se obvykle staví buď \emph{do hloubky} (rekurzivně dělíme každý list, dokud platí omezení), nebo -- je-li dán limit počtu listů -- dělíme vždy ten list, který nabízí největší pokles kritéria. Strom \emph{neomezené} velikosti je neparametrický model (roste s~daty); s~pevným limitem listů je parametrický.
+\end{poznamka}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.18]
+% --- levý panel: 2D prostor rozdělený osově zarovnanými řezy ---
+\begin{scope}
+  \def\S{3.6}
+  % osy
+  \draw[osa] (0,0) -- (\S+0.4,0) node[right,font=\small]{$x_1$};
+  \draw[osa] (0,0) -- (0,\S+0.4) node[above,font=\small]{$x_2$};
+  % oblasti: rez x1<=1.8 (svisle); vpravo rez x2<=2.2 (vodorovne)
+  % R1: x1<=1.8                -> trida 1 (modra)
+  % R2: x1>1.8, x2<=2.2        -> trida 2 (cervena)
+  % R3: x1>1.8, x2>2.2         -> trida 3 (zelena)
+  \fill[blue!12]  (0,0) rectangle (1.8,\S);
+  \fill[red!12]   (1.8,0) rectangle (\S,2.2);
+  \fill[green!12] (1.8,2.2) rectangle (\S,\S);
+  % rezy
+  \draw[hranice] (1.8,0) -- (1.8,\S);
+  \draw[hranice] (1.8,2.2) -- (\S,2.2);
+  \draw (0,0) rectangle (\S,\S);
+  % body
+  \node[cls1] at (0.7,1.1) {}; \node[cls1] at (1.2,2.6) {}; \node[cls1] at (0.5,3.0) {};
+  \node[cls2] at (2.6,0.8) {}; \node[cls2] at (3.1,1.4) {}; \node[cls2] at (2.3,1.7) {};
+  \node[cls3] at (2.7,3.0) {}; \node[cls3] at (3.2,2.7) {}; \node[cls3] at (2.4,3.2) {};
+  % popisky oblasti
+  \node[font=\scriptsize,blue!55!black]  at (0.9,0.4) {$R_1$};
+  \node[font=\scriptsize,red!65!black]   at (2.9,0.4) {$R_2$};
+  \node[font=\scriptsize,green!45!black] at (2.9,3.4) {$R_3$};
+  % popisky rezu
+  \node[font=\scriptsize] at (1.8,-0.3) {$x_1{=}1{,}8$};
+  \node[font=\scriptsize,anchor=west] at (\S+0.05,2.2) {$x_2{=}2{,}2$};
+\end{scope}
+% --- pravy panel: odpovidajici strom ---
+\begin{scope}[xshift=6.4cm,yshift=0.2cm]
+  \node[treenode] (r) at (1.4,3.4) {$x_1 \le 1{,}8$};
+  \node[treeleaf,fill=blue!14] (l1) at (0,1.9) {$R_1$};
+  \node[treenode] (n2) at (2.6,1.9) {$x_2 \le 2{,}2$};
+  \node[treeleaf,fill=red!14]   (l2) at (1.7,0.4) {$R_2$};
+  \node[treeleaf,fill=green!14] (l3) at (3.5,0.4) {$R_3$};
+  \draw[vetev] (r) -- node[popis,above left]{ano} (l1);
+  \draw[vetev] (r) -- node[popis,above right]{ne} (n2);
+  \draw[vetev] (n2) -- node[popis,above left]{ano} (l2);
+  \draw[vetev] (n2) -- node[popis,above right]{ne} (l3);
+\end{scope}
+\end{tikzpicture}
+\obrpopis{Rozhodovací strom dělí prostor příznaků \emph{osově zarovnanými řezy} na obdélníkové oblasti, každá oblast je jeden list (jedna predikovaná třída). Vlevo dva řezy ($x_1{=}1{,}8$ svisle, pak $x_2{=}2{,}2$ vodorovně vpravo) rozdělují rovinu na tři oblasti $R_1,R_2,R_3$; vpravo strom, který tyto řezy generuje. Hranice je tedy vždy po částech kolmá na osy -- strom neumí šikmou hranici jedním řezem (potřeboval by „schody``).}
+\end{center}
+
+\subsection{Kritéria větvení}
+
+Otázka „který řez je nejlepší`` se redukuje na „jak měřit nečistotu uzlu``. Pro \emph{klasifikaci} se používají dvě kritéria -- \textbf{entropie} (informační zisk) a~\textbf{Gini index} -- pro \emph{regresi} \textbf{rozptylové (MSE) kritérium}. Označme $p_{\mathcal{T}}(k)$ podíl příkladů třídy $k$ v~uzlu $\mathcal{T}$.
+
+\subsubsection*{Entropie a~informační zisk (rekapitulace z~S1)}
+
+\begin{definice}[Entropie, booleovská entropie, informační zisk]
+\textbf{Entropie} rozdělení tříd v~uzlu (v~bitech, $\log=\log_2$) je
+\[ H(\mathbf{p}_{\mathcal{T}}) = -\sum_{k:\,p_{\mathcal{T}}(k)>0} p_{\mathcal{T}}(k)\,\log_2 p_{\mathcal{T}}(k). \]
+Pro \emph{binární} cíl (podíl pozitivních $q$) píšeme \emph{booleovskou entropii}
+\[ B(q) = -\,q\log_2 q - (1-q)\log_2(1-q),\qquad B(0)=B(1)=0,\ B(\tfrac12)=1. \]
+Pro množinu s~$p$ pozitivními a~$n$ negativními příklady je entropie $B\!\big(\tfrac{p}{p+n}\big)$. Atribut $A$ rozdělí příklady do skupin; \emph{zbytková} (vážená) entropie je $\mathrm{Remainder}(A)=\sum_k \tfrac{p_k+n_k}{p+n}B\!\big(\tfrac{p_k}{p_k+n_k}\big)$ a~\textbf{informační zisk}
+\[ \mathrm{Gain}(A) = B\!\Big(\tfrac{p}{p+n}\Big) - \mathrm{Remainder}(A). \]
+V~uzlu vybíráme atribut (řez) s~\emph{největším} ziskem.
+\end{definice}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[width=10cm,height=6.4cm,xlabel={$q$ (podíl pozitivních)},ylabel={$B(q)$ \small[bity]},
+  xmin=0,xmax=1,ymin=0,ymax=1.14,xtick={0,0.25,0.5,0.75,1},ytick={0,0.5,1},
+  axis lines=left,every axis plot/.append style={very thick},clip=false]
+  \addplot[blue!60!black] table[x=q,y=B]{fig/s6_entropy.dat};
+  \addplot[only marks,mark=*,mark size=1.6pt,red!70!black] coordinates {(0.5,1.0)};
+  \node[font=\small,anchor=south,inner sep=2pt] at (axis cs:0.5,1.0) {max $=1$};
+  \addplot[only marks,mark=*,mark size=1.6pt,blue!60!black] coordinates {(0,0) (1,0)};
+  \node[font=\scriptsize,anchor=north east,inner sep=2pt] at (axis cs:0,0) {$B(0){=}0$};
+  \node[font=\scriptsize,anchor=north west,inner sep=2pt] at (axis cs:1,0) {$B(1){=}0$};
+\end{axis}
+\end{tikzpicture}
+\obrpopis{Booleovská entropie $B(q)$: je \emph{konkávní}, nulová v~čistém uzlu ($q=0$ nebo $q=1$) a~maximální ($1$ bit) při vyrovnaném poměru $q=\tfrac12$. Čím nečistější uzel, tím vyšší entropie; dělení vybíráme tak, aby vážená entropie potomků byla co nejnižší. Hodnota v~$q=\tfrac13$ (i~$\tfrac23$) je $B(\tfrac13)\approx 0{,}918$.}
+\end{center}
+
+\subsubsection*{Gini index}
+
+\begin{definice}[Gini index (Gini impurity)]
+\textbf{Gini index} uzlu $\mathcal{T}$ měří pravděpodobnost, že náhodně vybraný prvek bude \emph{špatně} označen, kdybychom mu náhodně přiřadili třídu podle rozdělení $\mathbf{p}_{\mathcal{T}}$:
+\[ \mathrm{Gini}(\mathcal{T}) = \sum_k p_{\mathcal{T}}(k)\,\big(1-p_{\mathcal{T}}(k)\big) = 1 - \sum_k p_{\mathcal{T}}(k)^2. \]
+Pro binární cíl s~podílem $q$ pozitivních je $\mathrm{Gini}=2q(1-q)$ (maximum $\tfrac12$ v~$q=\tfrac12$, $0$ v~$q\in\{0,1\}$). Stejně jako u~entropie hledáme řez minimalizující \emph{vážený} Gini potomků $\sum \tfrac{|I_{\mathcal{T}_\cdot}|}{|I_{\mathcal{T}}|}\mathrm{Gini}(\mathcal{T}_\cdot)$.
+\end{definice}
+
+\begin{intuice}
+Gini i~entropie se chovají velmi podobně: obě jsou $0$ v~čistém uzlu, maximální u~vyrovnaného a~jsou \emph{konkávní} (proto dělení nikdy nezhorší kritérium). Liší se jen mírně tvarem a~Gini nepotřebuje logaritmus, je tedy \emph{levnější na výpočet} -- proto je výchozí v~\texttt{scikit-learn}. V~praxi vedou skoro vždy na \emph{stejný strom} (jak uvidíme u~klasifikačních SZZ otázek níže). Vztah binárních verzí je $\mathrm{Gini}=2q(1-q)$ vs.\ $B(q)$; obě křivky mají stejný tvar „kopce`` mezi $0$ a~$1$.
+\end{intuice}
+
+\subsubsection*{Regresní stromy: rozptylové (MSE) kritérium}
+
+Je-li cíl reálné číslo, predikuje list \emph{průměr} cílů svých příkladů $\hat t_{\mathcal{T}}=\tfrac{1}{|I_{\mathcal{T}}|}\sum_{i\in I_{\mathcal{T}}} t_i$. Nečistotu měříme \emph{součtem kvadrátů odchylek} od tohoto průměru.
+
+\begin{definice}[Kritérium regresního stromu]
+\[ c_{\mathrm{SE}}(\mathcal{T}) = \sum_{i\in I_{\mathcal{T}}} (t_i - \hat t_{\mathcal{T}})^2,\qquad \hat t_{\mathcal{T}} = \frac{1}{|I_{\mathcal{T}}|}\sum_{i\in I_{\mathcal{T}}} t_i. \]
+Je to $|I_{\mathcal{T}}|$-násobek \emph{rozptylu} cílů v~uzlu. Řez vybíráme tak, aby $c_{\mathrm{SE}}(\mathcal{T}_L)+c_{\mathrm{SE}}(\mathcal{T}_R)$ byl co nejmenší (největší pokles rozptylu).
+\end{definice}
+
+\begin{intuice}[Kritérium plyne ze ztrátové funkce]
+Není náhoda, že regrese používá kvadratickou chybu a~klasifikace entropii/Gini. Vezmeme-li \emph{ztrátovou funkci} modelu a~do ní dosadíme optimální parametr listu (ten, který ztrátu minimalizuje), dostaneme „minimální dosažitelnou ztrátu`` daného listu -- a~právě ta slouží jako kritérium. Pro list:
+\begin{itemize}
+  \item dosazení optima do \emph{kvadratické ztráty} dá $c_{\mathrm{SE}}$ (regrese);
+  \item dosazení optima do \emph{záporné log-věrohodnosti} (NLL, sekce~\ref{sec:evaluace}) dá $|I_{\mathcal{T}}|\cdot H(\mathbf{p}_{\mathcal{T}})$, tj.\ \emph{entropické} kritérium;
+  \item dosazení optima do \emph{kvadratické ztráty} na binárním cíli $t\in\{0,1\}$ dá $|I_{\mathcal{T}}|\cdot p_{\mathcal{T}}(1-p_{\mathcal{T}})$, tj.\ (až na faktor $2$) \emph{Gini}; s~dvousložkovým one-hot cílem vyjde přesně $|I_{\mathcal{T}}|\cdot\mathrm{Gini}$.
+\end{itemize}
+Dělením listu chceme tuto minimální dosažitelnou ztrátu snížit, proto je \emph{minimální ztráta uzlu rovnou kritériem větvení}.
+\end{intuice}
+
+\subsection{Prořezávání (pruning)}
+
+Strom rostlý do čistých listů snadno \textbf{overfituje} (přeučí se): dokonale klasifikuje trénovací data (každý šum dostane vlastní list), ale špatně generalizuje. \textbf{Prořezávání} (pruning) zjednodušuje strom, aby lépe generalizoval -- buď ho rovnou nenechá přerůst, nebo přerostlý strom zpětně zařízne.
+
+\begin{definice}[Pre-pruning vs.\ post-pruning]
+\begin{itemize}
+  \item \textbf{Pre-pruning} (early stopping): zastavíme dělení \emph{už při stavbě}, jakmile přestane být užitečné -- omezením hloubky, minimálním počtem příkladů v~uzlu, minimálním poklesem kritéria, nebo statistickým testem ($\chi^2$, sekce~\ref{sec:testy}), zda je zisk významný. Levné, ale \emph{krátkozraké}: může zastavit příliš brzy (řez, který sám nepomůže, by mohl umožnit dobré řezy o~úroveň níž).
+  \item \textbf{Post-pruning}: necháme strom plně přerůst a~pak ho \emph{zpětně} zjednodušujeme -- nahrazujeme podstromy listy. Dražší, ale spolehlivější (vidíme celý strom). Dvě hlavní varianty níže.
+\end{itemize}
+\end{definice}
+
+\begin{definice}[Redukce chyby pomocí validačních dat (reduced-error pruning)]
+Máme samostatnou \textbf{validační množinu}. Procházíme uzly (typicky zdola nahoru) a~uzel nahradíme \emph{listem} (s~většinovou třídou jeho trénovacích příkladů) vždy, když to \emph{nezhorší} (nebo zlepší) chybu na validačních datech. Opakujeme, dokud lze. Validační data strom při stavbě neviděl; větve, jejichž odstranění validační chybu nezhorší, tedy pravděpodobně zachycovaly spíš šum trénovacích dat než obecnou zákonitost.
+\end{definice}
+
+\begin{definice}[Cost-complexity pruning \textnormal{(weakest-link pruning, CART)}]
+Zavedeme \emph{penalizaci za velikost} stromu. Pro podstrom $T$ definujme cenu
+\[ R_\alpha(T) = R(T) + \alpha\,|{\sim}T|, \]
+kde $R(T)$ je trénovací chyba (např.\ počet či podíl chybně klasifikovaných příkladů), $|{\sim}T|$ počet listů a~$\alpha\ge 0$ \emph{cena za list}. Pro uzel $t$ a~jeho podstrom $T_t$ je \emph{efektivní} $\alpha$
+\[ \alpha_{\mathrm{eff}}(t) = \frac{R(t) - R(T_t)}{|{\sim}T_t| - 1}, \]
+kde $R(t)$ je chyba, kdyby se $t$ stal listem. Iterativně ořezáváme uzel s~\emph{nejmenším} $\alpha_{\mathrm{eff}}$ (nejlevnější zjednodušení na list), čímž vzniká \emph{posloupnost} stromů pro rostoucí $\alpha$; nejlepší $\alpha$ (kompromis accuracy vs.\ velikost) se vybere křížovou validací.
+\end{definice}
+
+\begin{intuice}
+Cost-complexity pruning je regularizace stromu: $\alpha$ je „pokuta`` za každý list. Při $\alpha=0$ zůstává plný strom; jak $\alpha$ roste, vyplácí se obětovat listy, které zlepšují trénovací chybu jen málo. $\alpha_{\mathrm{eff}}$ je „cena za list ušetřený sloučením`` -- ořezáváme tam, kde je nejlevnější. Reduced-error pruning je intuitivnější (přímo se ptá validačních dat), cost-complexity dává hladkou škálu složitosti laditelnou křížovou validací. Obě řeší totéž: \emph{vyměnit kus trénovací accuracy za jednodušší, lépe generalizující strom} (Ockhamova břitva).
+\end{intuice}
+
+\begin{poznamka}[Stromy jako stavební kámen ansámblů]
+Jeden strom má vysoký \emph{rozptyl} (drobná změna dat může dát úplně jiný strom). Proto se kombinují do ansámblů: \emph{random forest} (bagging stromů na bootstrapových vzorcích s~náhodnou podmnožinou příznaků v~každém uzlu) a~\emph{gradient boosting} (postupné stromy opravující chybu). To je téma sekce~\ref{sec:kombinace}; zde stromy bereme jako samostatný model.
+\end{poznamka}
+
+\subsection{Řešené příklady}
+
+Následují všechny čtyři reálné SZZ otázky k~rozhodovacím stromům (tři klasifikační, jedna regresní), krokované. Postavené stromy jsou překresleny do TikZ; číselné hodnoty (entropie, zisky, struktura) jsme ověřili nezávisle v~Pythonu (\texttt{scikit-learn} \texttt{DecisionTreeClassifier} i~ruční výpočet).
+
+\begin{priklad}[SZZ léto 2023 č.~7: Výběr kořene a~mez $100\,\%$ accuracy]
+\szzotazka{léto 2023}{7}{Rozhodovací stromy}\par
+\textbf{Zadání.} Trénujeme strom na datech níže se dvěma kategorickými atributy $x_1,x_2$ a~cílem $y$. (1)~Popište algoritmus a~kritéria větvení. (2)~Podle kterého atributu se větví \emph{kořen}? Proč? (3)~Lze data klasifikovat se $100\,\%$ accuracy (přesností)? Vysvětlete.
+
+\smallskip
+\begin{center}\small
+\begin{tabular}{ccc}
+\toprule
+$x_1$ & $x_2$ & $y$ \\
+\midrule
+0 & 0 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 1 \\ 2 & 1 & 0 \\
+0 & 0 & 1 \\ 1 & 1 & 1 \\ 2 & 0 & 0 \\ 0 & 1 & 0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\smallskip
+\textbf{Řešení.} (1)~Hladově shora dolů (rozděl a~panuj): v~každém uzlu zvol atribut s~\emph{největším informačním ziskem} (resp.\ nejmenším váženým Gini), rozděl příklady podle jeho hodnot a~rekurzivně pokračuj, dokud nejsou listy čisté nebo nedojdou atributy (pak většinová třída).
+
+\smallskip
+(2)~Z~$8$ příkladů je $4\times\,y{=}0$ a~$4\times\,y{=}1$, takže entropie kořene je $B(\tfrac48)=B(\tfrac12)=\boxed{1}$ bit. Spočteme zisk obou atributů.
+
+\emph{Atribut $x_1$} (hodnoty $0,1,2$) rozdělí příklady:
+\[ x_1{=}0:\ (2,2)\ \to B(\tfrac12)=1,\quad x_1{=}1:\ (0,2)\to 0,\quad x_1{=}2:\ (2,0)\to 0. \]
+(Zde $(a,b)$ značí $a$ příkladů s~$y{=}0$ a~$b$ s~$y{=}1$.) Zbytek a~zisk:
+\[ \mathrm{Remainder}(x_1)=\tfrac48\cdot 1 + \tfrac28\cdot 0 + \tfrac28\cdot 0 = \tfrac12,\qquad \mathrm{Gain}(x_1)=1-\tfrac12=\boxed{0{,}5}. \]
+\emph{Atribut $x_2$} (hodnoty $0,1$): obě skupiny $x_2{=}0$ i~$x_2{=}1$ mají poměr $(2,2)$, tedy $B(\tfrac12)=1$:
+\[ \mathrm{Remainder}(x_2)=\tfrac48\cdot 1 + \tfrac48\cdot 1 = 1,\qquad \mathrm{Gain}(x_2)=1-1=\boxed{0}. \]
+Kořen se větví podle $\mathbf{x_1}$ (vyšší zisk; $x_2$ samo o~sobě nerozliší vůbec nic). Větve $x_1{=}1$ a~$x_1{=}2$ jsou rovnou čisté listy.
+
+\smallskip
+(3)~\textbf{Ne.} V~datech jsou \emph{shodné vstupy s~různým cílem}: řádky $(x_1,x_2)=(0,0)$ se objeví s~$y{=}0$ i~$y{=}1$, stejně $(0,1)$ s~$y{=}1$ i~$y{=}0$. Žádný model rozhodující jen podle $(x_1,x_2)$ tyto dva páry nerozliší -- ať strom roste jakkoli hluboko, ve větvi $x_1{=}0$ zbudou čtyři příklady $(0,0,0),(0,0,1),(0,1,1),(0,1,0)$, které mají jen dvě různé kombinace vstupů, ale obě třídy. Maximální dosažitelná accuracy je tedy $\boxed{<100\,\%}$ (konkrétně $6/8$: ve větvi $x_1{=}0$ predikuje list většinu, dvě protichůdná pozorování zůstanou špatně).
+
+\begin{center}
+\begin{tikzpicture}[scale=1.15]
+  \node[treenode] (r) at (0,3) {$x_1?$};
+  \node[treenode] (z) at (-2.6,1.4) {$x_2?$};
+  \node[treeleaf] (j) at (0,1.4) {$y{=}1$};
+  \node[treeleaf] (d) at (2.4,1.4) {$y{=}0$};
+  \draw[vetev] (r) -- node[popis,above left]{$0$} (z);
+  \draw[vetev] (r) -- node[popis,left]{$1$} (j);
+  \draw[vetev] (r) -- node[popis,above right]{$2$} (d);
+  \node[treeleaf,fill=black!6] (z0) at (-3.6,-0.1) {$(2,2)$};
+  \node[treeleaf,fill=black!6] (z1) at (-1.6,-0.1) {$(2,2)$};
+  \draw[vetev] (z) -- node[popis,above left]{$0$} (z0);
+  \draw[vetev] (z) -- node[popis,above right]{$1$} (z1);
+\end{tikzpicture}
+\obrpopis{Strom pro léto 2023: kořen $x_1$. Větve $x_1{=}1$ a~$x_1{=}2$ jsou čisté listy. Větev $x_1{=}0$ se sice dá ještě dělit podle $x_2$, ale obě podskupiny zůstanou poměr $(2,2)$ -- nerozdělitelný šum se shodnými vstupy a~různými cíli. Proto $100\,\%$ accuracy není dosažitelná.}
+\end{center}
+\end{priklad}
+
+\begin{priklad}[SZZ podzim 2024 č.~31: Stavba stromu, kořen $A$, prořezávání validačními daty]
+\szzotazka{podzim 2024}{31}{Rozhodovací strom}\par
+\textbf{Zadání.} Data se třemi atributy $A,B,C$ a~cílem $Y\in\{\text{n},\text{y}\}$. (1)~Postavte plný strom (bez omezení). (2)~Pro atribut v~kořeni popište výpočet kritéria. (3)~Proveďte prořezávání validačními daty.
+
+\smallskip
+\begin{center}\small
+\begin{minipage}{0.4\linewidth}\centering Trénovací:\par\medskip
+\begin{tabular}{ccccc}\toprule & $A$ & $B$ & $C$ & $Y$ \\\midrule
+0 & 1 & 2 & 6 & n \\ 1 & 1 & 2 & 6 & n \\ 2 & 3 & 2 & 8 & y \\ 3 & 3 & 4 & 6 & y \\
+4 & 3 & 4 & 8 & y \\ 5 & 3 & 4 & 8 & n \\ 6 & 3 & 4 & 8 & n \\ 7 & 3 & 4 & 6 & y \\\bottomrule
+\end{tabular}\end{minipage}\hfill
+\begin{minipage}{0.4\linewidth}\centering Validační:\par\medskip
+\begin{tabular}{ccccc}\toprule & $A$ & $B$ & $C$ & $Y$ \\\midrule
+8  & 1 & 2 & 8 & n \\ 9  & 3 & 4 & 6 & y \\ 10 & 3 & 4 & 6 & y \\ 11 & 3 & 4 & 8 & y \\\bottomrule
+\end{tabular}\end{minipage}
+\end{center}
+
+\smallskip
+\textbf{Řešení.} (1)+(2)~\textbf{Kořen.} Z~$8$ příkladů jsou $4\times$ n a~$4\times$ y, entropie kořene $B(\tfrac12)=1$. Spočteme zisk řezů (kontrola jednotlivých prahů):
+\[
+\begin{aligned}
+A\le 2\ (\text{tj.\ }A{=}1\text{ vs.\ }A{=}3): &\quad (2,0)\,|\,(2,4)\Rightarrow \mathrm{Remainder}=\tfrac28\cdot 0 + \tfrac68 B(\tfrac26)=\tfrac34\cdot 0{,}918\approx 0{,}689,\\
+ &\quad \mathrm{Gain}\approx 1-0{,}689 = \boxed{0{,}311};\\
+B\le 2: &\quad (2,1)\,|\,(2,3)\Rightarrow \mathrm{Gain}\approx 0{,}049;\\
+C\le 6: &\quad (2,2)\,|\,(2,2)\Rightarrow \mathrm{Gain}=0.
+\end{aligned}
+\]
+Největší zisk má $\boxed{A}$ (oficiální náčrt uvádí $\approx 0{,}32$ kvůli zaokrouhlení tabulky logaritmů). Větev $A\le 2$ je čistý list (n). V~pravé větvi $A>2$ ($6$ příkladů, $2$ n, $4$ y, $B(\tfrac26)\approx 0{,}918$) dělíme dál podle $C\le 7$: vlevo $(0,2)$ čistý list y, vpravo $C>7$ má $(2,2)$, kde rozdělí $B\le 3$ na čistý list y $(0,1)$ a~list $(2,1)$. Strom vyjde \emph{stejný pro entropii i~Gini} (ověřeno).
+
+\begin{center}
+\begin{tikzpicture}[scale=1.15]
+  \node[treenode] (a) at (0,4.2) {$A \le 2$};
+  \node[treeleaf] (ln) at (-2.8,2.7) {n \scriptsize$(2,0)$};
+  \node[treenode] (c) at (1.4,2.7) {$C \le 7$};
+  \draw[vetev] (a) -- node[popis,above left]{ano} (ln);
+  \draw[vetev] (a) -- node[popis,above right]{ne} (c);
+  \node[treeleaf] (ly) at (-0.4,1.2) {y \scriptsize$(0,2)$};
+  \node[treenode] (b) at (2.8,1.2) {$B \le 3$};
+  \draw[vetev] (c) -- node[popis,above left]{ano} (ly);
+  \draw[vetev] (c) -- node[popis,above right]{ne} (b);
+  \node[treeleaf] (ly2) at (1.6,-0.3) {y \scriptsize$(0,1)$};
+  \node[treeleaf,fill=black!6] (ln2) at (4.0,-0.3) {n \scriptsize$(2,1)$};
+  \draw[vetev] (b) -- node[popis,above left]{ano} (ly2);
+  \draw[vetev] (b) -- node[popis,above right]{ne} (ln2);
+\end{tikzpicture}
+\obrpopis{Plný strom (podzim 2024), totožný pro entropii i~Gini. Dvojice $(n,y)$ udává počty tříd v~uzlu. Kořen $A$, pak v~pravé větvi $C$, pak $B$. List $(2,1)$ není čistý (zbylé příklady mají shodné $A,B,C$, ale různé $Y$), predikuje většinu n.}
+\end{center}
+
+\smallskip
+(3)~\textbf{Prořezávání validačními daty (reduced-error pruning).} Spustíme $4$ validační příklady plným stromem:
+\[
+\begin{array}{c|cccc|cc}
+\text{id} & A & B & C & Y & \text{plný strom} & \text{po ořezu } A{>}2\!\to\!\text{y} \\\hline
+8  & 1 & 2 & 8 & \text{n} & \text{n \faCheck} & \text{n \faCheck} \\
+9  & 3 & 4 & 6 & \text{y} & \text{y \faCheck} & \text{y \faCheck} \\
+10 & 3 & 4 & 6 & \text{y} & \text{y \faCheck} & \text{y \faCheck} \\
+11 & 3 & 4 & 8 & \text{y} & \text{n \faTimes} & \text{y \faCheck}
+\end{array}
+\]
+Plný strom dělá na validaci $1$ chybu (id 11: prochází $A{>}2,C{>}7,B{>}3$ do listu n, ale skutečnost je y). Nahradíme-li celý \emph{pravý podstrom} (uzel $C$, tj.\ vše pod $A>2$) \emph{listem} s~většinovou trénovací třídou y ($4$ y vs.\ $2$ n), validační chyba klesne na $\boxed{0}$. Prořezání tedy chybu \emph{zlepšilo} -- ořez přijmeme. (Postupem zdola nahoru dojdeme ke stejnému stromu: nejdřív uzel $B\le 3$, jehož trénovací příklady mají poměr $(2,2)$ -- ať remízu rozhodneme jakkoli, validační chyba se nezhorší, takže se ořízne; pak uzel $C\le 7$ nahrazený listem y dá validační chybu $0$, takže se ořízne také.) Strom se zmenší na $A\le 2 \to$ n, jinak y. (Alternativně lze použít cost-complexity pruning.)
+\end{priklad}
+
+\begin{priklad}[SZZ jaro 2026 č.~30: Zadaný kořen $D$, kritérium pravého podstromu, prořezávání]
+\szzotazka{jaro 2026}{30}{Rozhodovací strom}\par
+\textbf{Zadání.} (a)~Postavte strom, do kořene zvolte atribut $D$; volby zdůvodněte, pro \emph{pravý podstrom} $D$ spočtěte kritérium pro všechny atributy. (b)~Vysvětlete prořezávání, uveďte neprořezaný a~prořezaný strom a~kritérium prořezávání. Sloupec \emph{id} se k~učení nepoužívá.
+
+\smallskip
+\begin{center}\small
+\begin{tabular}{cccccc}\toprule
+id & $A$ & $B$ & $C$ & $D$ & $Y$ \\\midrule
+0 & 3 & 4 & 8 & 6 & 0 \\ 1 & 1 & 2 & 8 & 6 & 0 \\ 2 & 1 & 2 & 8 & 3 & 1 \\ 3 & 3 & 2 & 8 & 6 & 1 \\
+4 & 1 & 4 & 6 & 6 & 1 \\ 5 & 3 & 2 & 8 & 6 & 0 \\ 6 & 3 & 4 & 6 & 3 & 0 \\ 7 & 3 & 4 & 8 & 3 & 1 \\\bottomrule
+\end{tabular}
+\end{center}
+
+\smallskip
+\textbf{Řešení.} (a)~Kořen je zadán: $D\le 4{,}5$ (tj.\ $D{=}3$ vlevo, $D{=}6$ vpravo). Kořen má $4\times 0$, $4\times 1$, entropie $1$.
+
+\emph{Levý podstrom} $D{=}3$ (id $2,6,7$, cíle $1,0,1$, tj.\ poměr $(1,2)$): dělení podle $C\le 7$ dá vlevo $C{=}6$ jediný příklad id 6 (list $0$), vpravo $C{=}8$ příklady id $2,7$ (oba $Y{=}1$, čistý list $1$). Levý podstrom je tedy hotový.
+
+\emph{Pravý podstrom} $D{=}6$ (id $0,1,3,4,5$, cíle $0,0,1,1,0$, poměr $(3,2)$, $B(\tfrac25)\approx 0{,}971$) -- spočítáme \emph{vážené entropie po dělení} pro všechny atributy:
+\[
+\begin{aligned}
+A\le 2:\ & (1,1)_{n2}\,|\,(2,1)_{n3} \Rightarrow \tfrac25\cdot 1 + \tfrac35 B(\tfrac13) \approx 0{,}4 + 0{,}6\cdot 0{,}918 \approx \boxed{0{,}951};\\
+B\le 3:\ & (2,1)_{n3}\,|\,(1,1)_{n2} \Rightarrow \tfrac35 B(\tfrac13)+\tfrac25\cdot 1 \approx \boxed{0{,}951};\\
+C\le 7:\ & (0,1)_{n1}\,|\,(3,1)_{n4} \Rightarrow \tfrac15\cdot 0 + \tfrac45 B(\tfrac14) \approx \tfrac45\cdot 0{,}811 \approx \boxed{0{,}649}.
+\end{aligned}
+\]
+Nejnižší vážená entropie (a~tedy \emph{největší zisk}, $\approx 0{,}971-0{,}649=0{,}322$) má $\mathbf{C}$. Vlevo $C{=}6$ čistý list $1$ (id 4), vpravo $C{=}8$ má id $0,1,3,5$, poměr $(3,1)$; dělí se podle $A\le 2$ (id 1 list $0$; stejný zisk by dal i~$B\le 3$) a~$A>2$ (id $0,3,5$, poměr $(2,1)$), kde řez $B\le 3$ dá id $3,5$ (poměr $(1,1)$, nerozdělitelný šum) a~$B>3$ čistý list $0$ (id $0$). Strom dává stejné predikce pro entropii i~Gini (ověřeno); nakreslené pořadí uzlů odpovídá entropii.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0]
+  \node[treenode] (d) at (0,5.6) {$D \le 4{,}5$};
+  % leva vetev
+  \node[treenode] (cl) at (-3.4,4.0) {$C \le 7$};
+  \draw[vetev] (d) -- node[popis,above left]{ano} (cl);
+  \node[treeleaf] (cl6) at (-4.8,2.4) {$0$ \scriptsize$(1,0)$};
+  \node[treeleaf] (cl8) at (-2.6,2.4) {$1$ \scriptsize$(0,2)$};
+  \draw[vetev] (cl) -- node[popis,above left]{ano} (cl6);
+  \draw[vetev] (cl) -- node[popis,above right]{ne} (cl8);
+  % prava vetev
+  \node[treenode] (cr) at (2.6,4.0) {$C \le 7$};
+  \draw[vetev] (d) -- node[popis,above right]{ne} (cr);
+  \node[treeleaf] (cr6) at (1.0,2.4) {$1$ \scriptsize$(0,1)$};
+  \node[treenode] (ar) at (3.8,2.4) {$A \le 2$};
+  \draw[vetev] (cr) -- node[popis,above left]{ano} (cr6);
+  \draw[vetev] (cr) -- node[popis,above right]{ne} (ar);
+  \node[treeleaf] (ar2) at (2.4,0.8) {$0$ \scriptsize$(1,0)$};
+  \node[treenode] (br) at (5.2,0.8) {$B \le 3$};
+  \draw[vetev] (ar) -- node[popis,above left]{ano} (ar2);
+  \draw[vetev] (ar) -- node[popis,above right]{ne} (br);
+  \node[treeleaf,fill=black!6] (br3) at (4.2,-0.8) {\scriptsize$(1,1)$};
+  \node[treeleaf] (br4) at (6.2,-0.8) {$0$ \scriptsize$(1,0)$};
+  \draw[vetev] (br) -- node[popis,above left]{ano} (br3);
+  \draw[vetev] (br) -- node[popis,above right]{ne} (br4);
+\end{tikzpicture}
+\obrpopis{Neprořezaný strom do maximální hloubky (jaro 2026), shodný pro entropii i~Gini. Dvojice $(n_0,n_1)$ udává počty tříd. Pravá větev $D{=}6$ se dělí podle $C$, pak $A$, pak $B$; list $(1,1)$ je nerozdělitelný (shodné vstupy id 3 a~5 s~různým $Y$).}
+\end{center}
+
+(b)~\textbf{Prořezávání} odstraňuje overfitting: na trénovacích datech je chyba malá, ale na nových větší než u~jednoduššího stromu. Nahradíme uzel $\mathbf{A\le 2}$ (celý pravý spodní podstrom) \emph{listem}: jeho trénovací příklady id $0,1,3,5$ mají poměr $(3,1)$, většina je $0$. Plný podstrom stejně jeden příklad (id 3 vs.\ 5) klasifikuje špatně (list $(1,1)$), takže náhrada listem $0$ chybu \emph{nezhorší} a~strom zjednoduší (méně listů). Prořezaný strom: $D\le 4{,}5 \to (C\le 7?\,0:1)$; jinak $C\le 7 \to 1$, $C>7 \to 0$.
+\[ \text{Kritérium ořezu (cost-complexity):}\quad \alpha_{\mathrm{eff}}(t) = \frac{R(t) - R(T_t)}{|{\sim}T_t| - 1}, \]
+ořezává se uzel s~nejmenším $\alpha_{\mathrm{eff}}$, dokud je pod prahem; $R(t)$ je chyba uzlu jako listu, $R(T_t)$ chyba podstromu, $|{\sim}T_t|$ počet jeho listů. (Alternativně reduced-error pruning podle validačních dat.)
+\end{priklad}
+
+\begin{priklad}[SZZ podzim 2022 č.~19: Regresní strom -- výběr atributu]
+\szzotazka{podzim 2022}{19}{Rozhodovací stromy}\par
+\textbf{Zadání.} (1)~Definujte rozhodovací strom a~popište algoritmus jeho trénování. (2)~Uveďte kritérium pro výběr atributu pro \emph{klasifikaci} a~pro \emph{regresi}. (3)~Pro data níže (kategorické atributy $A_1,A_2$, číselný cíl $C$) určete, podle kterého atributu se dělí kořen pro \emph{regresi}, a~proč.
+
+\smallskip
+\begin{center}\small
+\begin{tabular}{ccc}
+\toprule
+$A_1$ & $A_2$ & $C$ \\
+\midrule
+0 & 0 & 5 \\ 0 & 0 & 3 \\ 0 & 1 & 4 \\
+1 & 0 & 6 \\ 1 & 1 & 2 \\ 1 & 1 & 4 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\smallskip
+\textbf{Řešení.} \emph{(1)} Rozhodovací strom je stromový model: vnitřní uzly testují atribut, větve odpovídají jeho hodnotám a~listy nesou predikci (třídu nebo číslo). Trénuje se hladově shora dolů (rozděl a~panuj): v~každém uzlu se vybere atribut podle zvoleného kritéria, data se podle něj rozdělí a~rekurzivně se pokračuje, dokud nejsou listy čisté, nedojdou atributy nebo není splněna zastavovací podmínka.
+
+\emph{(2)} \emph{Klasifikace}: maximalizace informačního zisku (pokles entropie) nebo minimalizace Gini indexu. \emph{Regrese}: minimalizace vážené sumy čtvercových odchylek (SSE) v~potomcích, ekvivalentně maximalizace redukce rozptylu.
+
+\emph{(3)} Celkový průměr je $\bar C = 4$, SSE rodiče $=\sum (C_i-4)^2 = 1+1+0+4+4+0 = \boxed{10}$.
+\begin{itemize}
+  \item \emph{Dělení podle $A_1$}: $A_1{=}0 \to \{5,3,4\}$, průměr $4$, SSE $2$; $A_1{=}1 \to \{6,2,4\}$, průměr $4$, SSE $8$. Celkem $2+8=10$, redukce $\boxed{0}$.
+  \item \emph{Dělení podle $A_2$}: $A_2{=}0 \to \{5,3,6\}$, průměr $\approx 4{,}67$, SSE $\approx 4{,}67$; $A_2{=}1 \to \{4,2,4\}$, průměr $\approx 3{,}33$, SSE $\approx 2{,}67$. Celkem $\approx 7{,}33$, redukce $\boxed{\approx 2{,}67}$.
+\end{itemize}
+V~kořeni proto dělíme podle $\mathbf{A_2}$ (větší redukce rozptylu). Atribut $A_1$ nedává žádnou redukci, protože obě jeho větve mají stejný průměr $4$ jako rodič.
+\end{priklad}
+
+\begin{poznamka}[Co si odnést -- rozhodovací stromy]
+\begin{itemize}
+  \item \emph{Inference} = sleduj testy do listu. \emph{Učení} = hladově shora dolů (rozděl a~panuj): v~každém uzlu řez (příznak + práh) minimalizující kritérium potomků.
+  \item \emph{Kritéria}: klasifikace -- \textbf{entropie}/informační zisk $\mathrm{Gain}=B(\tfrac{p}{p+n})-\mathrm{Remainder}(A)$ nebo \textbf{Gini} $=1-\sum_k p_k^2$ (levnější, prakticky stejný strom); regrese -- \textbf{rozptyl/MSE} $c_{\mathrm{SE}}=\sum(t_i-\hat t)^2$. Kritérium plyne z~minimální dosažitelné ztráty listu.
+  \item \emph{Prořezávání}: \textbf{pre-pruning} (zastav brzy: hloubka, min.\ příkladů, $\chi^2$) vs.\ \textbf{post-pruning} (přerost a~zařízni): \textbf{reduced-error} (ořež, co nezhorší validační chybu) a~\textbf{cost-complexity} (penalizace $\alpha$ za list, ořez podle nejmenšího $\alpha_{\mathrm{eff}}$, $\alpha$ ladí křížová validace).
+  \item \emph{Mez stromu}: shodné vstupy s~různým cílem nelze rozdělit (léto 2023: $100\,\%$ accuracy nedosažitelná). Jeden strom má vysoký rozptyl $\Rightarrow$ ansámbly (sekce~\ref{sec:kombinace}).
+\end{itemize}
+\end{poznamka}

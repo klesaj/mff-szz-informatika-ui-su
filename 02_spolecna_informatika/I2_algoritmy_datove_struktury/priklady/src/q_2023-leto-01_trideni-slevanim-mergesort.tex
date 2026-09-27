@@ -1,0 +1,59 @@
+% Zdroj: PDF priklady-leto-2023.pdf, fyzická str. 1. Značka: neznačená starší sada (léto 2023). Zařazeno: I2.
+\section{Třídění sléváním}
+\szzotazka{léto 2023}{1}{Třídění sléváním (Mergesort, slévání $k$ posloupností)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+\item Formulujte algoritmus třídění posloupnosti $n$ celých čísel sléváním (Mergesort)
+  a zapište ho v pseudokódu.
+\item Analyzujte časovou a prostorovou složitost tohoto algoritmu.
+\item Navrhněte efektivní algoritmus pro slévání $k$ setříděných posloupností o~celkem
+  $n$ prvcích. Upravte Mergesort, aby toto slévání používal. Jak se změní jeho časová
+  složitost? Zapište ji jako funkci proměnných $n$ a $k$.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textbf{1)} Mergesort (třídění sléváním):
+\begin{lstlisting}
+MergeSort(a[0..n-1]):
+  if n <= 1: return a
+  m = n div 2
+  L = MergeSort(a[0..m-1]); R = MergeSort(a[m..n-1])
+  return Merge(L, R)
+
+Merge(L, R):                 // obe posloupnosti setridene
+  i = 0; j = 0; out = []
+  while i < |L| and j < |R|:
+    if L[i] <= R[j]: out.append(L[i]); i++
+    else:            out.append(R[j]); j++
+  pripoj zbytek L[i..] a R[j..] na konec out
+  return out
+\end{lstlisting}
+
+\textbf{2)} \textsc{Merge} přesune každý prvek jednou, stojí $\Theta(n)$. Rekurence
+$T(n)=2T(n/2)+\Theta(n)$ má podle kuchařkové věty ($a=2$, $b=2$, $c=1$, $a/b^c=1$)
+řešení $T(n)=\Theta(n\log n)$, a~to v~každém případě (nezávisí na datech). Paměť:
+pomocná pole pro slévání $\Theta(n)$ a~zásobník rekurze $\Theta(\log n)$, celkem
+$\Theta(n)$.
+
+\textbf{3)} \emph{Slévání $k$ posloupností:} do minimové haldy vložíme první prvek
+každé posloupnosti (s~informací, odkud pochází). Opakovaně vyjmeme minimum
+(\textsc{ExtractMin}), zapíšeme ho na výstup a~vložíme do haldy další prvek téže
+posloupnosti, pokud existuje. Halda má nejvýše $k$ prvků, každá operace stojí
+$O(\log k)$, každý z~$n$ prvků se jednou vloží a~jednou vyjme: celkem $O(n\log k)$
+(plus $O(k)$ na postavení haldy).
+
+\emph{$k$-cestný Mergesort:} vstup rozdělíme na $k$ částí velikosti $n/k$, každou
+setřídíme rekurzivně a~výsledky slijeme haldou. Rekurence
+$T(n)=k\,T(n/k)+\Theta(n\log k)$. Strom rekurze má $\log_k n$ hladin a~na každé je
+slévání celkem $\Theta(n\log k)$, takže
+\[
+T(n)=\Theta(n\log k\cdot\log_k n)=\Theta\Big(n\log k\cdot\frac{\log n}{\log k}\Big)
+=\Theta(n\log n).
+\]
+Asymptotická složitost se tedy nezmění, faktor $\log k$ se vykrátí (pro $k\ge2$; pro
+$k=n$ jde vlastně o~třídění haldou, opět $\Theta(n\log n)$).
+
+\medskip
+\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu.)}

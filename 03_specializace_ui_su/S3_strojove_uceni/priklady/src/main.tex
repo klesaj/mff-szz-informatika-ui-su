@@ -1,0 +1,73 @@
+% !TeX program = lualatex
+% Agregátor reálných otázek SZZ pro okruh S3. Jednotlivé otázky jsou v souborech q_*.tex.
+% Sestavení: ./build.sh 03_specializace_ui_su/S3_strojove_uceni/priklady   (nebo cd .../priklady && latexmk)
+\documentclass[11pt,a4paper]{article}
+\usepackage{szzpriklady}
+% Build běží z adresáře priklady/ (CWD), obrázky jsou v src/fig/.
+\graphicspath{{src/fig/}{fig/}}
+
+\title{Příklady otázek -- Strojové učení\\[0.3em]\large Reálné otázky ze SZZ 2022--2026 (S3)}
+\author{Jakub Klesa}
+\date{Pokryté předměty: NAIL121 (Seminář dobývání znalostí), NPFL054 (Úvod do SU v R), NPFL129 (Úvod do SU v Pythonu), NPGR035 (SU v počítačovém vidění)}
+
+\begin{document}
+\sloppy
+\maketitle
+\tableofcontents
+\bigskip
+
+\begin{poznamka}
+Tento dokument obsahuje reálné otázky z minulých termínů SZZ (2022--2026) zařazené do
+okruhu S3. U otázek s obrázkem je grafika oříznutá z originálního PDF (viz odkaz na
+zdroj). Text, číselná data a tabulky jsou přepsané věrně.
+Zadání i oficiální náčrty řešení pocházejí ze sad zveřejněných na webu MFF UK:\par
+{\raggedright\url{https://www.mff.cuni.cz/cs/studenti/bakalarske-studium/statni-zaverecne-zkousky/bakalarske-statni-zkousky-studijniho-programu-informatika}\par}
+Řešení označená „V~PDF bez náčrtu řešení; vlastní vzorové řešení`` jsou vlastní, oficiální sada k~dané otázce náčrt neobsahuje.
+Vlastní doplnění k~oficiálnímu náčrtu jsou zřetelně oddělena.
+Pojmy a~značení odpovídají přednáškám předmětu NPFL129 \emph{Úvod do strojového učení v~Pythonu}
+(M.~Straka, J.~Libovický, \url{https://ufal.mff.cuni.cz/courses/npfl129}); statistické testy
+navazují na předmět NMAI059 \emph{Pravděpodobnost a~statistika~1}.
+\end{poznamka}
+\bigskip
+
+% === Otázky (chronologicky). Doplň \input řádky a soubory q_*.tex do src/. ===
+% Příklad: \input{q_2024-leto-28_bayesovske-site}
+% ZACATEK-OTAZEK
+\input{src/q_2022-leto-10_logisticka-regrese}
+\input{src/q_2022-leto-11_evaluace-binarniho-klasifikatoru}
+\input{src/q_2022-leto-12_shlukovani}
+\input{src/q_2022-podzim-18_preuceni-regularizace}
+\input{src/q_2022-podzim-19_rozhodovaci-stromy}
+\input{src/q_2022-podzim-20_k-nejblizsich-sousedu}
+\input{src/q_2023-jaro-06_kolektivni-prediktory}
+\input{src/q_2023-jaro-07_evaluace-binarniho-klasifikatoru}
+\input{src/q_2023-jaro-16_naivni-bayesovsky-klasifikator}
+\input{src/q_2023-leto-06_testovani-binarniho-klasifikatoru}
+\input{src/q_2023-leto-07_rozhodovaci-stromy}
+\input{src/q_2023-leto-08_shlukovani}
+\input{src/q_2023-podzim-29_chi-kvadrat-test}
+\input{src/q_2023-podzim-30_kombinace-vice-modelu}
+\input{src/q_2023-podzim-31_evaluacni-metriky}
+\input{src/q_2024-jaro-26_statisticke-testy-t-test}
+\input{src/q_2024-jaro-27_linearni-regrese-regularizace}
+\input{src/q_2024-jaro-28_shlukovani}
+\input{src/q_2024-leto-29_pca}
+\input{src/q_2024-leto-30_svm}
+\input{src/q_2024-leto-31_metoda-nejmensich-ctvercu}
+\input{src/q_2024-podzim-29_logisticka-regrese-multiclass}
+\input{src/q_2024-podzim-30_evaluace-binarniho-klasifikatoru}
+\input{src/q_2024-podzim-31_rozhodovaci-strom}
+\input{src/q_2025-jaro-28_knn}
+\input{src/q_2025-jaro-29_logisticka-regrese-binarni}
+\input{src/q_2025-leto-30_linearni-regrese}
+\input{src/q_2025-leto-31_shlukovani-kmeans}
+\input{src/q_2025-leto-32_em-algoritmus}
+\input{src/q_2025-podzim-28_evaluace-binarniho-klasifikatoru}
+\input{src/q_2025-podzim-29_predikce-tabularni-data}
+\input{src/q_2025-podzim-30_linearni-regrese-l2}
+\input{src/q_2026-jaro-28_shlukovani-kmeans}
+\input{src/q_2026-jaro-29_kombinace-modelu}
+\input{src/q_2026-jaro-30_rozhodovaci-strom}
+% KONEC-OTAZEK
+
+\end{document}

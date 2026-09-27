@@ -1,0 +1,126 @@
+% Zdroj: PDF priklady-podzim-2025.pdf, fyzická str. 1-2. Značka: společné okruhy. Zařazeno: I4.
+% Pozn.: v originálu jsou vícebajtová čísla v BIG-endian pořadí (ne little-endian).
+\section{Ukládání dat v binárním souboru}
+\szzotazka{podzim 2025}{2}{Ukládání dat v~binárním souboru (hex dump, reprezentace dat)}
+
+\noindent\textbf{Zadání.}\par
+Aplikace ukládá svá data do binárního souboru, což je ilustrováno následujícím (částečným)
+hexadecimálním výpisem:
+
+\begin{lstlisting}
+0000:    00 06 48 68     53 53 4C 4C     00 22 03 E8     FC 18 00 05     ..Hh SSLL .".. ....
+0010:    48 65 6C 6C     6F 00 05 57     6F 72 6C 64     00 00 00 00     Hell o..W orld ....
+0020:    00 00 00 2C     00 00 00 00     00 00 12 34     00 88 01 F4     ..., .... ...4 ....
+\end{lstlisting}
+
+Logicky soubor obsahuje \textit{uzly}. Každý uzel obsahuje stejnou sadu \textit{atributů}.
+Typy atributů jsou určeny \textit{hlavičkou} souboru umístěnou na jeho začátku, která se
+skládá ze dvou bajtů udávajících počet atributů (v~našem příkladu 6), následovaných typy
+atributů, kódovanými jedním bajtem pro každý atribut, odpovídající tomuto výčtu:
+
+\begin{lstlisting}[language=C++]
+enum AttrType { TUInt16 = 0x48, TLink = 0x4C, TString = 0x53, TSInt16 = 0x68};
+\end{lstlisting}
+
+Vícebajtová čísla uložená v~souboru jsou vždy v~big-endian pořadí. Bezprostředně za
+hlavičkou se nachází \textit{kořenový uzel}. Každý uzel začíná dvěma bajty obsahujícími
+délku dat uzlu v~bajtech (v~kořenovém uzlu našeho příkladu 34). Data uzlu obsahují hodnoty
+atributů, kódované podle typů atributů deklarovaných v~hlavičce. Pro typy \texttt{TUInt16}
+a~\texttt{TSInt16} je atribut uložen jako dva bajty obsahující 16bitové celé číslo bez
+znaménka nebo se znaménkem (dvojkový doplněk). Atributy typu \texttt{TString} jsou ASCII
+řetězce proměnné délky kódované jako dva bajty určující počet znaků, následované znaky,
+každý uložený v~jednom bajtu. Pro \texttt{TLink} je uloženo 8 bajtů obsahujících pozici
+jiného uzlu v~souboru. Částečný výpis ukazuje, že kořenový uzel nese hodnoty
+$\{1000, -1000, \texttt{\textquotedbl Hello\textquotedbl}, \texttt{\textquotedbl World\textquotedbl}, \texttt{0x2C}, \texttt{0x1234}\}$.
+
+Binární soubor je reprezentován třídou \texttt{BinaryFile}, která poskytuje následující
+metodu, jež načte \texttt{len} bajtů do bufferu \texttt{buf}, začínajícího na absolutní
+pozici \texttt{filepos} v~souboru (znaménkové typy se používají kvůli kompatibilitě
+s~Javou):
+
+\begin{lstlisting}[language=C++]
+void readBytes (long filepos, byte[] buf, int len);                  // Java, C#
+void readBytes (std::int64_t filepos, unsigned char* buf, int len);  // C++
+\end{lstlisting}
+
+\begin{enumerate}
+\item Napište deklaraci třídy \texttt{Reader}, včetně jejích privátních dat
+  a~implementace následujících metod: Konstruktor obdrží otevřený objekt
+  \texttt{BinaryFile} jako parametr; okamžitě načte hlavičku. Metoda \texttt{attributes}
+  vrací počet atributů. Metoda \texttt{getType} vrací typ $i$-tého atributu, číslováno od
+  nuly. Metoda \texttt{getRoot} vrací pozici kořenového uzlu. Metoda \texttt{readNode}
+  vrátí nový objekt \texttt{Node} reprezentující uzel uložený na pozici \texttt{filepos}.
+  Objekt je vracen odkazem v~Java/C\#, ale hodnotou v~C++. Data uzlu se načítají ze
+  souboru pouze touto funkcí.
+\item Deklarujte a~implementujte privátní datové prvky a~konstruktor třídy \texttt{Node}.
+  Třída má ukládat data uzlu jako pole bajtů, tj. tak, jak jsou uložena v~souboru. Navíc
+  má obsahovat strukturu, která umožní lokalizovat libovolný atribut v~konstantním čase.
+  Konverze bajtů na celá čísla nebo řetězce se provádí pouze při volání odpovídajících
+  metod \texttt{get...} třídy \texttt{Node}.
+\item Napište implementaci následujících metod třídy \texttt{Node} pro získání hodnoty
+  celočíselných atributů se znaménkem a~bez znaménka (16bit), použijte přitom pouze
+  vestavěné operátory zvoleného jazyka:
+
+\begin{lstlisting}[language=C++]
+int getUInt16(int i);
+int getSInt16(int i);
+\end{lstlisting}
+
+Každá metoda čte $i$-tý atribut; je odpovědností volajícího zajistit, že volání odpovídá
+typu atributu. Typ \texttt{int} se považuje za dostatečně velký, aby obsahoval rozsah
+$\langle -32768, 65535 \rangle$.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textbf{(0)~Dekódování výpisu.} Hlavička: \texttt{00 06} $=6$ atributů, pak typy
+\texttt{48 68 53 53 4C 4C} $=$ \texttt{TUInt16, TSInt16, TString, TString, TLink, TLink}.
+Kořenový uzel začíná na offsetu~8 (za 2~B počtu a~6~B typů), jeho délka je \texttt{00 22} $=34$~B.
+Data (big-endian): \texttt{03 E8}$=1000$; \texttt{FC 18}$=\texttt{0xFC18}-2^{16}=-1000$;
+délka~5 + \texttt{Hello}; délka~5 + \texttt{World}; 8~B \texttt{...00 2C}$=\texttt{0x2C}$;
+8~B \texttt{...12 34}$=\texttt{0x1234}$. Spotřeba $2{+}2{+}7{+}7{+}8{+}8=34$~B sedí.
+
+\textbf{(1)~Reader.} Konstruktor přečte počet atributů a~typy; \texttt{getRoot} vrací offset hned za
+hlavičkou. \texttt{readNode} přečte 2~B délky a~pak data uzlu.
+\begin{lstlisting}[language=C++]
+struct Reader {
+  BinaryFile& f;  int nattr;  std::vector<unsigned char> types;
+  Reader(BinaryFile& bf) : f(bf) {
+    unsigned char h[2];  f.readBytes(0, h, 2);
+    nattr = (h[0] << 8) | h[1];                  // big-endian
+    types.resize(nattr);  f.readBytes(2, types.data(), nattr);
+  }
+  int  attributes()   { return nattr; }
+  int  getType(int i) { return types[i]; }
+  long getRoot()      { return 2 + nattr; }      // hned za hlavickou
+  Node readNode(long filepos) {
+    unsigned char len2[2];  f.readBytes(filepos, len2, 2);
+    int len = (len2[0] << 8) | len2[1];
+    std::vector<unsigned char> data(len);
+    f.readBytes(filepos + 2, data.data(), len);
+    return Node(types, std::move(data));
+  }
+};
+\end{lstlisting}
+
+\textbf{(2)--(3)~Node.} Data drží jako pole bajtů; v~konstruktoru předpočítá offsety atributů
+(kvůli proměnné délce řetězců), takže $i$-tý atribut najde v~$O(1)$. \texttt{get} metody skládají
+big-endian.
+\begin{lstlisting}[language=C++]
+struct Node {
+  std::vector<unsigned char> data;  std::vector<int> off;   // off[i] = pozice atributu i
+  Node(const std::vector<unsigned char>& types, std::vector<unsigned char> d)
+      : data(std::move(d)) {
+    int p = 0;
+    for (unsigned char t : types) {
+      off.push_back(p);
+      if (t == 0x48 || t == 0x68) p += 2;                   // TUInt16 / TSInt16
+      else if (t == 0x4C)         p += 8;                   // TLink
+      else if (t == 0x53)         p += 2 + ((data[p]<<8)|data[p+1]);  // TString
+    }
+  }
+  int getUInt16(int i) { int p=off[i]; return (data[p]<<8) | data[p+1]; }
+  int getSInt16(int i) { int v=getUInt16(i); return v>=0x8000 ? v-0x10000 : v; }
+};
+\end{lstlisting}
+\textit{(Náčrt doplněn k~výkladu okruhu; otázka nemá v~PDF řešení, dekódování i~kód ověřeny skriptem \texttt{verify\_szz.py}.)}

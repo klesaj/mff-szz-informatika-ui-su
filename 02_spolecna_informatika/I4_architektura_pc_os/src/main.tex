@@ -1,0 +1,192 @@
+% !TeX program = lualatex
+\documentclass[11pt,a4paper]{article}
+\usepackage{szzmaterial}
+% Strojopis = DejaVu Sans Mono: plne rezy + ceska sada s predkomponovanymi
+% glyfy (Libertinus Mono nema u/e/r s hackem). MatchLowercase srovna velikost.
+\setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase]
+% Umozni psat `_` v beznem textu i v komentarich vypisu (texcl).
+\usepackage[strings]{underscore}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc,fit,backgrounds,shapes.geometric,shapes.misc,matrix,automata,decorations.pathreplacing,decorations.markings}
+\setlist[enumerate]{nosep,leftmargin=2.1em}
+\setlist[itemize]{nosep,leftmargin=1.8em}
+
+% --- Styl vypisu kodu (C / C++ / C#). Lokalni doplnek preambule okruhu. ---
+% Komentare ve vypisech: texcl=true sazi // komentare jako bezny TeX (cestina OK),
+% v komentari pak nesmi byt hole & # $ % ^ ~ \ { } (znak _ resi underscore).
+% Retezce "..." drz ASCII (texcl je neresi).
+\lstdefinestyle{kod}{%
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{blue!60!black}\bfseries,
+  commentstyle=\color{green!40!black}\itshape,
+  stringstyle=\color{purple!70!black},
+  showstringspaces=false,
+  columns=fullflexible,
+  keepspaces=true,
+  breaklines=true,
+  breakatwhitespace=true,
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{black!30},
+  backgroundcolor=\color{blue!2},
+  xleftmargin=5pt,xrightmargin=3pt,
+  aboveskip=5pt,belowskip=3pt,
+  tabsize=2,
+  morekeywords={uint32_t,uint16_t,uint8_t,size_t,int64_t,byte,ushort,nullptr,
+    mutex_t,bool,override,constexpr,volatile,thread,semaphore,lock_guard},
+  texcl=true%
+}
+\lstset{style=kod,language=C}
+% Kratky inline kod. Makro BEZ parametru, aby \lstinline nacetlo {...} verbatim.
+\newcommand{\cd}{\lstinline[style=kod]}
+
+% --- Spolecne znaceni obrazku okruhu I4 ---
+\tikzset{
+  % pametova bunka (bajt / slovo)
+  bunka/.style={draw=black!55,fill=black!3,minimum width=8mm,minimum height=7mm,
+    inner sep=1pt,font=\footnotesize\ttfamily,anchor=south west},
+  % policko bitoveho pole
+  bit/.style={draw=black!55,minimum width=6mm,minimum height=6.5mm,inner sep=0.5pt,
+    font=\scriptsize,anchor=south west},
+  % blok adresoveho prostoru / oblasti pameti
+  blok/.style={draw=blue!55!black,fill=blue!7,minimum width=30mm,minimum height=8mm,
+    inner sep=2pt,font=\small,align=center},
+  blokF/.style={draw=green!50!black,fill=green!9,minimum width=30mm,minimum height=8mm,
+    inner sep=2pt,font=\small,align=center},
+  blokO/.style={draw=red!55!black,fill=red!8,minimum width=30mm,minimum height=8mm,
+    inner sep=2pt,font=\small,align=center},
+  % stav procesu / vlakna
+  stav/.style={draw=blue!55!black,fill=blue!8,thick,rounded corners=2pt,
+    minimum width=20mm,minimum height=9mm,inner sep=2pt,font=\small,align=center},
+  % komponenta schematu (CPU, MMU, ...)
+  komp/.style={draw=black!60,fill=black!4,thick,rounded corners=1pt,
+    inner sep=4pt,font=\small,align=center},
+  ptr/.style={-{Stealth[length=5pt]},thick},
+  flow/.style={-{Stealth[length=5pt]},semithick},
+}
+
+\szztitul{Architektura počítačů a operačních systémů}{I4}{NSWI120 (Principy počítačů), NSWI170 (Počítačové systémy)}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\bigskip
+
+\section*{Úvod}
+\addcontentsline{toc}{section}{Úvod}
+
+Tento materiál pokrývá okruh \textbf{I4 -- Architektura počítačů a operačních systémů} (předměty NSWI120 \emph{Principy počítačů} a NSWI170 \emph{Počítačové systémy}). Výklad stojí na oficiálních přednáškových materiálech obou kurzů z~MFF UK: na slidech NSWI170 (J.~Yaghob, M.~Kruliš), které pokrývají hlavně část o~operačních systémech (režimy procesoru, jádro, periferie, procesy a plánování, virtuální paměť, synchronizace), a na slidech NSWI120 (P.~Ježek, slidová sada L.~Buleje) pro nízkoúrovňovou reprezentaci dat a instrukční sadu. Tam, kde slidy jen heslují (dvojkový doplněk, IEEE~754, mapování konstrukcí vyššího jazyka na instrukce), doplňujeme výklad volně dostupnou učebnicí \emph{Dive Into Systems} a ověřujeme jej standardní referencí. Terminologii i~hloubku držíme na úrovni bakalářských kurzů.
+
+\noindent\textbf{Role důkazů.} Požadavky okruhu \emph{nejmenují žádné věty ani důkazy}. Jde o~definice, popis mechanismů a~jejich aplikaci na konkrétní zadání: přeložit virtuální adresu stránkovací tabulkou, dekódovat hexdump podle popsaného formátu, naprogramovat obsluhu zařízení nebo synchronizaci přes semafory, najít v~kódu časově závislou chybu. Místo důkazu se nanejvýš \emph{zdůvodňuje} (proč v~daném kódu nastane race condition, proč nemůže nastat deadlock).
+
+Do výkladu je zařazeno všech deset reálných otázek SZZ k~okruhu z~let 2022--2026 jako řešené příklady (tři z~nich, z~léta 2023, formálně patřily jiné specializaci); jsou i~v~samostatném dokumentu \emph{Příklady otázek} (tam i~s~tabulkami oříznutými z~PDF). U~úloh, které v~originálním PDF nemají náčrt řešení, jsme napsané řešení nezávisle ověřili simulací v~Pythonu. Použité zdroje jsou uvedeny na konci.
+
+\medskip
+\noindent\textbf{Značení.} Bit je nejmenší jednotka, osm bitů tvoří \emph{bajt} (byte), který je zároveň jednotkou adresace. Číselné soustavy odlišujeme prefixem: bez prefixu desítkově, \texttt{0x} šestnáctkově, \texttt{0b} dvojkově (např. $\texttt{0x2C}=44=\texttt{0b101100}$). Šířku slova procesoru značíme $N$ bitů (typicky 32 nebo 64). \emph{Virtuální adresu} píšeme VA, \emph{fyzickou} FA; u~stránkování značíme číslo stránky VPN (\emph{virtual page number}), číslo rámce PFN (\emph{page frame number}) a~posunutí v~rámci stránky \emph{offset}. Pokud neuvedeme jinak, předpokládáme \emph{little-endian} uložení vícebajtových čísel (jako x86). Kód sázíme strojopisem ve výpisech (\texttt{listings}); komentáře v~kódu jsou kvůli sazbě anglicky, prozaický výklad kolem je česky.
+
+% ============================================================
+\input{src/sec1.tex}
+\input{src/sec2.tex}
+\input{src/sec3.tex}
+\input{src/sec4.tex}
+\input{src/sec5.tex}
+\input{src/sec6.tex}
+\input{src/sec7.tex}
+% ============================================================
+
+\section*{Shrnutí}
+\addcontentsline{toc}{section}{Shrnutí}
+\begin{poznamka}
+\textbf{Klíčové pojmy a~vzorce (přehled k~SZZ).} Stručný výčet klíčových definic, vět a vzorců okruhu I4. Zkratky: VA~$=$~virtuální adresa, FA~$=$~fyzická adresa, VPN~$=$~virtual page number, PFN~$=$~page frame number, ISA~$=$~instrukční sada.
+
+\smallskip
+\emph{Architektura a~reprezentace dat.}
+\begin{itemize}
+  \item Von Neumann: program i~data v~téže paměti; Harvard: oddělené paměti (mikrokontroléry, L1~cache). Bajt $=$ 8~bitů, jednotka adresace; $N$-bitový adresový prostor $= [0, 2^{N})$.
+  \item Little-endian: LSB na nejnižší adrese (x86); big-endian: MSB na nejnižší adrese (TCP/IP). Při čtení hexdumpu zkontroluj, která konvence platí -- ovlivní, jak skládat vícebajtová čísla.
+  \item Dvojkový doplněk: rozsah $[-2^{N-1},2^{N-1}-1]$, $-x = \mathord{\sim}x+1$; jediná nula; sčítání/odčítání = stejný obvod jako unsigned. V~8~b: \texttt{0xFF}~$= 255$ (unsigned) nebo $-1$ (signed); \texttt{0x80}~$= 128$ nebo $-128$. Zápornost: nejvyšší bit $= 1$.
+  \item IEEE~754 single (32~b): $(-1)^{s}{\cdot}(1{.}f)_2{\cdot}2^{e-127}$, schéma $1{+}8{+}23$, bias~$127$; double $1{+}11{+}52$. Krajní exponent: $e=0$ $\to$ nula/denormalizovaná; $e=\texttt{0xFF}$ $\to$ $\pm\infty$ (mantisa $0$) nebo NaN.
+  \item Zarovnání: typ délky $s$ začíná na adrese dělitelné $s$; struktura zarovnána podle největšího členu $\Rightarrow$ vnitřní + vnější padding; \texttt{sizeof} = násobek zarovnání. Pořadí členů od největšího minimalizuje výplň.
+  \item Logický posun (\texttt{<<}, \texttt{>>} unsigned): doplní nuly; aritmetický posun vpravo (signed): doplní znaménkový bit. Posun vlevo o~$k$ = násobení $2^{k}$, vpravo = celočíselné dělení $2^{k}$ (aritmetický posun zaokrouhluje dolů, tj.\ u~záporných jinak než \cd!/! v~C).
+\end{itemize}
+
+\smallskip
+\emph{Instrukční sada a~vazba na vyšší jazyky.}
+\begin{itemize}
+  \item ISA = kontrakt překladač/hardware; assembler = symbolický zápis strojového kódu. MIPS: pevná délka $4$~B, R-type $6{+}5{+}5{+}5{+}5{+}6$~b (op, rs, rt, rd, shamt, funct). x86: proměnná délka $1$--$15$~B.
+  \item RISC (MIPS/ARM/RISC-V): málo instrukcí, pevná délka, aritmetika jen mezi registry, přístup do paměti jen load/store; snadné zřetězení. CISC (x86): mnoho instrukcí proměnné délky, operace i~nad pamětí; kompaktnější kód.
+  \item Přiřazení $\to$ load-imm + store. Podmínka $\to$ obrácený test + podmíněný skok do \texttt{else} + nepodmíněný skok za celou podmínku. Cyklus $\to$ inicializace + skok na test + tělo + aktualizace + zpětný skok. Rozpoznání zpětného skoku $=$ cyklus.
+  \item Volání: předej parametry (registry \texttt{a0}--\texttt{a3}/zásobník), \texttt{jal f} uloží NA do \texttt{ra} a~skočí, \texttt{jr ra} se vrátí. ABI určuje, kde jsou argumenty, kde návratová hodnota (\texttt{v0}), kdo schovává registry.
+  \item Zásobníkový rámec (roste k~nižším adresám): argumenty | návratová adresa | starý FP | lokální proměnné; FP~$=$ začátek rámce, SP~$=$ vrchol. Offset do pole: $i\,{\cdot}\,\text{sizeof(prvku)}$; \texttt{sll r,i,2}~$=$ násobení $4$ pro \texttt{int}.
+\end{itemize}
+
+\smallskip
+\emph{Podpora OS (privilegované režimy, jádro).}
+\begin{itemize}
+  \item Uživatelský režim (ring~3): bez přístupu k~HW, bez privilegovaných instrukcí; pokus o~ně $\to$ výjimka. Jádrový (ring~0): plný přístup. Na x86: 4~ringy, v~praxi jen 0 a~3.
+  \item Syscall: instrukce \texttt{syscall} (nebo \texttt{int~0x80}) $\to$ přepne do ring~0 + skok na pevný vstupní bod (adresa v~\texttt{IA32\_LSTAR}); obsluha; \texttt{sysret} $\to$ ring~3. Cíl skoku určuje \emph{jádro}, ne aplikace -- to je jádro ochrany.
+  \item Architektury jádra: monolit (subsystémy jako funkce, stejná oprávnění; Linux), vrstvené (hierarchie vrstev), mikrojádro (minimum v~ring~0, subsystémy jako user-mode servery komunikující zprávami; MINIX, QNX -- větší bezpečnost, vyšší režie).
+\end{itemize}
+
+\smallskip
+\emph{Periferní zařízení a~jejich obsluha.}
+\begin{itemize}
+  \item Řadič (HW, vystavuje registry procesorů) vs.\ ovladač (SW, součást jádra, abstrahuje zařízení); BIOS/UEFI = inicializace a~inventarizace zařízení při bootu.
+  \item Speciální I/O instrukce (x86 \texttt{in}/\texttt{out}, oddělený I/O adresový prostor) vs.\ paměťově mapované I/O: registry na běžných adresách, přístup = load/store; deklarovat \cd!volatile! (každý přístup skutečně provést, překladač nesmí slučovat ani přeskakovat).
+  \item PIO s~aktivním čekáním (polling): (1)~zkontroluj stav, (2)~nastav parametry (LBA, DMA adresa), (3)~zapiš příkaz $\to$ BUSY = 1, (4)~polluj BUSY bit, (5)~přeber data. Mutex serializuje souběžný přístup; vždy uvolnit na \emph{všech} cestách (i~při chybě).
+  \item Typy přerušení: \textbf{externí} (IRQ od HW, maskovatelná), \textbf{výjimka} (trap = po instrukci, fault = před $\to$ rollback + po obsluze zopakování), \textbf{softwarové} (\texttt{int n}).
+  \item x86: 256 přerušení; $0$--$31$ vyhrazeny (\#0 dělení nulou, \#\texttt{0xE} výpadek stránky, \#\texttt{0xD} obecné porušení ochrany (general protection)); IDT = tabulka vektorů.
+  \item HW reakce na přerušení: dokonči instrukci $\to$ zjisti číslo přerušení $\to$ indexuj IDT $\to$ ulož IP + příznaky $\to$ přepni do ring~0 $\to$ skok. SW (handler): ulož registry $\to$ obsluha (přebere data, doplní mapování, \dots) $\to$ obnov $\to$ \texttt{iret} (obnov IP + příznaky + režim).
+  \item DMA: řadič přenese blok dat přímo do fyzické paměti bez zatěžování procesoru; procesor nastaví FA cíle + příkaz; po dokončení přerušení.
+\end{itemize}
+
+\smallskip
+\emph{Procesy, vlákna, plánování a~soubory.}
+\begin{itemize}
+  \item Program (pasivní) $\to$ proces (instance: vlastní adresový prostor + prostředky) $\to$ vlákno (tok instrukcí: vlastní PC, zásobník, registry; sdílí kód, data, haldu, otevřené soubory). Vlákna jsou levná (sdílená paměť), ale vyžadují synchronizaci; procesy jsou izolované.
+  \item Kontext vlákna: registry (PC, SP, příznaky). Přepnutí procesu navíc: přepni stránkovací tabulku $\Rightarrow$ typicky invaliduj nebo přeznač (ASID) TLB.
+  \item Kooperativní: vlákno se vzdá procesoru samo (\texttt{yield}/blokování na I/O). Preemptivní: hardwarový časovač $\to$ přerušení $\to$ OS odebere procesor. Moderní OS: preemptivní.
+  \item Plánování: FCFS (nepreempt., konvojový efekt); SJF (min. průměrná čekací doba při současném příchodu, vyžaduje znát délku); Round Robin (kvantum $q$, preempt., spravedlivé). Výpočty: obrátková~$=$ dokončení~$-$ příchod; čekací~$=$ obrátková~$-$ doba běhu.
+  \item Stavy: Created $\to$ Ready $\to$ Running $\leftrightarrow$ Blocked $\to$ Terminated. Plánovač volí z~Ready; Blocked čeká na prostředek (I/O, zámek).
+  \item Adresový prostor procesu: kód $|$ konstanty $|$ stat. data $|$ neinit. data $|$ halda$\downarrow$ $|\,\cdots\,|$ zásobníky vláken$\uparrow$.
+  \item Soubor = abstraktní proud bajtů; rozhraní: \texttt{open}/\texttt{read}/\texttt{write}/\texttt{seek}/\texttt{close}; deskriptory 0~= stdin, 1~= stdout, 2~= stderr.
+\end{itemize}
+
+\smallskip
+\emph{Virtuální paměť a~překlad adres.}
+\begin{itemize}
+  \item VA (instrukce, ukazatele v~kódu) vs.\ FA (sběrnice, paměťový řadič); překlad dělá MMU. Pravidlo: ukazatele v~kódu~= VA; DMA adresa předávaná řadiči~= FA; čísla rámců v~položkách stránkovací tabulky~= FA.
+  \item Stránka / rámec $= 2^{k}$~B. VA $=$ VPN~$\|$~offset (dolních $k$~bitů). Překlad jednoúrovňovou tabulkou: $\text{adresa PTE} = \text{báze} + \text{VPN}{\cdot}\text{sizeof(PTE)}$; \, $\text{FA} = \text{PFN}{\cdot}2^{k} + \text{offset}$.
+  \item Rozměry (32-bit, 4\,KiB stránky): $k=12$, offset 12~b, VPN 20~b, $2^{20}$ položek po 4~B $\Rightarrow$ tabulka 4~MiB/proces. Offset se nepřekládá, prochází beze změny.
+  \item Příznaky PTE: P~(present), W~(writable), X~(executable), A~(accessed), D~(dirty). Výpadek stránky $=$ P~$=0$ nebo zakázaný přístup $\Rightarrow$ výjimka \#\texttt{0xE} $\to$ OS doplní mapování.
+  \item TLB: asociativní cache (VPN~$\to$~PFN); zásah = překlad okamžitě bez přístupu do paměti; minutí = průchod stránkovací tabulkou + uložení do TLB. ASID = identifikátor adresového prostoru: TLB může obsahovat překlady více procesů zároveň bez flushování při každém přepnutí.
+  \item Ochrana: každý proces má vlastní tabulku $\Rightarrow$ stejná VA dvou procesů vede na různé (nebo žádné) rámce $\Rightarrow$ cizí paměť neviditelná. Sdílení záměrné: OS namapuje tytéž rámce do tabulek obou procesů.
+\end{itemize}
+
+\smallskip
+\emph{Synchronizace a~paralelismus.}
+\begin{itemize}
+  \item Race condition: výsledek závisí na prokládání vláken; typicky „přečti--uprav--zapiš'' bez atomicity (\texttt{x++} jsou 3~instrukce). Diagnóza: najdi sdílená data + neatomický přístup bez zámku.
+  \item Tři podmínky správného řešení: vzájemné vyloučení (v~sekci nejvýše 1 vlákno), trvalý postup (bez deadlocku), omezené čekání (bez vyhladovění).
+  \item Aktivní čekání (spin-lock, spotřebuje procesor; vhodné jen pro velmi krátká čekání) vs.\ pasivní čekání (blokující semafor/mutex; OS probudí, procesor dělá mezitím jiné věci).
+  \item Semafor: čítač~$+$ fronta blokovaných vláken; \texttt{down}~(P): čítač~$>0$ $\to$ sniž; jinak blokuj. \texttt{up}~(V): probuď čekajícího ze fronty, nebo (je-li prázdná) zvyš čítač. Mutex~$=$ binární semafor (init~1). Obě operace atomické.
+  \item Producent--konzument s~kapacitou $N$: \texttt{free} (init~$N$) + \texttt{items} (init~$0$) + \texttt{mtx} (init~$1$). Invariant: \texttt{free}~$+$~\texttt{items}~$= N$. Pořadí: \texttt{down(free/items)} \emph{před} \texttt{down(mtx)}, jinak deadlock (vlákno by drželo mutex a~čekalo na místo, které nikdo neuvolní).
+  \item FIFO semafor mezi procesy: \texttt{capacity} (init~$N$) + \texttt{content} (init~$0$); \texttt{send}: \texttt{down(capacity)}, push, \texttt{up(content)}; \texttt{receive}: \texttt{down(content)}, pop, \texttt{up(capacity)}.
+  \item Vzájemná signalizace dvěma semafory: vlákno~A signalizuje do \texttt{semB}, B do \texttt{semA} $\Rightarrow$ žádné vlákno nemůže vzít vlastní token; odstraní chybu jednosemaforové konstrukce (A si vezme zpět svůj token).
+  \item Deadlock -- Coffmanovy nutné podmínky: vzájemné vyloučení, drž a~čekej, neodnímatelnost, cyklické čekání. Prevence: zamykat vždy ve stejném pevném pořadí.
+\end{itemize}
+\end{poznamka}
+
+\section*{Zdroje}
+\addcontentsline{toc}{section}{Zdroje}
+
+{\raggedright
+\begin{itemize}
+  \item J.~Yaghob, M.~Kruliš: slidy přednášek předmětu NSWI170 \emph{Počítačové systémy}, MFF UK (ročník 2024/25; primární zdroj části o~operačních systémech: režimy procesoru, jádro, periferie, procesy a~plánování, virtuální paměť, synchronizace).\\ \url{https://teaching.ms.mff.cuni.cz/nswi170-web/}
+  \item L.~Bulej, P.~Ježek: slidy přednášek předmětu NSWI120 \emph{Principy počítačů}, MFF UK (archivní sada 2011/12; reprezentace dat, instrukční sada, přerušení).\\ \url{https://d3s.mff.cuni.cz/legacy/teaching/principles_of_computers/ar-20112012/}\\ Stránka předmětu: \url{https://d3s.mff.cuni.cz/teaching/nswi120/}
+  \item S.~J.~Matthews, T.~Newhall, K.~C.~Webb: \emph{Dive Into Systems}, verze~1.2, 2023 (volně dostupná učebnice; dvojkový doplněk, IEEE~754, překlad konstrukcí jazyka C na instrukce).\\ \url{https://diveintosystems.org/book/}
+  \item MFF UK: požadavky ke státní závěrečné zkoušce (Informatika, Bc.) a~zadání otázek z~minulých termínů.\\ \url{https://www.mff.cuni.cz/cs/studenti/bakalarske-studium/statni-zaverecne-zkousky/bakalarske-statni-zkousky-studijniho-programu-informatika}
+\end{itemize}
+\par}
+
+\end{document}

@@ -1,0 +1,28 @@
+% Zdroj: PDF priklady-podzim-2023.pdf, fyzická str. 18-19. Značka: specializace UI-SU. Zařazeno: S3.
+\section{Kombinace více modelů}
+\szzotazka{podzim 2023}{30}{Kombinace více modelů}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Popište hlavní myšlenky technik bagging a boosting. Popište podrobněji jeden vybraný konkrétní algoritmus pro
+    boosting.
+  \item Jak funguje klasifikátor založený na náhodných lesech (random forest)? Jakým způsobem se trénuje?
+  \item Porovnejte rozhodovací stromy a náhodné lesy. Jaké jsou výhody a nevýhody těchto modelů?
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Podstatou baggingu je vytvoření více modelů trénovaných na různých podmnožinách (bootstrap)\footnote{V originálním PDF
+    je zde překlep: \uv{bootsrap}; zde uvedeno korektně.} trénovací množiny.
+    Tyto podmnožiny jsou typicky samplovány s opakováním. Hlavním myšlenkou boostingu je trénování několika modelů
+    postupně s tím, že další modely jsou trénovány na vážených datech, kde instance nesprávně klasifikované aktuálním
+    klasifikátorem mají větší váhu. Příkladem může být např. algoritmus AdaBoost.
+  \item Náhodné lesy obsahují množinu mnoha rozhodovacích stromů, které hlasují o celkovém výsledku klasifikace/regrese.
+    Jednotlivé rozhodovací stromy jsou trénované na podmnožině instancí trénovací množiny a na podmnožině příznaků.
+  \item Výhodou rozhodovacích stromů je jejich intrepretabilita a rychlost trénování. Výhodou náhodných lesů je jejich
+    (typicky) větší přesnost a schopnost generalizace.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Bootstrapový vzorek má stejnou velikost $N$ jako trénovací množina a~losuje se s~opakováním (asi $37\,\%$ příkladů v~něm chybí). Bagging snižuje hlavně rozptyl, boosting hlavně vychýlení. AdaBoost dá slabému klasifikátoru s~váženou chybou $\varepsilon_m$ hlas $\alpha_m=\tfrac12\ln\frac{1-\varepsilon_m}{\varepsilon_m}$ a~váhy chybně klasifikovaných příkladů vynásobí $e^{\alpha_m}$, správně klasifikovaných $e^{-\alpha_m}$ (pak normalizuje). V~náhodném lese se podmnožina příznaků losuje \emph{v~každém uzlu} znovu (typicky $\sqrt{D}$ příznaků) a~stromy se neprořezávají; to dekoreluje jejich chyby. Nevýhody lesa oproti jednomu stromu: ztráta interpretovatelnosti a~vyšší nároky na čas i~paměť při trénování i~predikci; nevýhodou jednoho stromu je vysoký rozptyl a~sklon k~přeučení.

@@ -1,0 +1,56 @@
+% Zdroj: PDF priklady-podzim-2025.pdf, fyzická str. 23-24. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S3.
+\section{Predikce pomocí tabulárních dat}
+\szzotazka{podzim 2025}{29}{Predikce pomocí tabulárních dat}
+
+\noindent\textbf{Zadání.}\par
+Máte k dispozici následující zemědělský dataset pro predikci výnosu plodin a na základě tohoto
+datasetu chcete natrénovat model strojového učení.
+
+\begin{center}\small
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{cccclcccc}
+\toprule
+pH půdy & Srážky & Průměr. & Typ & Odrůda & Velikost & Zavlažování & Nadm. & Výnos \\
+ & (mm) & teplota (°C) & hnojiva & osiva & farmy (ha) & & výška (m) & (t/ha) \\
+\midrule
+6,8 & 450 & 22 & Organické & Hybrid-A & 48,6 & Kapkové & 150 & 4,2 \\
+7,2 & 380 & 25 & Chemické & Standard & 34,4 & Postřikovač & 200 & 3,8 \\
+6,5 & 520 & 18 & Organické & Odolná & 121,4 & Dešťová & 850 & 3,2 \\
+7,0 & 320 & 28 & Bio-hnojivo & Hybrid-B & 60,7 & Kapkové & 75 & 5,1 \\
+6,9 & 680 & 20 & Chemické & Vysoký výnos & 25,9 & Záplavové & 300 & 6,8 \\
+\bottomrule
+\end{tabular}}
+\end{center}
+
+Na základě ukázkového datasetu odpovězte na následující otázky:
+\begin{enumerate}
+  \item Jaký typ úlohy strojového učení to je?
+  \item Navrhněte vhodný model strojového učení pro tuto úlohu a stručně vysvětlete, proč by byl vhodný.
+  \item Pokud to navržený model vyžaduje, popište kroky předpracování, které byste na tento dataset
+    aplikovali před trénováním modelu. Jak byste zacházeli s různými typy příznaků (features)?
+  \item Jaké evaluační metriky byste použili k posouzení výkonnosti modelu?
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+Jedná se o \textit{regresi} a \textit{učení s učitelem}, protože cílová proměnná (Výnos) je spojitá
+číselná hodnota a máme k dispozici trénovací data s cílovými hodnotami.
+
+Nejlepší volba modelu: \textit{Random Forests} nebo \textit{Gradient Boosting (XGBoost/LightGBM)},
+vhodné pro tabulární data. \textit{Lineární regrese} nebo \textit{MLP} by také mohly fungovat
+s pečlivým předpracováním příznaků.
+
+Kroky předpracování:
+\begin{itemize}
+  \item \textit{Kategorické příznaky:} Aplikovat one-hot enkódování pro typ hnojiva, odrůdu osiva
+    a metodu zavlažování.
+  \item \textit{Číselné příznaky:} Zkontrolovat odlehlé hodnoty a aplikovat standardizaci/normalizaci
+    (např. StandardScaler), pokud používáme algoritmy citlivé na škálu. V datasetu: pH půdy, srážky,
+    teplota, velikost farmy, nadmořská výška.
+  \item (volitelně) \textit{Chybějící hodnoty:} Dodat chybějící hodnoty (průměr/medián pro číselné,
+    modus pro kategorické).
+  \item (volitelně) \textit{Feature engineering:} Zvážit vytvoření kombinovaných příznaků (např.
+    srážky vs. teplota) nebo polynomiálních příznaků, pokud doménové znalosti naznačují nelineární vztahy.
+\end{itemize}
+
+Evaluační metriky: Mean Absolute Error, (Root) Mean Square Error.

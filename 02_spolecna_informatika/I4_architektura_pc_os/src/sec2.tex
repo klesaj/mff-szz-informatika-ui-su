@@ -1,0 +1,212 @@
+% ============================================================
+\section{Instrukční sada a vazba na vyšší programovací jazyky}
+% ============================================================
+
+Procesor sám neumí cykly ani funkce -- vykonává jen jednoduché \emph{instrukce}. Tato sekce ukazuje, co je instrukční sada, jaké třídy instrukcí existují, a hlavně \emph{jak se běžné konstrukce vyššího jazyka} (přiřazení, podmínka, cyklus, volání funkce) překládají na instrukce a~jak naopak ze sekvence instrukcí poznat původní konstrukci. To je jádro doslovných požadavků k~této části okruhu. Assembler píšeme symbolicky ve stylu MIPS (jak ho používají slidy NSWI120/NSWI170); jde o~čitelný zápis instrukcí, ne o~přesnou syntaxi konkrétního procesoru.
+
+\subsection{Instrukce a instrukční sada}
+
+\begin{definice}[Instrukční sada (ISA)]
+\emph{Instrukce} je jednoduchý příkaz pro procesor (jedna aritmetická či logická operace, přesun dat, skok). \emph{Instrukční sada} (instruction set) je seznam všech instrukcí, kterým daný procesor rozumí. \emph{Architektura instrukční sady} (ISA, \emph{instruction set architecture}) je její abstraktní specifikace -- \emph{kontrakt} mezi autorem programu (resp.\ překladačem) a~návrhářem hardwaru: říká, jaké instrukce existují, jaké mají operandy, jaké jsou registry a~jak se kódují. Tentýž kontrakt může splňovat víc různých implementací hardwaru.
+\end{definice}
+
+\begin{intuice}
+Instrukční sada je „slovník`` jazyka procesoru, jednotlivé instrukce jsou „slova``. Vyšší programovací jazyk (C, C++) je proti tomu výrazně bohatší; mezi nimi je \emph{sémantická mezera} (semantic gap), kterou překlene \emph{překladač}: rozloží složité konstrukce na posloupnost těchto jednoduchých slov. Formálně stačí překvapivě málo instrukcí na vykonání libovolného výpočtu; o~zbytku rozhodují praktické ohledy (jednoduchost hardwaru, rychlost, srozumitelnost).
+\end{intuice}
+
+\emph{Operandy} instrukce jsou většinou \emph{registr} (rychlé paměťové místo přímo v~procesoru) nebo \emph{přímý operand} (immediate, konstanta zakódovaná přímo v~instrukci); přístup do hlavní paměti dělají jen vyhrazené instrukce (load/store). Počet operandů je dán ISA -- typicky 0~až~3, např. aritmetika MIPS má vždy 3 (dva zdroje $+$ cíl).
+
+\begin{definice}[Strojový kód vs.\ assembler; délka instrukce]
+Procesor čte instrukce jako \emph{strojový kód}: posloupnost bitů, kde jedna část kóduje operaci (\emph{opcode}) a~další části operandy (čísla registrů, konstantu). Pro člověka se totéž zapisuje \emph{assemblerem} -- symbolickými jmény (\cd!add!, \cd!lw!, jména registrů, návěští). Instrukce mohou mít \emph{pevnou délku} (např. MIPS: každá instrukce 4~bajty -- jednoduché dekódování) nebo \emph{proměnnou délku} (např. x86: 1~až~15~bajtů -- kompaktnější kód, složitější dekódování).
+\end{definice}
+
+\begin{center}
+\scalebox{1.2}{%
+\begin{tikzpicture}
+% MIPS r-type kodovani: op rs rt rd shamt funct = 6+5+5+5+5+6 bitu
+\node[bit,minimum width=1.1cm,fill=blue!10]  (op) at (0,0)   {op};
+\node[bit,minimum width=0.95cm,fill=green!10](rs) at (1.1,0) {rs};
+\node[bit,minimum width=0.95cm,fill=green!10](rt) at (2.05,0){rt};
+\node[bit,minimum width=0.95cm,fill=red!10]  (rd) at (3.0,0) {rd};
+\node[bit,minimum width=0.95cm,fill=black!5] (sh) at (3.95,0){shamt};
+\node[bit,minimum width=1.1cm,fill=blue!10]  (fn) at (4.9,0) {funct};
+\node[font=\scriptsize,anchor=south] at (0.55,0.7)  {6~b};
+\node[font=\scriptsize,anchor=south] at (1.575,0.7) {5~b};
+\node[font=\scriptsize,anchor=south] at (2.525,0.7) {5~b};
+\node[font=\scriptsize,anchor=south] at (3.475,0.7) {5~b};
+\node[font=\scriptsize,anchor=south] at (4.425,0.7) {5~b};
+\node[font=\scriptsize,anchor=south] at (5.45,0.7)  {6~b};
+\node[anchor=north,font=\footnotesize\ttfamily] at (3.0,-0.25)
+  {add \$t0,\$s1,\$s2 \ $\to$\ 0\,|\,17\,|\,18\,|\,8\,|\,0\,|\,32};
+\end{tikzpicture}}%
+\obrpopis{Pevný 32-bitový formát registrové (r-type) instrukce MIPS: opcode, dva zdrojové registry \texttt{rs},~\texttt{rt}, cílový \texttt{rd}, velikost posunu \texttt{shamt} a~varianta operace \texttt{funct}. Assembler \texttt{add \$t0,\$s1,\$s2} se přeloží na čísla $0\,|\,17\,|\,18\,|\,8\,|\,0\,|\,32$ (registry \texttt{\$s1,\$s2} mají čísla 17,~18, \texttt{\$t0} číslo~8). Vše se vejde do 32~bitů, proto má každá instrukce stejnou délku.}
+\end{center}
+
+\subsection{Třídy instrukcí a registry}
+
+\begin{definice}[Hlavní třídy instrukcí]
+\emph{Přesuny dat:} \emph{load} (paměť~$\to$~registr, \cd!lw!), \emph{store} (registr~$\to$~paměť, \cd!sw!), \emph{move} (registr~$\to$~registr). Aritmetické operace pracují (u~load-store architektur jako MIPS) jen s~registry, proto se data nejdřív načtou a~výsledek uloží zpět. \emph{Aritmetické a~logické:} $+$, $-$, $\times$, $/$, $\%$ a~bitové \cd!&!,~\cd!|!,~\cd!^!,~\cd!~!, posuny \cd!<<!,~\cd!>>!. \emph{Skoky} (branch/jump): \emph{nepodmíněné} (\cd!j!) a~\emph{podmíněné} (\cd!beq!, \cd!bne! -- skok podle výsledku testu); podle cíle \emph{přímé} (adresa v~instrukci), \emph{nepřímé} (adresa v~registru) a~\emph{relativní} (posun vůči současné adrese). \emph{Volání a~návrat:} \cd!call!~(\cd!jal!) a~\cd!ret!~(\cd!jr!) pro funkce.
+\end{definice}
+
+\begin{poznamka}
+ISA bez příznaků (jako MIPS) řeší porovnání instrukcí typu \cd!slt! (set-on-less-than: zapíše do registru 0/1) následovaným \cd!beq!/\cd!bne!. ISA s~příznaky (x86) má univerzální \cd!cmp!, které nastaví \emph{příznakové bity}, a~podmíněné skoky (\cd!jl!,~\cd!jz!,~$\ldots$) se rozhodují podle nich. Obě cesty realizují totéž rozhodnutí.
+\end{poznamka}
+
+\begin{definice}[Registry a příznaky]
+\emph{Registr} je paměťové místo přímo v~procesoru (přístup mnohem rychlejší než do paměti, ale je jich málo -- jednotky až desítky). Bývají \emph{obecné} (data, adresy), speciální jako \emph{IP/PC} (instruction pointer / program counter -- adresa právě prováděné instrukce) a~na některých ISA \emph{příznakový registr} (flags). Obvyklé příznaky: \emph{Z} (zero -- výsledek byl~0), \emph{S} (sign -- výsledek záporný), \emph{C} (carry -- přenos/výpůjčka u~operací bez znaménka), \emph{O} (overflow -- přetečení u~operací se znaménkem).
+\end{definice}
+
+Protože proměnných je v~programu mnohem víc než registrů, drží překladač v~registrech nejčastěji používané hodnoty a~ostatní podle potřeby přesouvá do paměti a~zpět (\emph{register spilling}).
+
+\subsection{Mapování konstrukcí vyššího jazyka na instrukce}
+
+Toto je jádro sekce. Postupně projdeme čtyři konstrukce z~požadavků a~ukážeme \emph{oba směry}: jazyk~$\to$~instrukce i~zpět.
+
+\paragraph{Přiřazení.} Výraz na pravé straně se vyhodnotí do registru a~výsledek se zapíše do cílové proměnné. Konstanta jde přímo jako immediate, posun je jediná instrukce:
+\begin{lstlisting}[language=C]
+b = 4;            // b is a register/variable -> use a constant
+   li    r1, 4         // r1 = 4               (load immediate)
+   store r1, [b]       // write r1 into b
+
+c = a << 2;       // shift = single instruction, no real multiply
+   load  r1, [a]       // r1 = a
+   shl   r1, r1, 2     // r1 = a << 2  (i.e. a * 4)
+   store r1, [c]       // write r1 into c
+\end{lstlisting}
+Vyhodnocení složitějšího výrazu rozdělí překladač do víc instrukcí s~pomocnými registry: \cd!f = (g+h) - (i+j);! se přeloží na \cd!add t0,g,h! / \cd!add t1,i,j! / \cd!sub f,t0,t1!.
+
+\paragraph{Podmínka (\texttt{if}).} Otestuje se podmínka a~\emph{podmíněným skokem} se obejde větev, která se nemá provést. Pohodlně se kóduje skok při \emph{neplatnosti} podmínky (do větve \cd!else!), na konci větve \cd!then! je nepodmíněný skok za \cd!else!:
+\begin{lstlisting}[language=C]
+if (a < 3) b = 4; else c = a << 2;
+        jge   [a], 3, Else   // if !(a < 3) jump to Else
+        store [b], 4         // then-branch: b = 4
+        jmp   End
+   Else:
+        load  r1, [a]        // else-branch: c = a << 2
+        shl   r1, r1, 2
+        store [c], r1
+   End:
+\end{lstlisting}
+Tj. test podmínky se obrátí (\cd!a < 3! versus skok při \cd!a >= 3!) a~podle něj se přeskočí příslušná část kódu.
+
+\paragraph{Cyklus (\texttt{for}).} Cyklus rozložíme na: \emph{inicializaci}, \emph{test} podmínky, \emph{tělo}, \emph{aktualizaci} řídicí proměnné a~\emph{zpětný skok}. Obvyklé schéma „test na začátku`` skočí hned po inicializaci na podmínku (umístěnou na konci) a~zpětně se na tělo vrací jen tehdy, je-li podmínka splněna -- ušetří jeden skok za iteraci:
+\begin{lstlisting}[language=C]
+for (int i = 0; i < N; ++i) A[i] = 42;
+        li    r1, 0          // i = 0
+        la    r0, A          // r0 = base address of A
+        j     Cond           // jump to the test first
+   Body:
+        sll   r2, r1, 2      // offset = i * 4   (4 = sizeof(int))
+        add   r2, r2, r0     // address of A[i] = A + i*4
+        store [r2], 42       // A[i] = 42
+        addi  r1, r1, 1      // ++i
+   Cond:
+        slt   r3, r1, [N]    // r3 = (i < N) ? 1 : 0
+        bne   r3, 0, Body    // if i < N, repeat the body
+\end{lstlisting}
+Klíčové je, že index \texttt{i} se musí vynásobit \emph{velikostí prvku} (\cd!sizeof(A[0])!, zde 4~B), aby vznikla správná bajtová adresa \cd!A + i*4!; posun \cd!sll r2,r1,2! je právě toto násobení čtyřmi.
+
+\paragraph{Volání funkce.} Volání musí: předat \emph{parametry}, uložit \emph{návratovou adresu} a~předat řízení (\cd!call!/\cd!jal!), uvnitř funkce si zařídit pracovní prostor, vrátit \emph{návratovou hodnotu} a~vrátit řízení (\cd!ret!/\cd!jr!). Kde přesně leží parametry a~návratová hodnota, určuje \emph{konvence volání}:
+\begin{lstlisting}[language=C]
+int f(int p) { return p + 1; }
+void g() { auto r = f(42); }
+
+   f:                         // callee
+        addi  v0, a0, 1       // return value = p + 1   (p came in a0)
+        jr    ra              // return to caller (address saved in ra)
+
+   g:                         // caller
+        li    a0, 42          // 1st argument p = 42
+        jal   f               // call: ra <- return address, jump to f
+        move  r, v0           // r = return value (in v0)
+\end{lstlisting}
+Registr \cd!a0! nese první argument, \cd!v0! návratovou hodnotu, \cd!ra! návratovou adresu. Instrukce \cd!jal f! (jump-and-link) uloží do \cd!ra! adresu \emph{následující} instrukce a~skočí na \cd!f!; \cd!jr ra! se vrátí zpět.
+
+\begin{definice}[ABI a konvence volání]
+\emph{ABI} (\emph{Application Binary Interface}) je dodatek k~ISA, který stanovuje, \emph{jak se procesor používá}: význam jednotlivých registrů, rozvržení zásobníku, a~\emph{konvenci volání} (calling convention) -- kde se předávají argumenty (v~určených registrech, přebytečné na zásobníku), kde návratová hodnota, kdo (volající/volaný) uschovává které registry. Díky ABI mohou spolu fungovat odděleně přeložené části programu (program a~knihovna).
+\end{definice}
+
+Když je parametrů víc, než kolik se vejde do registrů, nebo při rekurzi, ukládají se hodnoty na \emph{zásobník} (stack): souvislou oblast paměti rostoucí směrem k~\emph{nižším} adresám, s~ukazatelem vrcholu \emph{SP} (stack pointer). Každé aktivní volání má na zásobníku svůj \emph{rámec} (stack frame / activation record): argumenty, návratovou adresu, uschovaný starý ukazatel rámce a~lokální proměnné. Začátek rámce drží \emph{FP} (frame/base pointer), aby se k~argumentům a~lokálům dalo přistupovat pevnými offsety.
+
+\begin{center}
+\scalebox{1.2}{%
+\begin{tikzpicture}[y=0.42cm,every node/.append style={font=\footnotesize}]
+% Svisly zasobnik: vyssi adresy NAHORE, roste DOLU. y-jednotka = radek ramce.
+% Rozsah y od 0 (dole, SP) po 18 (nahore). Jeden ramec volane funkce.
+\fill[blue!8]  (0,15) rectangle (5,18); \draw (0,15) rectangle (5,18);
+\fill[red!8]   (0,13) rectangle (5,15); \draw (0,13) rectangle (5,15);
+\fill[green!10](0,11) rectangle (5,13); \draw (0,11) rectangle (5,13);
+\fill[black!4] (0,5)  rectangle (5,11); \draw (0,5)  rectangle (5,11);
+\node at (2.5,16.5) {argumenty (od volajícího)};
+\node at (2.5,14)   {návratová adresa};
+\node at (2.5,12)   {uschovaný starý FP};
+\node at (2.5,8)    {lokální proměnné};
+% sipka rustu zasobniku
+\draw[ptr,black!55] (5.9,17) -- (5.9,6) node[midway,right,font=\scriptsize,align=left]
+  {\\ zásobník\\ roste\\ dolů\\ (nižší\\ adresy)};
+% ukazatel FP miri na zacatek ramce (radek uschovaneho FP)
+\node[anchor=east,font=\small\bfseries,blue!50!black] (fp) at (-0.35,12) {FP};
+\draw[ptr,blue!50!black] (fp.east) -- (-0.05,12);
+% ukazatel SP miri na vrchol (nejnizsi adresu) = spodek ramce
+\node[anchor=east,font=\small\bfseries,red!55!black] (sp) at (-0.35,5) {SP};
+\draw[ptr,red!55!black] (sp.east) -- (-0.05,5);
+\node[anchor=west,font=\scriptsize] at (5.1,16.5) {vyšší adresy};
+\node[anchor=west,font=\scriptsize] at (5.1,7)    {nižší adresy};
+\end{tikzpicture}}%
+\obrpopis{Zásobníkový rámec volané funkce (zásobník roste dolů, vyšší adresy nahoře). Instrukce \texttt{call} (x86) uloží na zásobník \emph{návratovou adresu} (kam se po funkci pokračuje) a~předá řízení; na MIPS ji \texttt{jal} uloží do \texttt{ra} a~na zásobník ji uschová až prolog funkce, která sama volá další funkce. \emph{Prolog} funkce pak uschová \emph{starý FP} a~nastaví nový FP na začátek svého rámce; pod ním si \texttt{SP} odsune místo pro lokální proměnné. K~argumentům i~lokálům se přistupuje pevnými offsety vůči FP. \emph{Epilog} obnoví starý FP a~\texttt{ret} se vrátí na uloženou návratovou adresu.}
+\end{center}
+
+\subsection{RISC vs.\ CISC}
+
+\begin{poznamka}
+Instrukční sady se hrubě dělí na \emph{RISC} (\emph{Reduced Instruction Set Computer} -- málo jednoduchých, stejně dlouhých instrukcí, aritmetika jen mezi registry, přístup do paměti jen přes load/store; např. MIPS, ARM, RISC-V) a~\emph{CISC} (\emph{Complex Instruction Set Computer} -- mnoho instrukcí proměnné délky, operace i~přímo nad pamětí; např. x86). RISC kód je jednodušší na dekódování a~zřetězení (pipelining), CISC kód bývá kompaktnější. Rozdíl se v~praxi stírá: dnešní x86 procesory uvnitř překládají složité instrukce na jednoduché mikrooperace.
+\end{poznamka}
+
+\subsection{Řešené příklady}
+
+V~sadě reálných SZZ otázek tohoto okruhu žádná čistě „instrukční`` úloha není; následující dva krátké příklady proto slouží jen k~procvičení obou směrů z~požadavků (jazyk~$\leftrightarrow$~instrukce).
+
+\begin{priklad}[Přeložení podmínky do instrukcí]
+\textbf{Zadání.} Přeložte do symbolických instrukcí konstrukci
+\[
+\texttt{if (a < 3) b = 4; else c = a << 2;}
+\]
+a~okomentujte jednotlivé instrukce.
+
+\medskip
+\textbf{Řešení.} Test podmínky obrátíme a~podmíněným skokem přeskočíme větev \cd!then! do \cd!else!; konec \cd!then! ukončíme nepodmíněným skokem za celou podmínku. Posun \cd!<<2! je jediná instrukce (násobení~4):
+\begin{lstlisting}[language=C]
+        jge   [a], 3, Else   // if !(a < 3) -> Else  (negated test)
+        store [b], 4         // then: b = 4
+        jmp   End
+   Else:
+        load  r1, [a]        // else: load a
+        shl   r1, r1, 2      // a << 2
+        store [c], r1        // c = a << 2
+   End:
+\end{lstlisting}
+Výsledek: $\boxed{\text{test} + \text{podmíněný skok} + \text{dvě větve} + \text{nepodmíněný skok}}$. Kdyby ISA neměla přímý test „větší rovno``, nahradíme \cd!jge [a],3! dvojicí \cd!slt r0,[a],3! (nastaví \cd!r0=1! při \cd!a<3!) a~\cd!beq r0,0,Else! (skok, když \cd!r0=0!, tj.\ když \cd!a>=3!).
+\end{priklad}
+
+\begin{priklad}[Rekonstrukce konstrukce z instrukcí]
+\textbf{Zadání.} Dána je sekvence instrukcí (registr \cd!r0! drží bázovou adresu pole \cd!A!, \cd!N! je proměnná, prvek pole má 4~bajty). Určete, jaké konstrukci vyššího jazyka odpovídá, a~zapište ji zpět v~C.
+\begin{lstlisting}[language=C]
+        li    r1, 0          // r1 = 0
+        j     Cond
+   Body:
+        sll   r2, r1, 2      // r2 = r1 * 4
+        add   r2, r2, r0     // r2 = A + r1*4
+        store [r2], r1       // M[r2] = r1
+        addi  r1, r1, 1      // r1 = r1 + 1
+   Cond:
+        slt   r3, r1, [N]    // r3 = (r1 < N)
+        bne   r3, 0, Body    // if r1 < N -> Body
+\end{lstlisting}
+
+\medskip
+\textbf{Řešení.} Čteme strukturu: \cd!r1! se inicializuje na~0, na konci těla se o~1~zvyšuje (\cd!addi r1,r1,1!), a~test \cd!slt r3,r1,[N]! / \cd!bne r3,0,Body! tvoří podmínku \cd!r1 < N! na konci se zpětným skokem -- to je \emph{počítaný cyklus} s~řídicí proměnnou \cd!r1!. V~těle se \cd!sll r2,r1,2! / \cd!add r2,r2,r0! počítá adresa \cd!A + r1*4!, tedy \cd!&A[r1]!, a~\cd!store [r2],r1! tam zapíše hodnotu \cd!r1!. Vynásobení čtyřmi je právě \cd!sizeof(int)!. Zpětně tedy:
+\[
+\boxed{\texttt{for (int i = 0; i < N; ++i) A[i] = i;}}
+\]
+kde \cd!r1! hraje roli \cd!i!. (Skok na \cd!Cond! hned po inicializaci je obvyklé schéma „test na začátku``: tělo se neprovede vůbec, je-li \cd!N <= 0!.)
+\end{priklad}

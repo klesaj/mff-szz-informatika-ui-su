@@ -1,0 +1,28 @@
+% Zdroj: PDF priklady-podzim-2024.pdf, fyzická str. 22-23. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S1 (minimax / alfa-beta).
+\section{Minimax}
+\szzotazka{podzim 2024}{28}{Minimax (alfa-beta prořezávání)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}[nosep]
+  \item Popište algoritmus Minimax pro hru dvou hráčů. Vysvětlete, jaké má v praxi tento algoritmus nedostatky a jak je možné je řešit.
+  \item Zaveďte (popište) techniku alfa-beta prořezávání.
+  \item Na následujícím příkladu stromu hry s nulovým součtem symbol $\triangle$ označuje tah maximalizujícího hráče (tedy hrany vedoucí směrem dolů z tohoto symbolu odpovídají možným tahům maximalizujícího hráče). Obdobně symbol $\triangledown$ označuje tah minimalizujícího hráče. Symbol $\circ$ označuje koncový stav s uvedeným ohodnocením tohoto stavu. Doplňte do nekoncových stavů, jaké ohodnocení jim přiřadí algoritmus minimax za použití alfa-beta prořezávání. Vyznačte, které části stromu budou prořezány. Předpokládejte, že možné tahy se procházejí zleva doprava.
+\end{enumerate}
+
+\begin{center}\includegraphics[width=0.95\linewidth]{minimax-strom.png}\end{center}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, hodnoty i prořezání ověřeny Pythonem.)}\par
+
+\noindent\emph{(1) Minimax.} Hra dvou hráčů s~nulovým součtem se chápe jako prohledávání herního stromu. \emph{Minimaxová hodnota} uzlu je užitek za~předpokladu, že oba hrají optimálně: v~koncovém uzlu je to jeho ohodnocení, v~uzlu MAX maximum z~hodnot dětí, v~uzlu MIN minimum. Počítá se zdola nahoru; tah v~kořeni vede do dítěte s~nejvyšší hodnotou. \emph{Nedostatek}: minimax prochází celý strom velikosti $O(b^m)$, což je u~reálných her neproveditelné. \emph{Řešení}: alfa-beta prořezávání a~ořezání hloubky s~náhradou koncové funkce \emph{ohodnocovací} funkcí v~neukončených listech.
+
+\noindent\emph{(2) Alfa-beta.} Podél cesty držíme $\alpha$ (nejlepší dosud zajištěná hodnota pro MAX) a~$\beta$ (pro MIN). V~uzlu MIN, jakmile jeho průběžná hodnota klesne $\le\alpha$, zbylé děti nezkoumáme ($\alpha$-řez) -- MAX nad~námi má lepší alternativu. Symetricky v~uzlu MAX při hodnotě $\ge\beta$ ($\beta$-řez). Alfa-beta vrací tutéž hodnotu jako minimax; při dobrém pořadí tahů zkoumá jen $O(b^{m/2})$ uzlů.
+
+\noindent\emph{(3) Konkrétní strom.} Listy zleva doprava: $5,6\mid 4,7,5\mid 3\mid 6\mid 5,9\mid 7\mid 5\mid 9,8\mid 6$. Hodnoty zdola nahoru: uzly MIN nad~listy $5,4,3,6,5,7,5,8,6$; uzly MAX $5,3,6,7,5,8$; uzly MIN pod~kořenem $3,6,5$; \textbf{kořen MAX} $=\max(3,6,5)=\boxed{6}$ (optimální první tah do~prostředního následníka).
+
+Procházení zleva doprava prořeže $6$ ze~$14$ listů (prohlédne se jich $8$ v~pořadí $5,6,4,3,6,5,7,5$). Tři řezy:
+\begin{itemize}[nosep]
+  \item \emph{MIN nad~listy $4,7,5$}: sourozenec vlevo dal MAX hodnotu $5$, tedy $\alpha=5$; po~přečtení listu $4$ má tento MIN hodnotu $\le4\le\alpha$, zbylé listy $7,5$ se \textbf{prořežou}.
+  \item \emph{MIN nad~listy $5,9$}: sourozenec vlevo dal MAX hodnotu $6$, tedy $\alpha=6$; po~listu $5$ je hodnota $\le5\le\alpha$, list $9$ se \textbf{prořeže}.
+  \item \emph{Pravý uzel MIN pod~kořenem}: kořen už má z~levých větví $6$, tedy $\alpha=6$; jeho první dítě MAX dá $5$, čímž je tento MIN $\le5\le\alpha$, a~celý pravý podstrom MAX (listy $9,8,6$) se \textbf{prořeže}.
+\end{itemize}

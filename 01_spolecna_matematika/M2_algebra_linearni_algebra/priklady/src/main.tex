@@ -1,0 +1,41 @@
+% !TeX program = lualatex
+% Agregátor reálných otázek SZZ pro okruh M2. Jednotlivé otázky jsou v souborech q_*.tex.
+% Sestavení: ./build.sh 01_spolecna_matematika/M2_algebra_linearni_algebra/priklady   (nebo cd .../priklady && latexmk)
+\documentclass[11pt,a4paper]{article}
+\usepackage{szzpriklady}
+% Build běží z adresáře priklady/ (CWD), obrázky jsou v src/fig/.
+\graphicspath{{src/fig/}{fig/}}
+
+\title{Příklady otázek -- Algebra a lineární algebra\\[0.3em]\large Reálné otázky ze SZZ 2022--2026 (M2)}
+\author{Jakub Klesa}
+\date{Pokryté předměty: NMAI057 (Lineární algebra 1), NMAI058 (Lineární algebra 2)}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\bigskip
+
+\begin{poznamka}
+Tento dokument obsahuje reálné otázky z minulých termínů SZZ (2022--2026) zařazené do
+okruhu M2. U otázek s obrázkem je grafika oříznutá z originálního PDF (viz odkaz na
+zdroj). Text, číselná data a tabulky jsou přepsané věrně.
+Zadání i oficiální náčrty řešení pocházejí ze sad zveřejněných na webu MFF UK:\par
+{\raggedright\url{https://www.mff.cuni.cz/cs/studenti/bakalarske-studium/statni-zaverecne-zkousky/bakalarske-statni-zkousky-studijniho-programu-informatika}\par}
+Náčrty označené jako doplněné jsou vlastní, oficiální sada je k~dané otázce neobsahuje.
+\end{poznamka}
+\bigskip
+
+% === Otázky (chronologicky). Doplň \input řádky a soubory q_*.tex do src/. ===
+% Příklad: \input{q_2024-leto-28_bayesovske-site}
+% ZACATEK-OTAZEK
+\input{src/q_2022-podzim-04_baze-ortogonalni-baze}
+\input{src/q_2023-jaro-03_linearni-zobrazeni}
+\input{src/q_2023-leto-03_linearni-algebra}
+\input{src/q_2024-jaro-03_skalarni-soucin}
+\input{src/q_2024-leto-03_baze-vektorovych-prostoru}
+\input{src/q_2025-jaro-03_matice}
+\input{src/q_2025-leto-03_skalarni-soucin}
+\input{src/q_2026-jaro-03_matice}
+% KONEC-OTAZEK
+
+\end{document}

@@ -1,0 +1,47 @@
+% Zdroj: PDF priklady-jaro-2023.pdf, fyzická str. 3. Sada bez značek (starší formát 2023). Zařazeno: S1 (plánování).
+\section{Plánování}
+\szzotazka{jaro 2023}{5}{Plánování (robot, krabice)}
+
+\noindent\textbf{Zadání.}\par
+Mějme robota, který může provádět následující akce:
+\begin{itemize}[nosep]
+  \item \textbf{Jdi} -- přesun na sousední políčko, pokud na něm není zeď; pokud robot nese krabici, nesmí navíc na políčko s jinou krabicí.
+  \item \textbf{Seber} -- sebrání krabice na pozici robota; robot nemůže sebrat další krabici, pokud už nějakou krabici nese.
+  \item \textbf{Polož} -- položení nesené krabice na pozici robota.
+\end{itemize}
+
+Předpokládejme, že počáteční stav světa je jako na obrázku níže. Robot je značen písmenem $R$, dvě krabice jsou značeny písmeny $A$ a $B$. Tmavá políčka označují zdi, světlá políčka jsou volná místa. Cílem je dostat krabici $A$ na políčko označené hvězdičkou. Můžete dále předpokládat, že stav je popsaný pomocí predikátů $\mathtt{soused}(X,Y)$ vyjadřující, že $X$ a $Y$ jsou sousedi a na $Y$ není zeď (tedy na $Y$ je možné se z $X$ přesunout), $\mathtt{na}(X,K)$ vyjadřující, že na pozici $X$ je krabice $K$, a $\mathtt{robot}(X)$ vyjadřující, že robot je na políčku $X$. Značky v pravém horním rohu každého políčka uvádějí jeho jméno, které můžete použít, pokud se na konkrétní políčko potřebujete odkázat v řešení.
+
+\begin{center}\includegraphics[width=0.6\linewidth]{planovani-robot.png}\end{center}
+
+\begin{enumerate}[nosep]
+  \item Formalizujte zadaný problém jako plánovací problém. Pro definování akcí a počátečního a cílového stavu použijte predikáty popsané výše, případně další predikáty, které si nadefinujete. Predikáty, které se nemění ($\mathtt{soused}$), nemusíte explicitně vypisovat v definici počátečního stavu.
+
+  \textit{Nápověda: Budete potřebovat definovat dvě verze akce pro pohyb -- podle toho, jestli robot nese nějakou krabici nebo ne.}
+  \item Popište, jak funguje dopředné a zpětné plánování.
+  \item Napište nějaký plán, který zadaný problém řeší.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, plán ověřen prohledáním stavového prostoru.)}\par
+
+\noindent\emph{(1) Formalizace.} Pomocné fluenty: $\mathtt{nese}(K)$ (robot nese krabici $K$), $\mathtt{volno}(X)$ (na poli $X$ neleží krabice), $\mathtt{volnaruka}$ (robot nic nenese). Operátory (precond $\Rightarrow$ effects):
+\begin{itemize}[nosep]
+  \item $\mathtt{Jdi}(X,Y)$ -- bez krabice: $\mathtt{robot}(X),\allowbreak\mathtt{soused}(X,Y),\allowbreak\mathtt{volnaruka}\ \Rightarrow\ \allowbreak \neg\mathtt{robot}(X),\allowbreak\mathtt{robot}(Y)$.
+  \item $\mathtt{JdiSK}(X,Y,K)$ -- s~krabicí: $\mathtt{robot}(X),\allowbreak\mathtt{soused}(X,Y),\allowbreak\mathtt{nese}(K),\allowbreak\mathtt{volno}(Y)\ \Rightarrow\ \allowbreak \neg\mathtt{robot}(X),\allowbreak\mathtt{robot}(Y)$. (Nesená krabice zůstává „v~ruce`` přes $\mathtt{nese}(K)$; předpoklad $\mathtt{volno}(Y)$ brání vstupu na pole s~jinou krabicí.)
+  \item $\mathtt{Seber}(X,K)$: $\mathtt{robot}(X),\allowbreak\mathtt{na}(X,K),\allowbreak\mathtt{volnaruka}\ \Rightarrow\ \allowbreak \neg\mathtt{na}(X,K),\allowbreak\mathtt{nese}(K),\neg\mathtt{volnaruka},\mathtt{volno}(X)$.
+  \item $\mathtt{Poloz}(X,K)$: $\mathtt{robot}(X),\allowbreak\mathtt{nese}(K),\allowbreak\mathtt{volno}(X)\ \Rightarrow\ \allowbreak \neg\mathtt{nese}(K),\allowbreak\mathtt{na}(X,K),\allowbreak\mathtt{volnaruka},\neg\mathtt{volno}(X)$.
+\end{itemize}
+Počáteční stav (jen měnící se fluenty): $s_0=\{\mathtt{robot}(\mathtt{C1}),\mathtt{volnaruka},\mathtt{na}(\mathtt{A1},A),\mathtt{na}(\mathtt{C2},B)\}\cup\{\mathtt{volno}(X):X\text{ volné},X\neq\mathtt{A1},\mathtt{C2}\}$. Cíl $g=\{\mathtt{na}(\mathtt{D4},A)\}$.
+
+\noindent\emph{(2) Dopředné a zpětné plánování.} Dopředné (progrese) jde od~$s_0$ vpřed: v~každém stavu generuje nástupce použitelných akcí a~prohledává, dokud stav nesplní cíl; pracuje s~konkrétními stavy. Zpětné (regrese) jde od~cíle $g$ vzad přes \emph{relevantní} akce (jejichž efekt přispívá k~cíli) a~počítá jejich regresní množiny, dokud nedosáhne $s_0$; má menší faktor větvení, ale pracuje s~množinami stavů.
+
+\noindent\emph{(3) Plán.} Volná pole jsou $\mathtt{A1\text{--}A4},\mathtt{B2},\mathtt{C1},\mathtt{C2},\mathtt{C4},\mathtt{D1\text{--}D4}$; kvůli zdem $\mathtt{B1,B3,B4,C3}$ se mapa rozpadá na~dvě oblasti spojené \emph{jediným} mostem $\mathtt{B2}\!\leftrightarrow\!\mathtt{C2}$, na~němž leží krabice $B$. Robot s~krabicí přes něj nesmí, takže naivní „seber $A$, odnes do~$\mathtt{D4}$`` \emph{neexistuje} -- $B$ je nutné nejdřív odklidit z~mostu. Validní plán (ověřeno, $16$ akcí je minimum):
+\begin{enumerate}[nosep]
+  \item $\mathtt{Jdi}(\mathtt{C1,C2})$;\quad 2. $\mathtt{Seber}(\mathtt{C2},B)$;\quad 3. $\mathtt{JdiSK}(\mathtt{C2,B2},B)$;\quad 4. $\mathtt{JdiSK}(\mathtt{B2,A2},B)$;
+  \item[] 5. $\mathtt{JdiSK}(\mathtt{A2,A3},B)$;\quad 6. $\mathtt{Poloz}(\mathtt{A3},B)$ \emph{(krabice $B$ odklizena do~horní oblasti)};
+  \item[] 7. $\mathtt{Jdi}(\mathtt{A3,A2})$;\quad 8. $\mathtt{Jdi}(\mathtt{A2,A1})$;\quad 9. $\mathtt{Seber}(\mathtt{A1},A)$;
+  \item[] 10. $\mathtt{JdiSK}(\mathtt{A1,A2},A)$;\quad 11. $\mathtt{JdiSK}(\mathtt{A2,B2},A)$;\quad 12. $\mathtt{JdiSK}(\mathtt{B2,C2},A)$;
+  \item[] 13. $\mathtt{JdiSK}(\mathtt{C2,D2},A)$;\quad 14. $\mathtt{JdiSK}(\mathtt{D2,D3},A)$;\quad 15. $\mathtt{JdiSK}(\mathtt{D3,D4},A)$;\quad 16. $\mathtt{Poloz}(\mathtt{D4},A)$.
+\end{enumerate}
+Výsledný stav obsahuje $\mathtt{na}(\mathtt{D4},A)$, cíl je splněn.

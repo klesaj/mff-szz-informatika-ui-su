@@ -1,0 +1,108 @@
+% szzmaterial.sty - styl STUDIJNÍCH MATERIÁLŮ ke SZZ (MFF UK, UI-SU).
+% Oddělen od szzstyl.sty (ten je pro složky priklady/). Určeno pro LuaLaTeX.
+% Vzhled schválen 2026-05-26: "rámeček vs. lišta" (B1), sytější paleta, font Libertinus,
+% próza střední hustoty (P2), intuice = levá lišta, odkazy na 3Blue1Brown.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{szzmaterial}[2026/05/26 v1.0 Studijni material SZZ - boxovy styl]
+
+% --- Matematika (před unicode-math z libertinus-otf) ---
+\usepackage{amsmath,amsthm,mathtools}
+
+% --- Sazba a jazyk (LuaLaTeX) ---
+\usepackage{libertinus-otf}      % Libertinus text + math (unicode-math)
+\usepackage[czech]{babel}
+\usepackage{microtype}
+
+% --- Geometrie stránky ---
+\usepackage[a4paper,margin=2.4cm]{geometry}
+
+% --- Grafika, tabulky, seznamy, kód ---
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,
+  showstringspaces=false,columns=fullflexible}
+
+% --- Barvy, boxy, ikony ---
+\usepackage{xcolor}
+\usepackage{fontawesome5}
+\usepackage[most]{tcolorbox}
+
+% --- Odkazy ---
+\usepackage[hidelinks]{hyperref}
+% Dlouhé URL (např. web MFF) se smí zalomit i za pomlčkou.
+\makeatletter\g@addto@macro{\UrlBreaks}{\do\-}\makeatother
+
+% =====================================================================
+%  Prostředí a makra studijního materiálu
+% =====================================================================
+
+% Formální tvrzení = orámovaný box (sytější paleta). Volitelný argument [název].
+\newtcolorbox{definice}[1][]{enhanced,breakable,colback=blue!4,colframe=blue!55!black,
+  boxrule=0.7pt,arc=2pt,left=8pt,right=8pt,top=4pt,bottom=5pt,
+  fonttitle=\bfseries,coltitle=white,colbacktitle=blue!55!black,
+  title={\faBook\enspace Definice \textemdash\ #1}}
+\newtcolorbox{veta}[1][]{enhanced,breakable,colback=red!4,colframe=red!55!black,
+  boxrule=0.7pt,arc=2pt,left=8pt,right=8pt,top=4pt,bottom=5pt,
+  fonttitle=\bfseries,coltitle=white,colbacktitle=red!55!black,
+  title={\faStar\enspace Věta \textemdash\ #1}}
+\newtcolorbox{lemma}[1][]{enhanced,breakable,colback=red!4,colframe=red!55!black,
+  boxrule=0.7pt,arc=2pt,left=8pt,right=8pt,top=4pt,bottom=5pt,
+  fonttitle=\bfseries,coltitle=white,colbacktitle=red!55!black,
+  title={\faStar\enspace Lemma \textemdash\ #1}}
+\newtcolorbox{dusledek}[1][]{enhanced,breakable,colback=red!3,colframe=red!45!black,
+  boxrule=0.7pt,arc=2pt,left=8pt,right=8pt,top=4pt,bottom=5pt,
+  fonttitle=\bfseries,coltitle=white,colbacktitle=red!45!black,
+  title={\faStar\enspace Důsledek \textemdash\ #1}}
+\newtcolorbox{priklad}[1][]{enhanced,breakable,colback=black!3,colframe=black!55,
+  boxrule=0.7pt,arc=2pt,left=8pt,right=8pt,top=4pt,bottom=5pt,
+  fonttitle=\bfseries,coltitle=white,colbacktitle=black!55,
+  title={\faPenNib\enspace Příklad \textemdash\ #1}}
+
+% Komentář (intuice) = jen barevná levá lišta, bez rámečku. Prostředí (snese i display math).
+\newtcolorbox{intuice}{enhanced,frame hidden,colback=yellow!14,sharp corners,
+  borderline west={2.5pt}{0pt}{yellow!60!black},boxrule=0pt,
+  left=8pt,right=6pt,top=3pt,bottom=3pt,
+  before upper={\bfseries\textcolor{yellow!60!black}{\faLightbulb\enspace Intuice.}\normalfont\enspace}}
+
+% Poznámka = neutrální levá lišta.
+\newtcolorbox{poznamka}{enhanced,breakable,frame hidden,colback=black!4,sharp corners,
+  borderline west={2.5pt}{0pt}{black!55},boxrule=0pt,
+  left=8pt,right=6pt,top=3pt,bottom=3pt,
+  before upper={\bfseries\textcolor{black!65}{\faInfoCircle\enspace Poznámka.}\normalfont\enspace}}
+
+% Odkaz na video (typicky 3Blue1Brown). Použití: \video{URL}{popis}.
+\newcommand{\video}[2]{\par\smallskip\noindent
+  \textcolor{red!75!black}{\faYoutube}\enspace
+  \href{#1}{\textcolor{red!75!black}{\emph{Video:}}\ \emph{#2}}\par\smallskip}
+
+% --- Popisek obrázku (sjednoceno 2026-05-31) ---
+% Jednotný vzhled captionu napříč okruhy: centrovaný blok 0.9\linewidth, \small,
+% text uvnitř zarovnaný do bloku (kratší řádky = lepší čitelnost). BEZ prefixu „Obrázek:".
+% Funguje uvnitř i vně prostředí center. Použití hned za obrázkem, bez ručního \\[..]:
+%   \end{tikzpicture}\obrpopis{Text popisku.}
+% Vícepanelové obrázky: jeden \obrpopis pod celou skupinu; úzké pod-popisky
+% jednotlivých panelů (minipage 0.4–0.5\linewidth) nech jako {\small ...}.
+% \nobreak drží popisek u obrázku (nezalomí se na další stránku než jeho figura).
+\newcommand{\obrpopis}[1]{%
+  \par\nobreak\vspace{0.4em}\nobreak
+  \centerline{\begin{minipage}{0.9\linewidth}\small #1\end{minipage}}%
+  \par}
+
+% --- Označení reálné otázky z minulých termínů (sjednoceno se szzstyl) ---
+% Použití: \szzotazka{léto 2025}{27}{CSP}
+\newcommand{\szzotazka}[3]{\par\noindent\textit{(Reálná otázka SZZ: #1, č.~#2 -- #3)}\par}
+
+% --- QED box pro ručně psané důkazy mimo proof env ---
+% (proof env z amsthm dává symbol automaticky; \qedbox je pro důkazy ve volném textu.)
+\newcommand{\qedbox}{\hfill\framebox[1.5ex][c]{\rule{0pt}{1.05ex}}}
+
+% --- Titulní makro ---
+% Použití v preambuli: \szztitul{Název okruhu}{Kód}{Předměty}
+\newcommand{\szztitul}[3]{%
+  \title{#1\\[0.3em]\large Studijní materiál ke státnicím (#2)}
+  \author{Jakub Klesa}
+  \date{Pokryté předměty: #3}
+}

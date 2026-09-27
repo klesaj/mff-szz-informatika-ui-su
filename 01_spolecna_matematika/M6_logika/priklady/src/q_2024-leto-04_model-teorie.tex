@@ -1,0 +1,57 @@
+% Zdroj: PDF priklady-leto-2024.pdf, fyzická str. 4. Značka: společné okruhy. Zařazeno: M6.
+\section{Model teorie}
+\szzotazka{léto 2024}{4}{Model teorie}
+
+\noindent\textbf{Zadání.}\par
+
+\begin{enumerate}
+  \item Nechť $T$ je teorie jazyka (signatury) $L = \langle \mathcal{R}, \mathcal{F} \rangle$ v predikátové logice (kde $\mathcal{R}, \mathcal{F}$ jsou množiny relačních a funkčních symbolů s danými aritami). Uveďte definice pojmů \emph{struktura jazyka $L$} a \emph{model teorie $T$}.
+
+  \item Vyjádřete následující tvrzení formulemi $\varphi_1, \varphi_2, \varphi_3$ v jazyce $L = \langle Z, S, P \rangle$ predikátové logiky (s unárními predikáty pro \emph{`složit zkoušku'}, \emph{`mít štěstí'}, \emph{`být připraven'}).
+  \begin{enumerate}
+    \item[(a)] \emph{Ne každý, kdo složí zkoušku, má štěstí, ale kdo má štěstí, zkoušku složí.}
+    \item[(b)] \emph{Štěstí přeje připraveným. (Kdo je připraven, má štěstí.)}
+    \item[(c)] \emph{Nějaký student byl připraven, ale zkoušku nesložil.}
+  \end{enumerate}
+
+  \item Pro teorii $T_1 = \{\varphi_1, \varphi_2\}$, a také pro teorii $T_2 = \{\varphi_1, \varphi_2, \varphi_3\}$, buď najděte nějaký její model anebo formálně dokažte (pomocí tablo metody, rezoluce, či Hilbertovského kalkulu), že žádný model nemá.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+
+\begin{enumerate}
+  \item Struktura jazyka $L$ je trojice $\mathcal{A} = \langle A, \mathcal{R}^{\mathcal{A}}, \mathcal{F}^{\mathcal{A}} \rangle$, kde $A$ je neprázdná množina (doména) a $\mathcal{R}^{\mathcal{A}}, \mathcal{F}^{\mathcal{A}}$ jsou soubory realizací relačních a funkčních symbolů jazyka $L$. Realizací $n$-árního relačního symbolu $R$ je nějaká $n$-ární relace $R^{\mathcal{A}} \subseteq A^n$, realizací $n$-árního funkčního symbolu $f$ je nějaká $n$-ární funkce $f^{\mathcal{A}} \colon A^n \to A$, přičemž jako realizaci konstantního symbolu $c$ (jako nulárního funkčního symbolu) bereme přímo nějaký prvek $c^{\mathcal{A}} \in A$.
+
+  \emph{Pozn:} Lze uznat i odpověď ve smyslu, že struktura je nějaká $k$-tice, kde kromě neprázdné domény jsou i příslušné realizace relačních a funkčních symbolů s vysvětlením, co ty realizace jsou.
+
+  Model teorie $T$ je struktura jazyka $L$, ve které platí všechny axiomy teorie $T$.
+
+  \item Například
+  \begin{enumerate}
+    \item[(a)] $\varphi_1 : \neg(\forall x)(Z(x) \to S(x)) \land (\forall y)(S(y) \to Z(y))$
+    \item[(b)] $\varphi_2 : (\forall z)(P(z) \to S(z))$
+    \item[(c)] $\varphi_3 : (\exists s)(P(s) \land \neg Z(s))$
+  \end{enumerate}
+
+  \item Teorie $T_1$ má například jednoprvkový model $\mathcal{A} = \langle \{0\}, Z^{\mathcal{A}} = \{0\}, S^{\mathcal{A}} = P^{\mathcal{A}} = \emptyset \rangle$. Teorie $T_2$ model nemá, což se dokáže důkazem sporu z $T_2$ pomocí tablo metody či Hilbertovským kalkulem, nebo zamítnutím skolemizované teorie $T_2$ převedené do CNF pomocí rezoluce.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):}
+
+\noindent\emph{Proč je $\mathcal{A}$ modelem $T_1$.} Jediný prvek $0$ zkoušku složil, ale štěstí nemá, takže $(\forall x)(Z(x)\to S(x))$ neplatí a~první konjunkt $\varphi_1$ platí. Implikace $S(x)\to Z(x)$ i~$P(x)\to S(x)$ platí, protože $S^{\mathcal{A}}$ i~$P^{\mathcal{A}}$ jsou prázdné (předpoklad je vždy nepravdivý).
+
+\noindent\emph{Proč $T_2$ model nemá (neformálně).} Podle $\varphi_3$ existuje $a$ s~$P(a)$ a~$\neg Z(a)$. Z~$\varphi_2$ plyne $S(a)$ a~z~druhé části $\varphi_1$ pak $Z(a)$, spor.
+
+\noindent\emph{Formální důkaz rezolucí.} Skolemizace $\varphi_3$ nahradí existenčně kvantifikovanou proměnnou novou konstantou $a$, první část $\varphi_1$ (po převodu $\neg(\forall x)(\dots)$ na $(\exists x)(Z(x)\wedge\neg S(x))$) novou konstantou $b$. Po převodu do CNF a~přejmenování proměnných dostaneme množinu klauzulí
+\[
+\{Z(b)\},\ \{\neg S(b)\},\ \{\neg S(y),Z(y)\},\ \{\neg P(z),S(z)\},\ \{P(a)\},\ \{\neg Z(a)\}.
+\]
+Zamítnutí (u~každého kroku unifikace):
+$\{P(a)\}$ a~$\{\neg P(z),S(z)\}$ dají přes $\{z/a\}$ klauzuli $\{S(a)\}$;
+$\{S(a)\}$ a~$\{\neg S(y),Z(y)\}$ dají přes $\{y/a\}$ klauzuli $\{Z(a)\}$;
+$\{Z(a)\}$ a~$\{\neg Z(a)\}$ dají prázdnou klauzuli $\square$.
+Skolemizovaná teorie je tedy nesplnitelná, a~protože je s~$T_2$ ekvisplnitelná, nemá model ani $T_2$. Klauzule z~první části $\varphi_1$ (s~konstantou $b$) k~zamítnutí potřeba nejsou.
+
+\noindent\emph{Totéž tablo metodou.} Tablo z~teorie $T_2$ s~kořenem $F\bot$: položka $T\varphi_3$ dá svědka $TP(a)$, $F Z(a)$; položky \uv{všichni} z~$\varphi_2$ a~z~druhé části $\varphi_1$ instancujeme termem $a$. Rozvoj $T(P(a)\to S(a))$ větví na~$FP(a)$ (spor s~$TP(a)$) a~$TS(a)$; rozvoj $T(S(a)\to Z(a))$ na~$FS(a)$ (spor s~$TS(a)$) a~$TZ(a)$ (spor s~$FZ(a)$). Všechny větve jsou sporné, tedy $T_2\vdash\bot$ a~$T_2$ je sporná.

@@ -1,0 +1,154 @@
+% Zdroj: PDF priklady-leto-2022-one.pdf (sešit S1, PGVVH+UI), fyzická str. 1-2. Značka: společné okruhy. Zařazeno: I3 (překlad a běh). Číselné/logické výsledky ověřeny.
+\section{Překlad konstrukcí vyššího jazyka}
+\szzotazka{léto 2022}{2}{Překlad konstrukcí vyššího jazyka}
+
+\noindent\textbf{Zadání.}\par
+Mějme jednoduchý procesor s architekturou inspirovanou MIPS. Procesor má 32
+32-bitových celočíselných obecných registrů \texttt{\$R0}--\texttt{\$R31} a jeden
+32-bitový registr \texttt{PC} ukazující na začátek následující instrukce. Hodnota
+registru \texttt{\$R0} je vždy 0. V popisu operandů značí \texttt{label} symbolické
+návěští, \texttt{[mem]} adresu paměti a \texttt{reg} obecný registr.
+
+\medskip
+\noindent Instrukce procesoru:
+\begin{itemize}
+  \item \texttt{LD reg=[mem]} -- načte celočíselnou proměnnou z adresy \texttt{mem}
+    do registru (\texttt{reg = *mem}).
+  \item \texttt{ST [mem]=reg} -- uloží registr do proměnné na adrese \texttt{mem}
+    (\texttt{*mem = reg}).
+  \item \texttt{ADD reg1=reg2,reg3} -- \texttt{reg1 = reg2 + reg3}.
+  \item \texttt{J label} -- nepodmíněný skok (\texttt{PC = label}).
+  \item \texttt{BEQ reg1,reg2,label} -- skok, pokud \texttt{reg1 == reg2}.
+  \item \texttt{BNE reg1,reg2,label} -- skok, pokud \texttt{reg1 != reg2}.
+  \item \texttt{SLT reg1=reg2,reg3} -- \texttt{reg1 = (reg2 < reg3)} (jinak 0).
+\end{itemize}
+
+\medskip
+\noindent Mějme následující posloupnost instrukcí:
+\begin{lstlisting}
+        LD    $r1=[q]
+        LD    $r2=[n]
+        LD    $r3=[inc]
+        J     lab1
+lab2:
+        LD    $r4=[a]
+        LD    $r5=[b]
+        ADD   $r4=$r4,$r1
+        SLT   $r5=$r5,$r4
+        BEQ   $r5,$r0,lab3
+        ST    [b]=$r4
+lab3:
+        ADD   $r1=$r1,$r3
+lab1:
+        SLT   $r4=$r1,$r2
+        BNE   $r4,$r0,lab2
+\end{lstlisting}
+
+\begin{enumerate}
+\item Vyberte ze zadaných úryvků v jazyce C všechny, které odpovídají výše uvedené
+  posloupnosti instrukcí (neznámé identifikátory považujte za někde deklarované
+  32-bitové celočíselné proměnné). Pro zvolené řešení připište k~instrukcím čísla řádků
+  odpovídajících příkazů v~jazyce C. Nabízené úryvky (v~PDF je každý rozepsán na očíslované
+  řádky, jeden příkaz nebo hlavička na řádek: úryvky (a)--(d) mají řádky 1--3, úryvek (e) řádky 1--6):
+
+  \begin{enumerate}
+    \item \texttt{for (i=q; i<n; i+=inc) if (a+i <= b) b = a+i;}
+    \item \texttt{if (a+i > b) for (i=q; i<n; i+=inc) b = a+i;}
+    \item \texttt{for (i=q; i<n; i+=inc) if (a+i > b) b = a+i;}
+    \item \texttt{if (a+i < b) for (i=q; i<n; i+=inc) b = a+i;}
+    \item \texttt{i = q; while (i<n) \{ if (a+i > b) b = a+i; i += inc; \}}
+    \item Žádný z uvedených úseků neodpovídá (napište vlastní kód).
+  \end{enumerate}
+
+\item Napište (stačí jeden řádek), jak se původní kód v jazyce C změní, pokud
+  instrukci \texttt{BEQ} nahradíme instrukcí \texttt{BNE} se stejnými operandy.
+
+\item Předpokládejme, že podmínka v příkazu \texttt{if} je rozšířena o část
+  \texttt{\&\& i < b}, tj. bude mít tvar \texttt{if (původní podmínka \&\& i < b)}.
+  Upravte původní sekvenci instrukcí tak, aby tuto rozšířenou podmínku realizovala.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu, logika ověřena
+simulací.)}
+
+\medskip
+Nejprve rozluštíme posloupnost. Před cyklem se načte \texttt{q}, \texttt{n},
+\texttt{inc} (do \texttt{\$r1}, \texttt{\$r2}, \texttt{\$r3}) a skočí se na
+\texttt{lab1}. Tam je test cyklu: \texttt{SLT \$r4=\$r1,\$r2} nastaví
+\texttt{\$r4 = (i < n)} (řídicí proměnná \texttt{i} je v \texttt{\$r1}, počáteční
+hodnota \texttt{q}) a \texttt{BNE \$r4,\$r0,lab2} skočí do těla, je-li
+\texttt{\$r4 != 0}, tj. \emph{dokud platí} \texttt{i < n}. V těle se spočítá
+\texttt{\$r4 = a + i}, pak \texttt{SLT \$r5=\$r5,\$r4} dá \texttt{\$r5 = (b < a+i)}
+a \texttt{BEQ \$r5,\$r0,lab3} \emph{přeskočí} uložení \texttt{ST [b]=\$r4}, když
+\texttt{\$r5 == 0}, tj. když \texttt{a+i <= b}. Uložení \texttt{b = a+i} se tedy
+provede právě tehdy, když \texttt{a+i > b}. Na \texttt{lab3} se \texttt{i} zvýší
+o \texttt{inc} a běh pokračuje testem cyklu.
+
+\medskip
+\noindent\textbf{(1)} Posloupnost realizuje
+\begin{lstlisting}[language=C]
+for (i=q; i<n; i+=inc)
+    if (a+i > b) b = a+i;
+\end{lstlisting}
+a~ekvivalentně její while-rozpis
+\begin{lstlisting}[language=C]
+i = q;
+while (i<n) { if (a+i > b) b = a+i; i += inc; }
+\end{lstlisting}
+Odpovídají tedy \emph{obě} varianty: \emph{(c)} for s podmínkou \texttt{a+i > b}
+i~\emph{(e)} ekvivalentní while. Varianty (a) (opačná podmínka \texttt{<=}),
+(b)/(d) (zaměněné pořadí for a~if, resp. ostré \texttt{<}) neodpovídají.
+
+\medskip
+\noindent Čísla řádků k~instrukcím. Úryvek (c): řádek~1 \texttt{for (i=q; i<n; i+=inc)},
+2~\texttt{if (a+i > b)}, 3~\texttt{b = a+i;}. Úryvek (e): 1~\texttt{i = q;}, 2~\texttt{while (i<n) \{},
+3~\texttt{if (a+i > b)}, 4~\texttt{b = a+i;}, 5~\texttt{i += inc;}, 6~\texttt{\}}.
+\begin{center}
+\begin{tabular}{lcc}
+instrukce & (c) & (e) \\ \hline
+\texttt{LD \$r1=[q]} & 1 & 1 \\
+\texttt{LD \$r2=[n]}, \texttt{LD \$r3=[inc]} & 1 & 2, 5 \\
+\texttt{J lab1} & 1 & 2 \\
+\texttt{LD \$r4=[a]}, \texttt{LD \$r5=[b]}, \texttt{ADD \$r4=\$r4,\$r1}, \texttt{SLT \$r5=\$r5,\$r4}, \texttt{BEQ} & 2 & 3 \\
+\texttt{ST [b]=\$r4} & 3 & 4 \\
+\texttt{ADD \$r1=\$r1,\$r3} & 1 & 5 \\
+\texttt{SLT \$r4=\$r1,\$r2}, \texttt{BNE} & 1 & 2 \\
+\end{tabular}
+\end{center}
+Součet \texttt{a+i} v~\texttt{\$r4} spočítaný pro podmínku se znovu použije jako přiřazovaná
+hodnota na řádku s~\texttt{b = a+i} (proto je \texttt{ADD \$r4=\$r4,\$r1} vlastně společný
+podmínce i~přiřazení). Test \texttt{i<n} je v~posloupnosti \emph{na konci} cyklu a~\texttt{J lab1}
+na něj skočí hned na začátku, což je obvyklý překlad cyklu \texttt{for}/\texttt{while}.
+
+\medskip
+\noindent\textbf{(2)} Záměna \texttt{BEQ} za \texttt{BNE} (se stejnými operandy
+\texttt{\$r5,\$r0,lab3}) obrátí podmínku skoku: přeskočení uložení nastane, když
+\texttt{\$r5 != 0}, tj. když \texttt{a+i > b}. Uložení se proto provede v opačném
+případě, takže podmínka v~C se změní na
+\begin{lstlisting}[language=C]
+if (a+i <= b) b = a+i;
+\end{lstlisting}
+
+\medskip
+\noindent\textbf{(3)} Rozšíření o \texttt{\&\& i < b}: před instrukci
+\texttt{ST [b]=\$r4} vložíme druhý test. Načteme \texttt{b} (do \texttt{\$r6}),
+spočítáme \texttt{\$r6 = (i < b)} a \texttt{BEQ \$r6,\$r0,lab3} přeskočí uložení,
+když \texttt{i < b} neplatí. Uloží se tedy jen při splnění obou podmínek
+(\texttt{a+i > b} a zároveň \texttt{i < b}). Upravená posloupnost (komentáře bez
+diakritiky):
+\begin{lstlisting}
+lab2:
+        LD    $r4=[a]
+        LD    $r5=[b]
+        ADD   $r4=$r4,$r1
+        SLT   $r5=$r5,$r4        ; r5 = (b < a+i)
+        BEQ   $r5,$r0,lab3       ; preskoc, kdyz a+i <= b
+        LD    $r6=[b]            ; pridany test i < b
+        SLT   $r6=$r1,$r6        ; r6 = (i < b)
+        BEQ   $r6,$r0,lab3       ; preskoc, kdyz i < b neplati
+        ST    [b]=$r4            ; ulozi se jen kdyz a+i > b AND i < b
+lab3:
+        ADD   $r1=$r1,$r3
+\end{lstlisting}

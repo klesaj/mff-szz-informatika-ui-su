@@ -1,0 +1,32 @@
+% Zdroj: PDF priklady-jaro-2026.pdf, fyzická str. 22. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S3.
+\section{Kombinace modelů}
+\szzotazka{jaro 2026}{29}{Kombinace modelů}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Stručně popište základní myšlenky technik bagging a boosting. Uveďte příklad konkrétních modelů, které tyto techniky
+    používají.
+  \item Uvažujme tři různé modely $M_1$, $M_2$ a $M_3$ pro binární klasifikaci. Přesnost (accuracy) modelu $M_1$ je $0{,}70$, přesnost
+    modelu $M_2$ je $0{,}75$ a přesnost modelu $M_3$ je $0{,}80$. Z těchto modelů vytvoříme ensemble tak, že modely necháme hlasovat
+    (vzorek se předloží všem modelům a jako finální odpověď se použije ta, která je častější). Za jakých podmínek bude
+    přesnost výsledného ensemble lepší, než přesnost nejlepšího modelu? Jaká je nejlepší dosažitelná přesnost ensemblu? Za
+    jakých podmínek bude naopak přesnost ensemblu horší než přesnost nejlepšího modelu? \emph{Nápověda: Uvažujte předpovědi
+    každého z modelů na jednotlivých vzorcích dat.}
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Bagging trénuje modely na různých náhodných podmnožinách trénovací množiny (bootstrap). Výstupy modelů se
+    následně agregují (např. hlasováním) pro finální predikci ensemblu. Při boostingu se trénuje posloupnost modelů tak,
+    že instance špatně předpovězené předchozím modelem mají větší váhu. Příkladem baggingu může být random forest,
+    příkladem boostingu AdaBoost nebo XGBoost.
+  \item Pokud každý z modelů chybně předpovídá jiná data (množiny chybně předpovězených instancí jsou navzájem dis\-junktní),
+    výsledný ensemble bude mít accuracy $100\,\%$. Pokud by naopak množina instancí chybně klasifikovaná
+    modelem $M_2$ byla podmnožinou množiny chybně klasifikovanou $M_1$, bude accuracy přinejlepším $0{,}75$. Pokud by navíc
+    chybně klasifikované vzorky modelu $M_3$ pokryly zbytek chybně klasifikovaných modelem $M_1$, bude accuracy přinejlepším
+    $0{,}7$.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Označme $E_i$ množinu vzorků, na nichž chybuje $M_i$ ($|E_1|=30\,\%$, $|E_2|=25\,\%$, $|E_3|=20\,\%$). Ensemble se mýlí právě na vzorcích, které leží aspoň ve dvou množinách $E_i$. Je lepší než nejlepší model, právě když takových vzorků je méně než $20\,\%$, tj.\ když se chybové množiny překrývají málo (chyby modelů jsou málo korelované). Při nezávislých chybách by vyšla accuracy $1-(0{,}14+0{,}015)=0{,}845$. Horší než nejlepší model je ensemble při velkém překryvu; nejhorší možná accuracy je $1-\frac{0{,}30+0{,}25+0{,}20}{2}=0{,}625$ (každý chybný vzorek ensemblu spotřebuje aspoň dvě chyby modelů), např.\ při $|E_1\cap E_2|=17{,}5\,\%$, $|E_1\cap E_3|=12{,}5\,\%$, $|E_2\cap E_3|=7{,}5\,\%$ a~prázdném trojném průniku.

@@ -1,0 +1,25 @@
+% Zdroj: PDF priklady-jaro-2024.pdf, fyzická str. 24. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S1 (informované prohledávání).
+\section{Informované prohledávání}
+\szzotazka{jaro 2024}{32}{Informované prohledávání (A*, heuristika, 8-puzzle)}
+
+\noindent\textbf{Zadání.}\par
+Uvažme hlavolam na obrázku níže. Jedná se o mřížku $3 \times 3$ s 8 označenými kostičkami a jedním volným místem. Naším cílem je ze zadaného počátečního stavu uspořádat kostičky do předem daného cílového stavu, ve kterém jsou kostičky uspořádány od 1 do 8 zleva doprava, shora dolů. V každém kroku můžeme posunout právě jednu kostičku na sousední volné místo. Navíc chceme provést minimální možný počet kroků.
+
+\begin{center}\includegraphics[width=0.32\linewidth]{8-puzzle.png}\end{center}
+
+\begin{enumerate}[nosep]
+  \item Formalizujte zadaný problém jako informovaný prohledávací problém. Speciálně popište, jak vypadá stav, jaký je přechodový model a jaký je test cílového stavu.
+  \item Pro vyřešení definovaného problému navrhněte optimální informovaný prohledávací algoritmus. Popište jeho průběh (například pomocí pseudokódu).
+  \item Navrhněte heuristickou funkci pro výše zmíněný hlavolam. Jaké vlastnosti má vaše heuristická funkce? Zaručuje použití této heuristiky s algoritmem z předchozího bodu nalezení optimálního řešení? \textit{Nápověda: Napsali jste algoritmus jako tree search nebo graph search?}
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}[nosep]
+  \item Stav je rozložení kostiček, přechodový model je pohnutí jednou kostičkou, čímž dostanu jiné rozložení (nezapomenout na cenu akce $= 1$), kontrola cílového stavu zkontroluje, zda se rozložení shoduje se zadaným cílem.
+  \item A*, je jedno jestli graph search nebo tree search.
+  \item Například taxicab distance. U graph search musí být heuristika monotonní/konzistentní. U tree search stačí přípustnost/spodní odhad. Všechny rozumné heuristiky budou splňovat oboje.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Dvě klasické heuristiky pro zadaný počáteční stav: $h_1$ = počet kostek mimo cílovou pozici ($h_1=6$, správně leží jen $3$ a~$7$) a~$h_2$ = součet manhattanských vzdáleností kostek od cíle ($h_2=1+1+0+2+2+1+0+2=9$ pro kostky $1$ až $8$). Obě jsou přípustné (jeden tah posune jednu kostku o~jedno pole, takže skutečný počet tahů nepodstřelí) i~konzistentní (tahem klesne $h$ nejvýš o~$1$, což je cena kroku); $h_2\ge h_1$, tedy $h_2$ dominuje. Přípustnost zaručuje optimalitu A* ve stromovém prohledávání, konzistence v~grafovém (s~closed listem). Poznámka k~instanci: počáteční stav má $11$ inverzí (liché číslo), cílový $0$, a~posun kostky paritu inverzí nemění. Zadaná instance proto do cíle \emph{není řešitelná}; A* (v~grafové verzi) by po prohledání všech $9!/2=181\,440$ dosažitelných stavů ohlásil neúspěch. Otázka ale konkrétní řešení nežádá.

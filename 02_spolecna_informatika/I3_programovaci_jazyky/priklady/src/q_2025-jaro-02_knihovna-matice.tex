@@ -1,0 +1,122 @@
+% Zdroj: PDF priklady-jaro-2025.pdf, fyzická str. 2-3. Značka: společné okruhy I3. Zařazeno: I3.
+\section{Knihovna pro výpočty s maticemi}
+\szzotazka{jaro 2025}{2}{Knihovna pro výpočty s maticemi (kontrakt/rozhraní)}
+
+\noindent\textbf{Zadání.}\par
+\textit{Poznámky, jak odpovídat na otázku:}
+\begin{itemize}
+\item Pro odpověď si vyberte jeden z jazyků Java, C++ nebo C\#.
+\item Snažte se použít co možná nejnovější syntaxi (a idiomy, atd.) vybraného jazyka.
+\end{itemize}
+
+Představte si, že vyvíjíte \textbf{knihovnu pro výpočty s maticemi}.
+
+\begin{enumerate}
+\item Definujte kontrakt (bez implementace) pro reprezentaci dvourozměrné matice. Tento
+  kontrakt musí poskytovat \textit{prostředky} (tj. metody, funkce, vlastnosti apod.
+  podle zvoleného jazyka) alespoň pro:
+  \begin{itemize}
+  \item získání velikosti jednotlivých rozměrů,
+  \item získání hodnoty z matice na základě souřadnic dané hodnoty,
+  \item provádění aritmetických operací (sčítání s jinou maticí, odčítání, násobení, atd.).
+  \end{itemize}
+
+\item Vytvořte implementaci svého kontraktu, která je vhodná pro velmi velké, ale
+  \textbf{řídké} (tzv. \textit{sparse}) matice (tj. matice obsahující převážně nuly).
+  Okomentujte svou implementaci tak, aby bylo zřejmé, jak funguje. Z metod (funkcí, atd.)
+  implementujte pouze ty, které vrací velikosti rozměrů a hodnotu z matice na základě
+  souřadnic.
+
+  Definujte prostorovou složitost své implementace ve stylu $O(\textit{something})$.
+
+\item Představte si, že máte více implementací svého kontraktu pro matice (např. pro řídké
+  matice a pro husté matice). Dále si představte, že máte metodu (nebo funkci, atd.),
+  která dostane soubor s hodnotami matice a určí, která implementace je pro danou matici
+  ideální.
+
+  S využitím vhodného \textit{návrhového vzoru} implementujte \textit{prostředek}, který
+  dostane soubor a vrátí instanci kontraktu matice s ideální implementací.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+\item Rozhraní nebo abstraktní třída s metodami podle otázky, přetíženými operátory
+  (pokud jsou podporovány), vlastnostmi (pokud jsou podporovány) atd.
+
+\item Existuje mnoho možných implementací (pro matici M$\times$N určitě není správnou
+  implementací dvourozměrné pole M$\times$N, které obsahuje všechny hodnoty). Správné
+  řešení je uložit pouze nenulové hodnoty (plus nějaká „management" data). Možná řešení:
+  (i)~seznam obsahující trojice [řádek, sloupec, hodnota] se seřazením podle řádkového
+  indexu a pak podle sloupcového indexu, (ii)~seznam seznamů obsahující dvojice [sloupec,
+  hodnota] a seřazený, (iii)~Compressed Sparse Row formát (CSR), tj. tři pole, z nichž
+  jedno drží nenulové hodnoty, druhé drží sloupec, kde se daná hodnota nachází, a třetí
+  drží index (v hodnotách a sloupcích), kde daný řádek začíná, (iv)~atd. Implementace
+  metody getValue závisí na zvolené reprezentaci. Pro CSR to může být například:
+
+\begin{lstlisting}[language=Java]
+public double getValue(int row, int col) {
+    checkBounds(row, col);
+    int start = rowPointers[row];
+    int end = rowPointers[row + 1];
+    for (int idx = start; idx < end; idx++) {
+        if (colIndices[idx] == col) {
+            return values[idx];
+        }
+    }
+    return 0.0;
+}
+\end{lstlisting}
+
+  {\sloppy Složitost závisí na zvolené implementaci, ale měla by být podobná
+  $O(\textit{pocetNenulovychHodnot} + \textit{neco})$.\par}
+
+\item Odkazuje to na implementaci na základě návrhového vzoru \textit{Factory}, například:
+
+\begin{lstlisting}[language=Java]
+public static Matrix create(Path path) {
+    return switch (getSuitableType(path)) {
+        case "sparse": new SparseMatrix(path);
+        case "dense": new DenseMatrix(path);
+        default throw new RuntimeException("unknown_implementation");
+    }
+}
+\end{lstlisting}
+\end{enumerate}
+
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} úryvek v~oficiálním náčrtu
+míchá dvě syntaxe \texttt{switch} a~v~Javě by se nepřeložil. Výraz \texttt{switch} (Java~14+) se
+šipkovými větvemi vypadá takto:
+\begin{lstlisting}[language=Java]
+return switch (getSuitableType(path)) {
+    case "sparse" -> new SparseMatrix(path);
+    case "dense"  -> new DenseMatrix(path);
+    default -> throw new RuntimeException("unknown implementation");
+};
+\end{lstlisting}
+Jde o~\emph{tovární metodu} (Factory): volající dostane instanci kontraktu \texttt{Matrix}
+a~o~konkrétní implementaci (řídká/hustá) rozhoduje jediné místo, které lze rozšířit o~další
+reprezentace, aniž se změní kód volajících. Prostorová složitost CSR je $O(\mathit{nnz} + M)$
+($\mathit{nnz}$ nenulových hodnot a~sloupcových indexů, $M+1$ ukazatelů na začátky řádků).
+
+\medskip
+\begin{csalt}[rozhraní matice + přetížení operátorů]
+Více reprezentací (hustá, řídká/CSR) za jedním rozhraním je v~C\# čisté; navíc C\# (na rozdíl
+od Javy) umí \emph{přetížení operátorů}, takže \texttt{a + b} funguje jako v~C++:
+\begin{lstlisting}[style=cs]
+interface IMatrix {
+    int Rows { get; } int Cols { get; }
+    double this[int r, int c] { get; }            // indexer misto getValue(r,c)
+}
+sealed class CsrMatrix : IMatrix {
+    public int Rows { get; } public int Cols { get; }
+    public double this[int r, int c] { get => /* prohledej radek r v colIndices */ 0.0; }
+    public static CsrMatrix operator +(CsrMatrix a, CsrMatrix b) => /* ... */ a;
+}
+static IMatrix Create(string path) => GetSuitableType(path) switch {   // tovarni metoda
+    "sparse" => new CsrMatrix(path),
+    "dense"  => new DenseMatrix(path),
+    _ => throw new ArgumentException("unknown format"),
+};
+\end{lstlisting}
+\end{csalt}

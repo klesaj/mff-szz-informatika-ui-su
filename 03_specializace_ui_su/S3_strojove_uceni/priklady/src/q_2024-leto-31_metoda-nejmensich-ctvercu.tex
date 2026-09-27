@@ -1,0 +1,34 @@
+% Zdroj: PDF priklady-leto-2024.pdf, fyzická str. 25. Značka: specializace UI-SU. Zařazeno: S3.
+\section{Metoda nejmenších čtverců}
+\szzotazka{léto 2024}{31}{Metoda nejmenších čtverců}
+
+\noindent\textbf{Zadání.}\par
+Mějme data s jedním číselným atributem $x_1$ a číselnou cílovou hodnotou $y$ zadaná v tabulce níže.
+Pro tato data chceme najít lineární model metodou nejmenších čtverců.
+
+\begin{center}
+\begin{tabular}{c|c}
+\toprule
+$x_1$ & $y$ \\
+\midrule
+1 & 1 \\
+2 & 3 \\
+3 & 2 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{enumerate}
+  \item Popište lineární model a metodu nejmenších čtverců. Jakým způsobem se touto metodou
+    odhadují koeficienty modelu?
+  \item Odhadněte koeficienty modelu pro data zadaná v tabulce výše.
+  \item Spočítejte střední kvadratickou chybu získaného modelu.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, výpočet ověřen numericky.)}\par
+\begin{enumerate}[nosep]
+  \item Lineární model $\hat y=\beta_0+\beta_1 x$; metoda nejmenších čtverců volí koeficienty tak, aby \emph{součet čtverců reziduí} $\sum_i(\hat y_i-y_i)^2$ byl nejmenší (řeší se normální rovnice $\beta=(X^\top X)^{-1}X^\top y$, pro jednu proměnnou stačí uzavřené vzorce).
+  \item S~průměry $\bar x=2$, $\bar y=2$: $\beta_1=\dfrac{\sum_i(x_i-\bar x)(y_i-\bar y)}{\sum_i(x_i-\bar x)^2}=\dfrac{1}{2}$, $\beta_0=\bar y-\beta_1\bar x=1$. Tedy $\hat y=1+\tfrac12 x$.
+  \item Predikce $(1{,}5;\,2;\,2{,}5)$, rezidua $(-0{,}5;\,1;\,-0{,}5)$, $\mathrm{MSE}=\tfrac13\big(0{,}25+1+0{,}25\big)=0{,}5$.
+\end{enumerate}

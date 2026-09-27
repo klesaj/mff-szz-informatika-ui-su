@@ -1,0 +1,34 @@
+% Zdroj: PDF priklady-leto-2022-one.pdf (sešit S1, PGVVH+UI), fyzická str. 1. Značka: společné okruhy. Zařazeno: M1. Výpočet ověřen.
+\section{Integrál}
+\szzotazka{léto 2022}{3}{Integrál (per partes)}
+
+\noindent\textbf{Zadání.}\par
+Nechť $I \subseteq \mathbb{R}$ je neprázdný otevřený interval.
+\begin{enumerate}
+  \item Jaký je vztah mezi dvěma primitivními funkcemi k téže funkci na~$I$? Zdůvodněte.
+  \item Nechť $f, g \colon I \to \mathbb{R}$ a~$F$, $G$ jsou k~nim primitivní funkce (tj.\ $F' = f$ a~$G' = g$). Napište vzorec pro primitivní funkci k~$fG$, známe-li primitivní funkci k~$Fg$.
+  \item Podle tohoto vzorce najděte primitivní funkci k~$f(x) = x \sin(x)$.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Dvě primitivní funkce k~téže funkci na intervalu $I$ se liší o~konstantu. Jsou-li $F_1$ a~$F_2$ obě primitivní k~$f$, pak $(F_1 - F_2)' = f - f = 0$ na~$I$, a~funkce s~nulovou derivací na intervalu je konstantní; tedy $F_1 - F_2 = c$ pro nějaké $c \in \mathbb{R}$.
+  \item Z~pravidla pro derivaci součinu $(FG)' = f G + F g$ integrací dostaneme $FG = \int fG + \int Fg$, odkud
+    \[
+      \int f(x) G(x)\,\mathrm{d}x = F(x) G(x) - \int F(x) g(x)\,\mathrm{d}x.
+    \]
+    Tj.\ primitivní funkce k~$fG$ je $F \cdot G$ mínus primitivní funkce k~$Fg$.
+  \item Pro $\int x \sin(x)\,\mathrm{d}x$ volíme $F(x) = x$ (takže $f = 1$) a~$G(x) = -\cos(x)$ (takže $g = \sin x$). Pak $fG = -\cos x$ a~$Fg = x \sin x$. Dosazením do vzorce:
+    \[
+      \int (-\cos x)\,\mathrm{d}x = x \cdot (-\cos x) - \int x \sin(x)\,\mathrm{d}x,
+    \]
+    tj.\ $-\sin x = -x\cos x - \int x \sin x\,\mathrm{d}x$, odkud
+    \[
+      \int x \sin(x)\,\mathrm{d}x = \sin(x) - x\cos(x) + C.
+    \]
+    Ověření derivací: $\bigl(\sin x - x\cos x\bigr)' = \cos x - \bigl(\cos x - x\sin x\bigr) = x\sin x$.
+\end{enumerate}
+
+\medskip
+\noindent\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu, výpočet ověřen.)}

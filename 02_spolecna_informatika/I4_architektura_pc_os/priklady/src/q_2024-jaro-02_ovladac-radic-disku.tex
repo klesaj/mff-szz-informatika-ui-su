@@ -1,0 +1,139 @@
+% Zdroj: PDF priklady-jaro-2024.pdf, fyzická str. 1-3. Značka: společné okruhy. Zařazeno: I4.
+\section{Ovladač pro řadič disku}
+\szzotazka{jaro 2024}{2}{Ovladač pro řadič disku}
+
+\noindent\textbf{Zadání.}\par
+Napište implementaci funkce ovladače disku pro načtení jednoho bloku.
+
+Uvažovaný disk je řízen pěti paměťově mapovanými registry, které slouží k~zápisu příkazů
+(a~jejich parametrů) a~ke čtení aktuálního stavu zařízení (uvažujeme zařízení bez podpory
+přerušení, s~obsluhou s~aktivním čekáním).
+
+\begin{center}
+\begin{tabular}{rllp{0.6\linewidth}}
+\toprule
+Offset & Registr & Typ & Popis registru \\
+\midrule
+0  & Status  & R & Bitové pole pro aktuální stav řadiče (pouze pro čtení, zápisy jsou ignorovány). \\
+4  & Size    & R & Velikost disku v~blocích (pouze pro čtení, zápisy jsou ignorovány). \\
+8  & Command & W & Zápis do registru spustí zadaný příkaz (1 čtení, 2 zápis). \\
+12 & LBA     & W & Logická adresa bloku pro příkaz zadaný v~\textit{Command}. \\
+16 & DMA     & W & Fyzická adresa paměti pro uložení načtených dat z~disku. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Registr Status (offset 0) je bitové pole:
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+31 & 29 & $\dots$ & 2 & 1 & 0 \\
+\hline
+0 & 0 & $\dots$ & 0 & BUSY & ERR \\
+\hline
+\end{tabular}
+\end{center}
+\noindent BUSY -- Bit je nastaven po zadání příkazu a~vynulován po dokončení operace.\par
+\noindent ERR -- Bit signalizující chybový stav (1 znamená chybu).
+
+\medskip
+Bloky jsou na disku adresovány obvyklým způsobem pomocí LBA, jednotlivé bloky mají pevně
+danou velikost 512 bajtů. Přenos čtených či zapisovaných dat probíhá pomocí DMA (tedy
+z~pohledu této otázky není třeba řešit nic víc než nastavení fyzické adresy pro uložení
+dat, vlastní čtení z~disku a~zápis do paměti je plně v~režii řadiče), dokončení operace je
+signalizováno stavovým registrem (předpokládáme 32-bitový systém, velikost disku je
+omezena na 2\,TB).
+
+Dopište těla dvou níže uvedených funkcí a~navrhněte strukturu pro uchování informací
+o~disku (předpokládáme, že k~systému může být připojeno více disků a~ty jsou na úrovni
+jádra operačního systému rozlišeny různými instancemi struktury \texttt{disk\_t}). Obě
+funkce vrací \texttt{true} pokud se daná operace zdařila, jinak \texttt{false} (bez
+dalších detailů).
+
+Funkce \texttt{disk\_init} je volána jednou při inicializaci daného zařízení, parametr
+\texttt{register\_address} je virtuální adresa mapovaných registrů (tj. přímo adresa
+stavového registru). Funkce \texttt{disk\_read\_block\_waiting} přečte jeden blok z~disku.
+Načtený blok má být zapsán na fyzickou adresu \texttt{data\_phys\_addr} (váš kód může
+předpokládat její správnost). Návrat z~funkce musí proběhnout až po dokončení čtení (je
+možné využít aktivní čekání).
+
+Vaše implementace musí alespoň triviálním způsobem ošetřit možný současný přístup k~disku
+z~více procesů.
+
+\begin{lstlisting}[language=C]
+typedef struct { ... } disk_t;
+
+bool disk_init(disk_t *disk, uint32_t register_address) { ... }
+
+bool disk_read_block_waiting(disk_t *disk, size_t lba, uint32_t data_phys_addr) { ... }
+\end{lstlisting}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+Nástin zdrojového kódu (bez symbolických konstant a~komentářů):
+
+\begin{lstlisting}[language=C]
+typedef volatile struct {
+    uint32_t status;
+    uint32_t size;
+    uint32_t command;
+    uint32_t lba;
+    uint32_t dma;
+} disk_regs_t;
+
+typedef struct {
+    size_t max_lba;
+    disk_regs_t *ctl;
+    mutex_t mutex;
+} disk_t;
+
+static bool disk_is_ok(disk_t *disk) { return disk->ctl->status & 1 == 0; }
+static bool disk_is_ready(disk_t *disk) { return disk->ctl->status & 2 == 0; }
+static bool disk_wait_for_ready(disk_t *disk) {
+    while (!disk_is_ready(disk)) {
+        if (!disk_is_ok(disk)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool disk_init(disk_t *disk, uint32_t register_address) {
+    disk->ctl = (disk_regs_t *) register_address;
+    disk->max_lba = disk->ctl->size;
+    mutex_init(&disk->mutex);
+    return disk_wait_for_ready(disk);
+}
+
+bool disk_read_block_waiting(disk_t *disk, size_t lba, uint32_t data_phys_addr) {
+    if (lba >= disk->max_lba) {
+        return false;
+    }
+    mutex_lock(&disk->mutex);
+    bool ok = disk_wait_for_ready(disk);
+    if (!ok) {
+        mutex_unlock(&disk->mutex);
+        return false;
+    }
+
+    disk->ctl->lba = lba;
+    disk->ctl->dma = data_phys_addr;
+    disk->ctl->command = 1;
+
+    ok = disk_wait_for_ready(disk);
+    mutex_unlock(&disk->mutex);
+
+    return ok;
+}
+\end{lstlisting}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Ve funkcích
+\texttt{disk\_is\_ok} a~\texttt{disk\_is\_ready} chybí v~náčrtu závorky. V~C má \texttt{==} vyšší
+prioritu než bitové \texttt{\&}, takže \texttt{status \& 1 == 0} znamená \texttt{status \& (1 == 0)},
+tj.\ \texttt{status \& 0}, a~to je vždy~0. Správně má být \texttt{(status \& 1) == 0}
+a~\texttt{(status \& 2) == 0}. Zbytek náčrtu: struktura registrů je \texttt{volatile}, aby překladač
+čtení stavu v~čekací smyčce pokaždé skutečně provedl a~zápisy parametrů a~příkazu nepřeházel.
+Mutex serializuje přístup více procesů k~jediné sadě registrů a~odemyká se na všech návratových
+cestách. Parametry (LBA, DMA) se zapisují \emph{před} příkazem, protože zápis do \texttt{Command}
+operaci rovnou spouští.

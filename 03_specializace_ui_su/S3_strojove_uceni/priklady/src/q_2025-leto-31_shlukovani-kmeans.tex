@@ -1,0 +1,37 @@
+% Zdroj: PDF priklady-leto-2025.pdf, fyzická str. 23-24. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S3.
+\section{Shlukování}
+\szzotazka{léto 2025}{31}{Shlukování (k-means)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Popište stručně algoritmus $k$-means. Jakým způsobem se volí počáteční polohy středů shluků (centroidů)? Jak se jejich
+    polohy v průběhu algoritmu upravují? Kdy algoritmus končí?
+  \item Jaké kritérium algoritmus $k$-means optimalizuje?
+  \item Algoritmus $k$-means pro $k=3$ jsme spustili na data se třemi shluky z obrázku níže. Jednotlivé značky ($\times$, $\bullet$, $\blacksquare$) odlišují
+    nalezené shluky. Proč algoritmus na těchto datech nenašel optimální shluky podle kritéria v předchozím bodě? Jak se
+    dá zvýšit šance, že je algoritmus najde?
+\end{enumerate}
+
+\begin{center}
+\includegraphics[width=0.7\linewidth]{shlukovani-leto2025.png}
+\end{center}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Počáteční centroidy se mohou volit náhodně z dat. V průběhu algoritmu se každý bod z dat přiřadí k nejbližšímu
+    centroidu, ten se potom přepočítá jako střed bodů k němu přiřazených. Tyto kroky se opakují dokud se mění přiřazení
+    bodů ke shlukům, nebo po daný počet iterací.
+  \item Minimalizuje se
+    \[
+      \sum_{i=1}^{N}\sum_{k=1}^{K} z_{i,k}\,\|x_i - \mu_k\|^2,
+    \]
+    kde $N$ je počet bodů, $K$ je počet středů a $z_{i,k}$ vyjadřuje, že bod $x_i$ patří do shluku se středem $\mu_k$ ($z_{i,k}=1$ pokud tam
+    patří, jinak $0$).
+  \item Prostřední shluk, který byl přiřazen k části levého, je mnohem menší než ostatní dva shluky. Šance na lepší výsledek
+    se dá zlepšit opakováním náhodné inicializace počátečních centroidů a výběrem nejlepšího výsledku podle funkce v
+    předchozím bodě.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Na obrázku jsou tři přirozené shluky: velký dole vlevo, malý nahoře uprostřed a~jeden vpravo. Nalezené řešení rozdělilo velký levý shluk mezi dva středy ($\blacksquare$ a~$\bullet$) a~malý horní shluk připojilo ke středu $\bullet$. Takové rozdělení je \emph{lokálním} minimem kritéria: žádný bod nemá blíž k~jinému středu a~průměry se nemění, takže se algoritmus zastaví, ačkoli rozdělení podle přirozených shluků má menší součet čtverců. $k$-means konverguje jen k~lokálnímu minimu a~výsledek závisí na počáteční volbě středů. Kromě opakovaných běhů s~výběrem nejmenšího kritéria pomáhá inicializace \texttt{k-means++}, která rozprostře počáteční středy.

@@ -1,0 +1,61 @@
+% Zdroj: PDF priklady-podzim-2023.pdf, fyzická str. 2--3. Značka: společné okruhy. Zařazeno: M4.
+\section{Souvislost grafů}
+\szzotazka{podzim 2023}{3}{Souvislost grafů}
+
+\noindent\textbf{Zadání.}\par
+Mějme graf $G$ na 64 vrcholech, přičemž jeho vrcholy jsou označeny různými šesticemi nul a jedniček. Hrany tvoří:
+\begin{itemize}
+  \item vrcholy, které se liší pouze v první souřadnici, např. $111010$ a $011010$ (tyto hrany tvoří perfektní párování),
+  \item vrcholy, které mají první dva znaky totožné, např. $111010$ a $110001$, a také
+  \item dvojice vrcholů $(111010, 101100)$, $(101100, 010110)$ a $(010110, 111011)$.
+\end{itemize}
+Jiné dvojice vrcholů spojeny nejsou.
+
+\begin{enumerate}
+  \item Vyslovte Mengerovu větu (o vrcholové souvislosti a řezech) včetně formálního zavedení potřebných pojmů.
+  \item Určete, kolik hranově disjunktních cest vede mezi vrcholy $000000$ a $111111$.
+  \item Nalezněte nejmenší hranový řez a nejmenší vrcholový řez oddělující $000000$ a $111111$.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textit{(V PDF bez náčrtu řešení; rozbor níže je vlastní -- ověřeno NetworkX výpočtem max-flow/min-cut.)}
+
+\begin{enumerate}
+  \item \textbf{Mengerova věta (vrcholová verze).} Buď $G=(V,E)$ graf a $u,v\in V$ dva různé nesousední vrcholy. \emph{Vrcholový $u$-$v$ řez} je množina vrcholů $A\subseteq V\setminus\{u,v\}$ taková, že v indukovaném podgrafu $G[V\setminus A]$ neexistuje cesta z $u$ do $v$. Dvě $u$-$v$ cesty jsou \emph{vrcholově disjunktní}, pokud nemají žádný společný vnitřní vrchol. Pak: \emph{maximální počet vrcholově disjunktních $u$-$v$ cest je roven minimální velikosti vrcholového $u$-$v$ řezu.} Analogická hranová verze (bez předpokladu nesousednosti) platí pro hranové řezy a hranově disjunktní cesty.
+
+  \item \textbf{Topologický rozbor grafu.} Označme $S_{00}, S_{01}, S_{10}, S_{11}$ čtyři skupiny vrcholů podle prvních 2 bitů (každá po 16 vrcholech).
+  \begin{itemize}
+    \item Hrany \emph{(a)} jsou perfektní párování přes 1.\ bit -- spojují $0\beta\leftrightarrow 1\beta$ a \emph{zachovávají} 2.\ bit. Tedy (a)-hrany jdou \emph{jen} mezi $S_{00}\leftrightarrow S_{10}$ a $S_{01}\leftrightarrow S_{11}$. \textbf{Mezi $\{S_{00},S_{10}\}$ a $\{S_{01},S_{11}\}$ žádná hrana (a) nevede.}
+    \item Hrany \emph{(b)} zůstávají uvnitř každé skupiny ($K_{16}$).
+    \item Hrany \emph{(c)} jsou jediné, které propojují dvojice přes 2.\ bit:
+      \begin{itemize}
+        \item $\{111010,101100\}$: $S_{11}\leftrightarrow S_{10}$ (přes vrchol $101100\in S_{10}$);
+        \item $\{101100,010110\}$: $S_{10}\leftrightarrow S_{01}$ (přes $101100$);
+        \item $\{010110,111011\}$: $S_{01}\leftrightarrow S_{11}$ (přes $010110\in S_{01}$).
+      \end{itemize}
+  \end{itemize}
+
+  \textbf{Klíčové pozorování (úzké hrdlo).} $u=000000\in S_{00}$, $v=111111\in S_{11}$. Z dvojice $\{S_{00},S_{10}\}$ se do dvojice $\{S_{01},S_{11}\}$ (kde leží $v$) lze dostat \emph{pouze} hranou (c), jejíž jeden konec leží v $\{S_{00},S_{10}\}$. Takové hrany jsou jen dvě: $\{101100,111010\}$ a $\{101100,010110\}$ -- \textbf{obě procházejí vrcholem $101100$}. Třetí hrana (c) má oba konce v $\{S_{01},S_{11}\}$ a pro náš přechod neslouží.
+
+  \textbf{Min vrcholový řez = 1}, realizovaný $A=\{101100\}$. Po odebrání $101100$ z $G$ zbude mezi $\{S_{00},S_{10}\}$ a $\{S_{01},S_{11}\}$ jediná hrana (c) $\{010110,111011\}$. Ale ze $S_{00}$ (kde leží $u$) se do vrcholu $010110\in S_{01}$ nedostaneme: žádná (a), (b) ani (c) hrana nevede ze $S_{00}$ do $S_{01}$. Tedy $u$ je odpojen od $v$.
+
+  Max počet vrcholově disjunktních $u$-$v$ cest = \textbf{1}; např.:
+  \[ 000000 \xrightarrow{(a)} 100000 \xrightarrow{(b)} 101100 \xrightarrow{(c)} 111010 \xrightarrow{(b)} 111111. \]
+
+  \textbf{Min hranový řez = 2}, realizovaný 2 hranami (c) incidentními s $101100$:
+  \[ R = \bigl\{\{101100,111010\},\ \{101100,010110\}\bigr\}. \]
+  Po jejich odebrání zbude jen třetí (c)-hrana $\{010110,111011\}$, opět nedosažitelná ze $S_{00}$.
+
+  Max počet hranově disjunktních $u$-$v$ cest = \textbf{2}; např.:
+  \begin{align*}
+    P_1:&\ 000000 \xrightarrow{(a)} 100000 \xrightarrow{(b)} 101100 \xrightarrow{(c)} 111010 \xrightarrow{(b)} 111111,\\
+    P_2:&\ 000000 \xrightarrow{(b)} 001100 \xrightarrow{(a)} 101100 \xrightarrow{(c)} 010110 \xrightarrow{(a)} 110110 \xrightarrow{(b)} 111111.
+  \end{align*}
+  Obě cesty procházejí vrcholem $101100$ (vrcholově nejsou disjunktní), ale použité hrany se neopakují. 3.\ cesta hranově disjunktní s $P_1, P_2$ neexistuje: z $101100$ vedou jen 2 hrany (c) do druhé poloviny grafu, a obě jsou již použité v $P_1, P_2$.
+
+  \item \textbf{Závěr.} Nejmenší hranový řez má velikost \textbf{2}, nejmenší vrcholový řez má velikost \textbf{1} (viz konstrukce v bodě 2).
+\end{enumerate}
+
+\medskip
+\noindent\emph{Poznámka.} Naivní odhad podle stupně $\deg(u)=\deg(v)=16$ je v této úloze \emph{daleko} od reality. Skutečnou souvislost mezi $u$ a $v$ limituje úzké hrdlo (1 vrchol, 2 hrany). Pointou úlohy je topologický rozbor, ne mechanická aplikace stupně.

@@ -1,0 +1,418 @@
+\section{Hry a teorie her (minimax, alfa-beta, Nashovo ekvilibrium, aukce)}
+
+Dosud jsme uvažovali jednoho agenta v~prostředí, které se samo aktivně nesnaží jeho plánům bránit. \emph{Teorie her} (obor ekonomie) naopak studuje prostředí s~\emph{více agenty}, jejichž rozhodnutí se navzájem podstatně ovlivňují. V~umělé inteligenci nás nejčastěji zajímají \emph{deterministické, tahové, dvouhráčové hry s~nulovým součtem a~úplnou informací} (šachy, dáma, go): pravidla jsou přesná, akcí je málo, hra se snadno reprezentuje, a~přesto je těžké ji vyřešit. Vedle nich se dotkneme \emph{jednotahových} (simultánních) her a~jejich pojmů (dominantní strategie, Nashovo ekvilibrium, Pareto optimalita) a~\emph{mechanism designu} (návrh pravidel, zejména aukcí).
+
+\subsection{Herní strom a~optimální strategie}
+
+Tahovou hru dvou hráčů, které tradičně značíme \textbf{MAX} a~\textbf{MIN}, lze formálně chápat jako \emph{prohledávání proti soupeři} (adversarial search) v~\emph{herním stromu}.
+
+\begin{definice}[Hra jako prohledávací úloha]
+Hra je dána:
+\begin{itemize}
+  \item \textbf{počátečním stavem} $s_0$ (výchozí pozice) a~funkcí \textsc{To-Move}$(s)$, která určí hráče na tahu;
+  \item množinou \textbf{akcí} \textsc{Actions}$(s)$ a~přechodovým modelem \textsc{Result}$(s,a)$ (výsledný stav);
+  \item \textbf{testem koncovosti} \textsc{Is-Terminal}$(s)$ (je hra u~konce?);
+  \item \textbf{ohodnocovací (užitkovou) funkcí} \textsc{Utility}$(s,p)$, která koncovému stavu přiřadí číselnou výplatu hráče $p$ (např. výhra $+1$, prohra $-1$, remíza $0$).
+\end{itemize}
+Ve hře s~\emph{nulovým součtem} je výplata jednoho hráče opačná než druhého, takže stačí jediné číslo: užitek z~pohledu MAX (který ho maximalizuje), zatímco MIN ho minimalizuje.
+\end{definice}
+
+\begin{intuice}
+Řešením hry \emph{není jediná posloupnost akcí} (jako u~prohledávání jednoho agenta), nýbrž \textbf{strategie}: tah ve výchozím stavu a~pak tah na každou možnou odpověď soupeře. \emph{Optimální strategie} vede k~výsledku alespoň tak dobrému jako kterákoli jiná, hraje-li proti \emph{neomylnému} soupeři. Herní strom střídá patra MAX a~MIN; jeho listy jsou koncové stavy s~konkrétní výplatou.
+\end{intuice}
+
+\subsection{Minimax}
+
+Optimální strategii určíme z~\emph{minimaxové hodnoty} každého uzlu -- užitku, který v~daném stavu vznikne, hrají-li \emph{oba hráči optimálně}.
+
+\begin{definice}[Minimaxová hodnota]
+\[
+\textsc{Minimax}(n)=
+\begin{cases}
+\textsc{Utility}(n) & n \text{ je koncový stav},\\[2pt]
+\displaystyle\max_{s\in\mathit{succ}(n)} \textsc{Minimax}(s) & \text{na tahu je MAX},\\[6pt]
+\displaystyle\min_{s\in\mathit{succ}(n)} \textsc{Minimax}(s) & \text{na tahu je MIN}.
+\end{cases}
+\]
+\emph{Minimaxové rozhodnutí} je akce v~kořeni, která vede do následníka s~nejvyšší minimaxovou hodnotou.
+\end{definice}
+
+Hodnoty se počítají \emph{zdola nahoru}: list dostane svou výplatu, vnitřní uzel MAX vezme maximum hodnot dětí, uzel MIN minimum. Algoritmus je v~jádru prohledávání do hloubky celého stromu.
+
+\begin{algo}[Minimax (rekurzivně, návrat hodnoty i~tahu)]
+\ttfamily\small
+MINIMAX-SEARCH(hra, stav):\\
+\hspace*{1.5em}$v$, move $\leftarrow$ MAX-VALUE(hra, stav) \cmt{hodnota kořene a~optimální tah}\\
+\hspace*{1.5em}\textbf{return} move\\[3pt]
+MAX-VALUE(hra, stav):\\
+\hspace*{1.5em}\textbf{if} hra.IS-TERMINAL(stav): \textbf{return} hra.UTILITY(stav), null\\
+\hspace*{1.5em}$v \leftarrow -\infty$\\
+\hspace*{1.5em}\textbf{for} každou akci $a$ ze stavu:\\
+\hspace*{3em}$v_2$, \_ $\leftarrow$ MIN-VALUE(hra, RESULT(stav,$a$))\\
+\hspace*{3em}\textbf{if} $v_2 > v$: $v$, move $\leftarrow v_2$, $a$ \cmt{lepší tah pro MAX}\\
+\hspace*{1.5em}\textbf{return} $v$, move\\[3pt]
+MIN-VALUE(hra, stav):\\
+\hspace*{1.5em}\textbf{if} hra.IS-TERMINAL(stav): \textbf{return} hra.UTILITY(stav), null\\
+\hspace*{1.5em}$v \leftarrow +\infty$\\
+\hspace*{1.5em}\textbf{for} každou akci $a$ ze stavu:\\
+\hspace*{3em}$v_2$, \_ $\leftarrow$ MAX-VALUE(hra, RESULT(stav,$a$))\\
+\hspace*{3em}\textbf{if} $v_2 < v$: $v$, move $\leftarrow v_2$, $a$ \cmt{lepší tah pro MIN}\\
+\hspace*{1.5em}\textbf{return} $v$, move
+\end{algo}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0]
+% kořen MAX
+\node[maxn] (A) at (4,3) {};
+\node[left=1pt of A,font=\small] {MAX};
+% úroveň MIN
+\node[minn] (B) at (1,1.6) {};
+\node[minn] (C) at (4,1.6) {};
+\node[minn] (D) at (7,1.6) {};
+\node[left=1pt of B,font=\small] {MIN};
+% listy
+\node[listn] (l1) at (0,0) {$3$};
+\node[listn] (l2) at (1,0) {$12$};
+\node[listn] (l3) at (2,0) {$8$};
+\node[listn] (l4) at (3,0) {$2$};
+\node[listn] (l5) at (4,0) {$4$};
+\node[listn] (l6) at (5,0) {$6$};
+\node[listn] (l7) at (6,0) {$14$};
+\node[listn] (l8) at (7,0) {$5$};
+\node[listn] (l9) at (8,0) {$2$};
+% hrany
+\draw[sipp] (A)--(B); \draw[sipp] (A)--(C); \draw[sipp] (A)--(D);
+\draw[sipp] (B)--(l1); \draw[sipp] (B)--(l2); \draw[sipp] (B)--(l3);
+\draw[sipp] (C)--(l4); \draw[sipp] (C)--(l5); \draw[sipp] (C)--(l6);
+\draw[sipp] (D)--(l7); \draw[sipp] (D)--(l8); \draw[sipp] (D)--(l9);
+% vepsané hodnoty
+\node[above right=0pt and 1pt of A,font=\small\bfseries] {$3$};
+\node[above left=-1pt and 2pt of B,font=\small\bfseries] {$3$};
+\node[above left=-1pt and 2pt of C,font=\small\bfseries] {$2$};
+\node[above right=-1pt and 2pt of D,font=\small\bfseries] {$2$};
+\end{tikzpicture}
+\obrpopis{Propagace minimaxových hodnot. Uzly MIN (modré trojúhelníky dolů) berou minimum svých listů: $\min(3,12,8)=3$, $\min(2,4,6)=2$, $\min(14,5,2)=2$. Kořen MAX (červený trojúhelník nahoru) bere maximum: $\max(3,2,2)=3$. Minimaxové rozhodnutí je tah do levého následníka.}
+\end{center}
+
+\begin{poznamka}
+Minimax projde celý strom: časová složitost je $O(b^m)$, paměťová $O(bm)$ ($b$ = počet tahů ve stavu, $m$ = hloubka). Pro reálné hry je to nepoužitelné -- šachový strom má kolem $35^{100}$ uzlů -- a~slouží jen jako základ praktičtějších algoritmů.
+\end{poznamka}
+
+\subsection{Alfa-beta prořezávání}
+
+K~výpočtu \emph{správného} minimaxového rozhodnutí není nutné prohlédnout každý uzel stromu. \textbf{Alfa-beta prořezávání} vrací stejnou hodnotu jako minimax, ale celé podstromy přeskočí, jakmile je jasné, že nemohou ovlivnit rozhodnutí v~kořeni.
+
+\begin{definice}[Meze $\alpha$ a~$\beta$]
+Podél cesty od kořene udržujeme dvě meze:
+\begin{itemize}
+  \item $\alpha$ = hodnota nejlepší (tj. nejvyšší) volby, kterou MAX dosud na cestě našel; je to \emph{dolní mez} na hodnotu, kterou si MAX zajistí.
+  \item $\beta$ = hodnota nejlepší (tj. nejnižší) volby, kterou MIN dosud na cestě našel; je to \emph{horní mez}.
+\end{itemize}
+\textbf{Pravidlo řezu.} V~uzlu MIN s~průběžnou hodnotou $v$: jakmile $v \le \alpha$, zbylé následníky \emph{nezkoumáme} ($\alpha$-řez) -- MAX nad námi už má lepší alternativu ($\alpha$) a~tudy nepůjde. Symetricky v~uzlu MAX: jakmile $v \ge \beta$, nastává \emph{$\beta$-řez}.
+\end{definice}
+
+\begin{algo}[Alfa-beta (úprava minimaxu o~meze $\alpha,\beta$)]
+\ttfamily\small
+ALPHA-BETA-SEARCH(hra, stav):\\
+\hspace*{1.5em}$v$, move $\leftarrow$ MAX-VALUE(hra, stav, $-\infty$, $+\infty$)\\
+\hspace*{1.5em}\textbf{return} move\\[3pt]
+MAX-VALUE(hra, stav, $\alpha$, $\beta$):\\
+\hspace*{1.5em}\textbf{if} hra.IS-TERMINAL(stav): \textbf{return} hra.UTILITY(stav), null\\
+\hspace*{1.5em}$v \leftarrow -\infty$\\
+\hspace*{1.5em}\textbf{for} každou akci $a$ ze stavu:\\
+\hspace*{3em}$v_2$, \_ $\leftarrow$ MIN-VALUE(hra, RESULT(stav,$a$), $\alpha$, $\beta$)\\
+\hspace*{3em}\textbf{if} $v_2 > v$: $v$, move $\leftarrow v_2$, $a$;\quad $\alpha \leftarrow \max(\alpha, v)$\\
+\hspace*{3em}\textbf{if} $v \ge \beta$: \textbf{return} $v$, move \cmt{$\beta$-řez: MIN nad námi tudy nepůjde}\\
+\hspace*{1.5em}\textbf{return} $v$, move\\[3pt]
+MIN-VALUE(hra, stav, $\alpha$, $\beta$):\\
+\hspace*{1.5em}\textbf{if} hra.IS-TERMINAL(stav): \textbf{return} hra.UTILITY(stav), null\\
+\hspace*{1.5em}$v \leftarrow +\infty$\\
+\hspace*{1.5em}\textbf{for} každou akci $a$ ze stavu:\\
+\hspace*{3em}$v_2$, \_ $\leftarrow$ MAX-VALUE(hra, RESULT(stav,$a$), $\alpha$, $\beta$)\\
+\hspace*{3em}\textbf{if} $v_2 < v$: $v$, move $\leftarrow v_2$, $a$;\quad $\beta \leftarrow \min(\beta, v)$\\
+\hspace*{3em}\textbf{if} $v \le \alpha$: \textbf{return} $v$, move \cmt{$\alpha$-řez: MAX nad námi tudy nepůjde}\\
+\hspace*{1.5em}\textbf{return} $v$, move
+\end{algo}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0]
+\node[maxn] (A) at (3,3) {};
+\node[left=1pt of A,font=\small] {MAX};
+\node[minn] (B) at (1,1.6) {};
+\node[minn] (C) at (5,1.6) {};
+\node[left=1pt of B,font=\small] {MIN};
+\node[listn] (l1) at (0,0) {$3$};
+\node[listn] (l2) at (1,0) {$12$};
+\node[listn] (l3) at (2,0) {$8$};
+\node[listn] (l4) at (4,0) {$2$};
+\node[listn] (l5) at (5,0) {$X$};
+\node[listn] (l6) at (6,0) {$X$};
+\draw[sipp] (A)--(B); \draw[sipp] (A)--(C);
+\draw[sipp] (B)--(l1); \draw[sipp] (B)--(l2); \draw[sipp] (B)--(l3);
+\draw[sipp] (C)--(l4);
+% prořezané hrany čárkovaně
+\draw[sipp,dashed,gray] (C)--(l5); \draw[sipp,dashed,gray] (C)--(l6);
+% řezová značka
+\draw[red,very thick] (4.6,0.55)--(5.4,1.15);
+\draw[red,very thick] (5.6,0.55)--(6.4,1.15);
+% hodnoty
+\node[above left=-1pt and 2pt of B,font=\small\bfseries] {$3$};
+\node[above right=-1pt and 2pt of A,font=\small\bfseries] {$3$};
+\node[above right=-1pt and 2pt of C,font=\small\bfseries] {$\le 2$};
+\end{tikzpicture}
+\obrpopis{Levý uzel MIN dá $\min(3,12,8)=3$, takže kořen MAX má $\alpha=3$. Pravý uzel MIN nejprve vidí list $2$; tím je jeho hodnota $\le 2 \le \alpha=3$. MAX si už zajistil $3$ a~tato větev mu lepší výsledek nedá, proto se zbylé dva listy ($X$) \emph{prořežou} (červené škrty) a~vůbec se neprohlédnou. Výsledek kořene $=3$ je stejný jako u~čistého minimaxu.}
+\end{center}
+
+\begin{poznamka}[Závislost na~pořadí]
+Účinnost řezů silně závisí na~\emph{pořadí}, v~jakém procházíme tahy: při \emph{ideálním} uspořádání (nejlepší tah první) zkoumá alfa-beta jen $O(b^{m/2})$ uzlů místo $O(b^m)$, tedy zhruba dvojnásobnou hloubku za~stejný čas. \emph{Hodnota kořene a~optimální tah jsou na~pořadí nezávislé} -- prořezává se jen práce, ne výsledek; špatné pořadí jen řezy promešká.
+\end{poznamka}
+
+\subsection{Nedokonalá rozhodnutí: ohodnocovací funkce a~ořezání hloubky}
+
+I~s~alfa-beta nelze u~reálných her vygenerovat celý strom. Proto prohledávání \emph{utneme dříve} (v~hloubce $d$) a~v~takto vzniklých „listech`` použijeme místo skutečné užitkové funkce \textbf{ohodnocovací (evaluation) funkci} \textsc{Eval}$(s)$ -- \emph{odhad} očekávaného užitku pozice (přesně jako heuristika u~A${}^\ast$). Typicky se počítá z~rysů stavu a~kombinuje se lineárně, $\textsc{Eval}(s)=w_1 f_1(s)+\dots+w_n f_n(s)$ (v~šachu např. materiál: pěšec $1$, jezdec/střelec $3$, věž $5$, dáma $9$). Lineární tvar předpokládá, že příspěvky rysů jsou nezávislé; jinak je třeba nelineární kombinace.
+
+\begin{poznamka}[Stochastické hry, expectiminimax]
+Hry s~náhodným prvkem (kostky) modelujeme přidáním \textbf{uzlů náhody} (chance) do stromu. V~nich se počítá \emph{očekávaná} hodnota:
+\[
+\textsc{Expectiminimax}(n)=\sum_{s\in\mathit{succ}(n)} P(s)\cdot \textsc{Expectiminimax}(s)\qquad(\text{uzel náhody}),
+\]
+zatímco v~uzlech MAX/MIN se bere max/min jako dříve. U~stochastických her musí být ohodnocovací funkce navržena \emph{pečlivěji}: záleží na~konkrétních hodnotách (kvůli vážení pravděpodobnostmi), ne jen na~jejich pořadí.
+\end{poznamka}
+
+\subsection{Jednotahové (simultánní) hry}
+
+V~\emph{jednotahové hře} všichni hráči volí akci \emph{naráz} (simultánně) a~výsledek je dán touto kombinací akcí. Hru zadáme trojicí: \emph{hráči}, jejich \emph{akce} a~\emph{výplatní funkce}, která každé kombinaci akcí přiřadí užitek pro každého hráče. Výplaty zapisujeme do \emph{výplatní matice}.
+
+\begin{definice}[Strategie, dominance, Nash, Pareto]
+\begin{itemize}
+  \item \textbf{Čistá strategie} je deterministická volba jediné akce; \textbf{smíšená strategie} je náhodná volba akce podle pravděpodobnostního rozdělení.
+  \item Strategie $s$ hráče $p$ \textbf{(striktně) dominuje} strategii $s'$, je-li výsledek $s$ pro $p$ \emph{lepší} než výsledek $s'$ \emph{při každé} volbě ostatních hráčů. \emph{Dominantní strategie} dominuje všechny ostatní strategie téhož hráče.
+  \item Profil strategií je \textbf{Nashovo ekvilibrium}, jestliže \emph{žádný} hráč si nepolepší jednostrannou změnou své strategie, drží-li ostatní svou. (Lokální optimum vůči jednostranným odchylkám.)
+  \item Výsledek je \textbf{Pareto-dominován} jiným výsledkem, pokud by jej \emph{všichni} hráči preferovali. Výsledek je \textbf{Pareto optimální}, neexistuje-li jiný výsledek, který by preferovali všichni (nelze polepšit jednomu, aniž si jiný pohorší).
+\end{itemize}
+\end{definice}
+
+\begin{intuice}
+Pojmy se snadno pletou. \emph{Dominance} se týká \textbf{jedné strategie jednoho hráče} (je nejlepší bez ohledu na~soupeře). \emph{Nashovo ekvilibrium} se týká \textbf{profilu} (dvojice voleb) -- je stabilní vůči jednostranné odchylce, ale \emph{neříká nic o~globální dobrotě}. \emph{Pareto optimalita} se týká \textbf{výsledku} z~hlediska \emph{kolektivu} -- nelze ho pro všechny zlepšit. Klíčové ponaučení vězňova dilematu: profil v~dominantních strategiích (= Nash) může být Pareto-dominovaný, tedy pro všechny horší než jiný, nestabilní výsledek.
+\end{intuice}
+
+\begin{priklad}[Vězňovo dilema]
+Dva lupiči, Alice a~Bob, jsou vyslýcháni odděleně. Každý se může rozhodnout \emph{svědčit} (zradit druhého), nebo \emph{mlčet}. Výplaty jsou roky vězení se znaménkem mínus (více let = horší); v~políčku je nejdřív výplata Boba (řádky), pak Alice (sloupce):
+\begin{center}\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|c|c|c|}
+\hline
+ & Alice: svědčí & Alice: mlčí \\
+\hline
+Bob: svědčí & $-5,\,-5$ & $0,\,-10$ \\
+\hline
+Bob: mlčí & $-10,\,0$ & $-1,\,-1$ \\
+\hline
+\end{tabular}
+\end{center}
+\emph{Svědčit} je \textbf{dominantní strategie} obou: ať soupeř dělá cokoli, svědčit je vždy lepší ($-5>-10$, $0>-1$). Profil (svědčí, svědčí) je proto Nashovo ekvilibrium (rovnováha v~dominantních strategiích) s~výplatou $(-5,-5)$. Jenže výsledek $(-1,-1)$ z~oboustranného mlčení je \emph{Pareto lepší} -- oba by si polepšili. Ekvilibrium je tak \textbf{Pareto-dominováno} výsledkem, který racionální hráči nedosáhnou: jádro dilematu.
+\end{priklad}
+
+\subsection{Smíšené strategie a~maximinová technika}
+
+Některé hry s~nulovým součtem (např. hra na~prsty „two-finger Morra``) nemají žádné ekvilibrium v~\emph{čistých} strategiích. Optimální \emph{smíšenou} strategii lze najít \textbf{maximinovou technikou}: hru si představíme jako tahovou (druhý hráč zná tah prvního, je tedy zvýhodněn) a~\emph{minimaxem} spočítáme dolní a~horní mez na~užitek. Odhalí-li první hráč svou \emph{smíšenou} strategii (rozdělení $[p:\text{akce}_1;\,(1-p):\text{akce}_2]$), druhý odpoví nejlepší \emph{čistou} odpovědí; první proto volí $p$ tak, aby maximalizoval svůj nejhorší výsledek. Pro Morru vychází optimum $[7/12;\,5/12]$ s~hodnotou hry $-1/12$ (hra zvýhodňuje jednoho z~hráčů). Podstatný je pojem: \emph{smíšená strategie randomizuje volbu akce} a~právě ona zaručuje existenci ekvilibria i~tam, kde čisté selhává.
+
+\subsection{Opakované hry}
+
+\textbf{Opakovaná hra} je nejjednodušší vícetahová hra: hráči čelí téže volbě opakovaně, pokaždé se znalostí historie, a~výplaty se v~čase sčítají. U~opakovaného vězňova dilematu hraného \emph{pevně} $100$ kol zůstává racionální stále \emph{svědčit} (poslední kolo už není opakované, takže se v~něm zradí, čímž argument zpětně padá na~všechna kola). Je-li ale konec \emph{nejistý} (např. $99\,\%$ šance na~další setkání), spolupráce se vyplatí. Robustní a~jednoduchá je strategie \textbf{tit-for-tat} (\emph{půjčka za~oplátku}): začni \emph{mlčením} a~pak opakuj soupeřův minulý tah. Je velmi odolná proti široké škále protistrategií a~udržuje spolupráci.
+
+\subsection{Mechanism design a~aukce}
+
+\textbf{Mechanism design} (inverzní teorie her) navrhuje \emph{pravidla prostředí} tak, aby při racionálním (sobeckém) chování agentů vznikl co největší \emph{kolektivní} užitek. Typickým mechanismem je \textbf{aukce} -- prodej zboží skupině dražitelů. Každý dražitel $i$ má soukromou hodnotu $v_i$ a~dělá nabídku $b_i$; nejvyšší nabídka vyhrává, ale \emph{cena, kterou vítěz zaplatí, závisí na~mechanismu}. Dobrý mechanismus maximalizuje \emph{očekávaný výnos} prodejce nebo je \emph{efektivní} (zboží získá ten, kdo si ho cení nejvíc). Žádoucí je, aby měli dražitelé \emph{dominantní strategii} -- pak nemusí ztrácet čas odhadováním strategií ostatních.
+
+\begin{poznamka}[Typy aukcí]
+\begin{itemize}
+  \item \textbf{Anglická} (vzestupná): cena roste od~vyvolávací, dokud někdo přihazuje; vyhrává poslední a~platí svou nabídku. Jednoduchá dominantní strategie (přihazuj, dokud cena $\le v_i$). Nevýhody: může odradit konkurenci a~má vysoké komunikační náklady.
+  \item \textbf{Holandská} (sestupná): cena klesá z~vysoké, dokud někdo neakceptuje. Rychlá (prodej květin, ovoce).
+  \item \textbf{Obálková se~zapečetěnou nabídkou} (sealed-bid, první cena): každý podá \emph{jedinou} tajnou nabídku, vyhrává nejvyšší a~platí ji. \emph{Nemá} jednoduchou dominantní strategii (optimum je přihodit těsně nad~druhou nejvyšší nabídku, kterou ale neznáme).
+  \item \textbf{Vickreyova} (sealed-bid, \emph{druhá cena}): jediná tajná nabídka, vyhrává nejvyšší, ale \emph{platí druhou nejvyšší}. Dominantní strategie je teď prostě nabídnout pravou hodnotu $b_i=v_i$ -- to dělá mechanismus efektivním a~jednoduchým.
+\end{itemize}
+\end{poznamka}
+
+\begin{poznamka}[Tragédie obecní pastviny]
+Když za~užívání společného zdroje nikdo neplatí, bývá zdroj nadužíván k~nižšímu celkovému užitku všech -- \emph{tragédie obecní pastviny}. Příklad: každá země volí mezi „snížit znečištění`` (náklad $-10$) a~„znečišťovat dál`` (užitek $-5$ pro sebe, navíc $-1$ každé jiné zemi, protože vzduch je sdílený). Dominantní strategie každé země je znečišťovat -- stejná struktura jako vězňovo dilema. Mechanism design to řeší \emph{zpoplatněním} externalit (např. uhlíková daň; mechanismus Vickrey-Clarke-Groves, kde každý vítěz platí daň rovnou nejvyšší hodnotě mezi~poraženými, má opět dominantní strategii $b_i=v_i$).
+\end{poznamka}
+
+\subsection{Řešené příklady SZZ}
+
+\begin{priklad}[SZZ podzim 2024 č.~28: Minimax a~alfa-beta prořezávání]
+\szzotazka{podzim 2024}{28}{Minimax (alfa-beta prořezávání)}\par
+\textbf{Zadání.} (1)~Popište algoritmus minimax pro hru dvou hráčů, jeho nedostatky a~jejich řešení. (2)~Zaveďte techniku alfa-beta prořezávání. (3)~Ve stromu hry s~nulovým součtem ($\bigtriangleup$ = tah maximalizujícího hráče, $\bigtriangledown$ = minimalizujícího, $\circ$ = koncový stav s~ohodnocením) doplňte minimaxové hodnoty s~alfa-beta prořezáváním a~vyznačte prořezané části. Tahy se procházejí \emph{zleva doprava}.
+
+\medskip
+\textbf{Řešení (1) a~(2).} Minimax a~alfa-beta jsou popsány výše (pseudokódy i~meze $\alpha,\beta$). \emph{Nedostatkem} minimaxu je, že prochází celý strom velikosti $O(b^m)$, což je u~reálných her neproveditelné. \emph{Řešení:} (a)~\textbf{alfa-beta prořezávání} (vrací tutéž hodnotu, ale přeskakuje podstromy, které rozhodnutí neovlivní; při dobrém pořadí tahů zdvojnásobí dosažitelnou hloubku); (b)~\textbf{ořezání hloubky} a~náhrada koncové funkce \textbf{ohodnocovací funkcí} \textsc{Eval} v~neukončených listech.
+
+\medskip
+\textbf{Řešení (3).} Hodnoty počítáme zdola nahoru. Uzly nejnižší úrovně MIN ($\bigtriangledown$ nad~listy):
+\[
+\min(5,6)=5,\quad \min(4,7,5)=4,\quad \min(3)=3,\quad \min(6)=6,
+\]
+\[
+\min(5,9)=5,\quad \min(7)=7,\quad \min(5)=5,\quad \min(9,8)=8,\quad \min(6)=6.
+\]
+Úroveň MAX ($\bigtriangleup$): zleva $\max(5,4)=5$, $\max(3)=3$; $\max(6,5)=6$, $\max(7)=7$; $\max(5)=5$, $\max(8,6)=8$. Úroveň MIN ($\bigtriangledown$, tři uzly pod~kořenem):
+\[
+\min(5,3)=3,\qquad \min(6,7)=6,\qquad \min(5,8)=5.
+\]
+Kořen MAX: $\max(3,6,5)=\boxed{6}$. Optimální první tah je do prostředního následníka (hodnota $6$).
+
+\textbf{Prořezávání} (procházení zleva doprava) prořeže $6$ z~$14$ listů, prohlédne se jich $8$ (v~pořadí $5,6,4,3,6,5,7,5$). Tři řezy:
+\begin{itemize}
+  \item \emph{MIN nad~listy $4,7,5$:} sourozenec vlevo dal MAX hodnotu $5$, takže $\alpha=5$. Tento MIN po~přečtení listu $4$ má hodnotu $\le 4 \le \alpha$, proto se zbylé listy $7,5$ \textbf{prořežou}.
+  \item \emph{MIN nad~listy $5,9$:} sourozenec vlevo dal MAX hodnotu $6$, tedy $\alpha=6$; po~listu $5$ je $\le 5 \le \alpha$, proto se list $9$ \textbf{prořeže}.
+  \item \emph{Pravý uzel MIN pod~kořenem:} kořen už má z~levých větví hodnotu $\max(3,6)=6$, takže $\alpha=6$. Jeho první potomek MAX dá $5$, čímž je tento MIN $\le 5 \le \alpha=6$; celý druhý podstrom MAX (listy $9,8,6$) se proto \textbf{prořeže}.
+\end{itemize}
+\emph{(Hodnoty i~prořezání ověřeny vlastním Python skriptem implementujícím minimax a~alfa-beta s~počítáním navštívených listů; kořen $=6$, navštíveno $8/14$ listů.)}
+
+\begin{center}
+\begin{tikzpicture}[scale=0.86,font=\small]
+% --- souřadnice listů (kladná celá čísla), x = 0..13, y=0 ---
+\foreach \i/\v in {0/5,1/6,2/4,3/7,4/5,5/3,6/6,7/5,8/9,9/7,10/5,11/9,12/8,13/6}
+  {\node[listn] (L\i) at (\i,0) {$\v$};}
+% --- úroveň MIN nad listy (y=1.5) ---
+\node[minn] (m0) at (0.5,1.5) {};   % nad 5,6
+\node[minn] (m1) at (3,1.5)   {};   % nad 4,7,5
+\node[minn] (m2) at (5,1.5)   {};   % nad 3
+\node[minn] (m3) at (6,1.5)   {};   % nad 6
+\node[minn] (m4) at (7.5,1.5) {};   % nad 5,9
+\node[minn] (m5) at (9,1.5)   {};   % nad 7
+\node[minn] (m6) at (10,1.5)  {};   % nad 5
+\node[minn] (m7) at (11.5,1.5){};   % nad 9,8
+\node[minn] (m8) at (13,1.5)  {};   % nad 6
+% --- úroveň MAX (y=3) ---
+\node[maxn] (x0) at (1.75,3) {};    % nad m0,m1
+\node[maxn] (x1) at (5,3)    {};    % nad m2
+\node[maxn] (x2) at (6.75,3) {};    % nad m3,m4
+\node[maxn] (x3) at (9,3)    {};    % nad m5
+\node[maxn] (x4) at (10,3)   {};    % nad m6
+\node[maxn] (x5) at (12.25,3){};    % nad m7,m8
+% --- úroveň MIN pod kořenem (y=4.5) ---
+\node[minn] (n0) at (3.4,4.5)  {};  % nad x0,x1
+\node[minn] (n1) at (8,4.5)    {};  % nad x2,x3
+\node[minn] (n2) at (11,4.5)   {};  % nad x4,x5
+% --- kořen MAX (y=6) ---
+\node[maxn] (R) at (8,6) {};
+% --- hrany list->MIN ---
+\draw[sipp] (m0)--(L0); \draw[sipp] (m0)--(L1);
+\draw[sipp] (m1)--(L2); \draw[sipp,dashed,gray] (m1)--(L3); \draw[sipp,dashed,gray] (m1)--(L4);
+\draw[sipp] (m2)--(L5);
+\draw[sipp] (m3)--(L6);
+\draw[sipp] (m4)--(L7); \draw[sipp,dashed,gray] (m4)--(L8);
+\draw[sipp] (m5)--(L9);
+\draw[sipp] (m6)--(L10);
+\draw[sipp,dashed,gray] (m7)--(L11); \draw[sipp,dashed,gray] (m7)--(L12);
+\draw[sipp,dashed,gray] (m8)--(L13);
+% --- hrany MIN->MAX ---
+\draw[sipp] (x0)--(m0); \draw[sipp] (x0)--(m1);
+\draw[sipp] (x1)--(m2);
+\draw[sipp] (x2)--(m3); \draw[sipp] (x2)--(m4);
+\draw[sipp] (x3)--(m5);
+\draw[sipp] (x4)--(m6);
+\draw[sipp,dashed,gray] (x5)--(m7); \draw[sipp,dashed,gray] (x5)--(m8);
+% --- hrany MAX->MIN ---
+\draw[sipp] (n0)--(x0); \draw[sipp] (n0)--(x1);
+\draw[sipp] (n1)--(x2); \draw[sipp] (n1)--(x3);
+\draw[sipp] (n2)--(x4); \draw[sipp,dashed,gray] (n2)--(x5);
+% --- hrany kořen->MIN ---
+\draw[sipp] (R)--(n0); \draw[sipp] (R)--(n1); \draw[sipp] (R)--(n2);
+% --- vepsané hodnoty ---
+\node[above left=-2pt and 0pt of m0,font=\small\bfseries]{$5$};
+\node[above left=-2pt and 0pt of m1,font=\small\bfseries]{$4$};
+\node[above=-1pt of m2,font=\small\bfseries]{$3$};
+\node[above=-1pt of m3,font=\small\bfseries]{$6$};
+\node[above left=-2pt and 0pt of m4,font=\small\bfseries]{$5$};
+\node[above=-1pt of m5,font=\small\bfseries]{$7$};
+\node[above=-1pt of m6,font=\small\bfseries]{$5$};
+\node[above left=-2pt and 0pt of x0,font=\small\bfseries]{$5$};
+\node[above=-1pt of x1,font=\small\bfseries]{$3$};
+\node[above left=-2pt and 0pt of x2,font=\small\bfseries]{$6$};
+\node[above=-1pt of x3,font=\small\bfseries]{$7$};
+\node[above=-1pt of x4,font=\small\bfseries]{$5$};
+\node[above left=-2pt and 0pt of n0,font=\small\bfseries]{$3$};
+\node[above left=-2pt and 0pt of n1,font=\small\bfseries]{$6$};
+\node[above right=-2pt and 0pt of n2,font=\small\bfseries]{$5$};
+\node[above right=0pt and 1pt of R,font=\small\bfseries]{$6$};
+% --- značky řezů: perpendikulární červené přeškrtnutí na středu prořezané hrany ---
+% (souřadnice dopočteny ručně, kolmo na hranu; bez calc-rotace kvůli babel-czech)
+\draw[red,very thick] (2.78,0.68)--(3.22,0.82);     % hrana m1->L3 (list 7)
+\draw[red,very thick] (3.32,0.63)--(3.68,0.87);     % hrana m1->L4 (list 5)
+\draw[red,very thick] (7.54,0.68)--(7.96,0.82);     % hrana m4->L8 (list 9)
+\draw[red,very thick] (11.41,3.57)--(11.84,3.93);   % hrana n2->x5 (celý pravý podstrom)
+\end{tikzpicture}
+\obrpopis{Rekonstruovaný strom s~dopočtenými minimaxovými hodnotami (tučně u~uzlů) a~vyznačenými řezy alfa-beta (červené škrty, šedé čárkované hrany). Kořen MAX $=6$. Prořezáno je $6$ listů: $\{7,5\}$ pod~druhým MIN zleva, $\{9\}$ pod~MIN nad~listy $5,9$ a~celý pravý podstrom MAX s~listy $\{9,8,6\}$. Pořadí čtení listů: $5,6,4,3,6,5,7,5$ ($8$~z~$14$).}
+\end{center}
+\end{priklad}
+
+\noindent V~\texttt{priklady/} je u~této otázky původní oříznutý herní strom z~PDF (originál byl bez náčrtu řešení).
+
+\begin{priklad}[SZZ podzim 2025 č.~27: Jednotahové hry (dominance, Nash, Pareto)]
+\szzotazka{podzim 2025}{27}{Jednotahové hry (Nash, dominantní strategie, Pareto)}\par
+\textbf{Zadání.} (A)~Definujte \emph{dominantní strategii}, \emph{Nashovo ekvilibrium} a~\emph{Pareto optimální výsledek}. (B)~Pro tři níže uvedené hry (hráč $A$ = řádky Left/Right, hráč $B$ = sloupce Left/Right, oba \emph{maximalizují}; políčko = (zisk $A$, zisk $B$)) najděte všechny dominantní strategie, Nashova ekvilibria a~Pareto optimální výsledky. (C)~Vysvětlete na~nich rozdíly mezi~pojmy.
+
+\medskip
+\textbf{(A) Definice} -- viz výše (dominance = nejlepší strategie hráče bez ohledu na~soupeře; Nash = profil stabilní vůči jednostranné odchylce; Pareto optimum = výsledek, který nelze zlepšit všem zároveň).
+
+\medskip
+\textbf{(B) Tři hry.}
+
+\smallskip
+\emph{Hra 1.}
+\begin{center}\small\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|c|c|c|}
+\hline
+ & $B$: Left & $B$: Right \\
+\hline
+$A$: Left  & $10,\,5$ & $7,\,8$ \\
+\hline
+$A$: Right & $0,\,6$ & $\mathbf{15,\,7}$ \\
+\hline
+\end{tabular}
+\end{center}
+Hráč $B$: při $A=$Left je $5<8$, při $A=$Right je $6<7$ -- $B$ vždy preferuje \textbf{Right}, to je jeho \emph{dominantní strategie}. Hráč $A$ dominantní strategii nemá (při $B=$Left preferuje Left $10>0$, při $B=$Right preferuje Right $15>7$). $B$ tedy zahraje Right a~$A$ na~to odpoví Right. \textbf{Nash (čisté):} $(R,R)=(15,7)$ (ověř: nikdo si jednostranně nepolepší); \textbf{smíšené žádné} -- $B$ hraje ostře dominantní Right s~pravd.\ $1$, takže nerandomizuje. \textbf{Pareto optimální:} $(15,7)$ a~$(7,8)$ (žádný jiný výsledek není lepší pro oba; tyto dva jsou navzájem neporovnatelné -- vyšší zisk $A$ proti~vyššímu zisku $B$).
+
+\smallskip
+\emph{Hra 2 (koordinační).}
+\begin{center}\small\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|c|c|c|}
+\hline
+ & $B$: Left & $B$: Right \\
+\hline
+$A$: Left  & $\mathbf{100,\,100}$ & $0,\,0$ \\
+\hline
+$A$: Right & $0,\,0$ & $\mathbf{50,\,50}$ \\
+\hline
+\end{tabular}
+\end{center}
+\textbf{Dominantní strategie:} žádná (oba hráči chtějí volit \emph{totéž} co soupeř). \textbf{Nash (čisté):} \emph{dvě} -- $(L,L)=(100,100)$ i~$(R,R)=(50,50)$ (z~obou se jednostranně nepolepší: odchylka vede na~$0$). \textbf{Nash (smíšené):} jedno -- oba hrají Left s~pravd.\ $\tfrac13$, Right s~pravd.\ $\tfrac23$ (z~indiference $B$: $100p=50(1-p)\Rightarrow p=\tfrac13$); očekávaný zisk $33{,}\overline3$, horší než obě čisté rovnováhy. Hra~2 má tedy \emph{tři} ekvilibria. \textbf{Pareto optimální:} jen $(100,100)$ -- výsledek $(50,50)$ je Pareto-dominován výsledkem $(100,100)$.
+
+\smallskip
+\emph{Hra 3 (struktura vězňova dilematu).}
+\begin{center}\small\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|c|c|c|}
+\hline
+ & $B$: Left & $B$: Right \\
+\hline
+$A$: Left  & $20,\,20$ & $0,\,40$ \\
+\hline
+$A$: Right & $40,\,0$ & $\mathbf{10,\,10}$ \\
+\hline
+\end{tabular}
+\end{center}
+Hráč $A$: při $B=$Left je $40>20$, při $B=$Right je $10>0$ -- \textbf{Right} dominuje. Symetricky $B$: \textbf{Right} dominuje. \textbf{Nash (čisté):} $(R,R)=(10,10)$ (rovnováha v~dominantních strategiích); \textbf{smíšené žádné} -- oba hrají ostře dominantní Right s~pravd.\ $1$. \textbf{Pareto optimální:} $(20,20)$, $(0,40)$, $(40,0)$. Nashův výsledek $(10,10)$ je \emph{Pareto-dominován} výsledkem $(20,20)$ -- oba by si polepšili, ale racionální dominantní hra je tam nepustí. To je \textbf{struktura vězňova dilematu}.
+
+\medskip
+\textbf{(C) Rozdíly mezi~pojmy.}
+\begin{itemize}
+  \item \emph{Dominance vs.\ Nash.} Dominance je vlastnost \emph{jedné strategie jednoho hráče}; Nash je vlastnost \emph{profilu}. Profil v~dominantních strategiích \emph{je} Nash (hra~1, hra~3), ale Nash \emph{nemusí} pocházet z~dominance: hra~2 nemá žádnou dominantní strategii, a~přesto má dvě Nashova ekvilibria. \emph{Existence Nashe tedy nevyžaduje dominanci.}
+  \item \emph{Nash vs.\ Pareto.} Nash je o~\emph{stabilitě} (nikdo neodbočí), Pareto o~\emph{kolektivní dobrotě}. V~hře~3 je Nash $(10,10)$ Pareto-dominovaný (stabilní, ale pro oba špatný). V~hře~1 Nash $(15,7)$ Pareto optimální je. \emph{Nash a~Pareto optimum se mohou, ale nemusí krýt.}
+  \item \emph{Dominance vs.\ Pareto.} Hra v~dominantních strategiích nezaručuje Pareto optimum: hra~3 končí v~Pareto-dominovaném $(10,10)$. \emph{Sobecky optimální tah pro každého může být kolektivně nejhorší} -- přesně poučení vězňova dilematu (a~tragédie obecní pastviny).
+\end{itemize}
+\emph{(Všechny dominantní strategie, čistá Nashova ekvilibria a~Pareto-optimální výsledky byly ověřeny prohledáním všech čtyř profilů každé hry; smíšená ekvilibria výpočtem přes princip indiference -- vlastní smíšené existuje jen u~hry~2.)}
+\end{priklad}
+
+\noindent V~\texttt{priklady/} je u~této otázky původní zadání s~výplatními maticemi (originál byl bez náčrtu řešení).

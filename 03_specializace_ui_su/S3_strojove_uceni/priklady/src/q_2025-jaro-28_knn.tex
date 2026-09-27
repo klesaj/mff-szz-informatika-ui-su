@@ -1,0 +1,30 @@
+% Zdroj: PDF priklady-jaro-2025.pdf, fyzická str. 25. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S3.
+\section{$k$-nejbližších sousedů}
+\szzotazka{jaro 2025}{28}{k-nejbližších sousedů}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Popište metodu $k$-nejbližších sousedů pro klasifikaci i pro regresi. Jak probíhá
+    trénování a předpovídání?
+  \item Mějme data se dvěma atributy, která chceme klasifikovat do dvou tříd ($\circ$, $\times$)
+    znázorněná na obrázku níže. Uvažujme $k = 3$ (tedy používáme tři nejbližší sousedy). Jak bude
+    klasifikován nový vstup $(3, 2)$? Změnil by se výsledek klasifikace pokud změníme hodnotu $k$?
+  \item Popište, jakým způsobem můžeme nastavit vhodnou hodnotu $k$ pro naše data.
+\end{enumerate}
+
+\begin{center}\includegraphics[width=0.8\linewidth]{knn.png}\end{center}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Při tránování se pouze uloží trénovací data. Při klasifikaci/regresi se vyhledá $k$
+    nejbližších sousedů. Pro klasifikaci se použije nejčastější třída těchto sousedů, pro regresi
+    se použije průměr hodnot nejbližších sousedů.
+  \item Bod bude klasifikován jako $\circ$, neboť většina ze 3 nejbližších sousedů patří do této
+    třídy. Pokud zvýšíme $k$, mnoho bodů s třídou $\times$ se dostane mezi nejbližší sousedy a tím
+    se změní klasifikace (např. pro $k = 7$).
+  \item Vhodnou hodnotu $k$ je možné nastavit například pomocí křížové validace.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Podle souřadnic odečtených z~obrázku jsou dva nejbližší sousedé dotazu $(3,2)$ kroužky (vzdálenosti $\approx0{,}38$ a~$0{,}40$), třetím je křížek ($\approx0{,}58$; druhý křížek je prakticky stejně daleko). Pro $k=3$ tedy hlasování $2\!:\!1$ dává $\circ$. Pro $k=5$ je pátý a~šestý soused (kroužek a~křížek) ve stejné vzdálenosti $\approx0{,}67$ v~rámci přesnosti obrázku, výsledek je tedy na hraně. Pro $k=7$ je poměr jednoznačně $3\!:\!4$ ve prospěch $\times$. Při volbě $k$ křížovou validací se pro dvě třídy volí liché $k$, aby nevznikaly remízy.

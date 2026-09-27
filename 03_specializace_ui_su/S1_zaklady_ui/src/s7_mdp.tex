@@ -1,0 +1,265 @@
+\section{Markovovy rozhodovací procesy (Bellmanova rovnice, iterace hodnot a strategií, POMDP)}
+
+Doposud jsme předpokládali prostředí \emph{deterministické}: každá akce měla jednoznačný výsledek a~agent mohl celou posloupnost akcí naplánovat dopředu. Reálný svět je ale \emph{stochastický} -- robot, který chce jet vpřed, občas sklouzne stranou. Markovův rozhodovací proces (MDP) je formální model pro \emph{sekvenční rozhodování v~plně pozorovatelném, ale stochastickém prostředí}. Agent nemůže slepě provést pevnou posloupnost akcí (mohl by skončit jinde, než čekal); místo toho musí mít předpis, co dělat \emph{v~každém stavu}, kam se může dostat. Takovému předpisu říkáme \emph{strategie} (policy) a~úkolem je najít tu, která maximalizuje očekávaný (diskontovaný) užitek.
+
+\subsection{Rozhodování za nejistoty a princip MEU}
+
+Nejdřív si připomeňme, jak agent volí \emph{jednu} akci, je-li její výsledek nejistý. Preference agenta zachycuje \emph{užitková funkce} $U(s)$ -- číslo vyjadřující, jak je stav $s$ pro agenta žádoucí. Pokud akce $a$ vede do stavů $s'$ s~pravděpodobnostmi $P(s'\mid a, e)$ (za pozorování $e$), je její \emph{očekávaný užitek}
+\[
+  EU(a\mid e) \;=\; \sum_{s'} P(s'\mid a, e)\,U(s').
+\]
+
+\begin{definice}[Princip maximálního očekávaného užitku (MEU)]
+Racionální agent volí akci, která maximalizuje jeho očekávaný užitek:
+\[
+  a^\ast \;=\; \argmax_a \; EU(a\mid e) \;=\; \argmax_a \sum_{s'} P(s'\mid a, e)\,U(s').
+\]
+\end{definice}
+
+\begin{intuice}
+Princip MEU je jádro celé teorie rozhodování: \emph{co agent věří} popisuje teorie pravděpodobnosti, \emph{co agent chce} popisuje užitková funkce a~\emph{co má agent dělat} pak plyne z~jejich spojení -- vybrat akci s~nejvyšším očekávaným užitkem. Užitek loterie $L=[p_1,S_1;\dots;p_n,S_n]$ (výsledky $S_i$ s~pravděpodobnostmi $p_i$) je $U(L)=\sum_i p_i\,U(S_i)$. MDP je rozšíření tohoto principu z~jediného rozhodnutí na \emph{posloupnost} rozhodnutí.
+\end{intuice}
+
+\subsection{Markovův rozhodovací proces}
+
+\begin{definice}[Markovův rozhodovací proces (MDP)]
+MDP je sekvenční rozhodovací úloha pro plně pozorovatelné, stochastické prostředí s~\emph{Markovovým} přechodovým modelem a~\emph{aditivní} odměnou. Skládá se z:
+\begin{itemize}
+  \item množiny \textbf{stavů} $S$ (s~počátečním stavem $s_0$) a~množiny \textbf{akcí} $A(s)$ použitelných ve stavu $s$;
+  \item \textbf{přechodového modelu} $P(s'\mid s,a)$ -- pravděpodobnost, že akce $a$ ve stavu $s$ vede do stavu $s'$;
+  \item \textbf{odměny} $R(s)$, kterou agent dostane ve stavu $s$ (může být kladná i~záporná, musí být omezená).
+\end{itemize}
+\textbf{Markovova vlastnost}: pravděpodobnost přechodu do $s'$ závisí jen na aktuálním stavu $s$ a~akci $a$, \emph{ne na historii} dřívějších stavů.
+\end{definice}
+
+\begin{poznamka}
+Odměna $R(s)$ je „krátkodobá`` (co získám tady a~teď); užitek $U$ bude „dlouhodobý`` součet odměn za celou budoucí trajektorii. Variantu s~odměnou závislou i~na akci a~cíli, $R(s,a,s')$, lze na tuto formu vždy převést; my držíme jednodušší $R(s)$ ze slidů. V~SZZ příkladu níže se odměna připisuje „při průchodu stavem``.
+\end{poznamka}
+
+\subsubsection*{Diskontovaný užitek posloupnosti}
+
+Užitek závisí na celé posloupnosti navštívených stavů. Aby byl konečný i~pro nekonečné trajektorie a~aby se budoucí odměny počítaly méně než ty bezprostřední, používáme \emph{diskontování} faktorem $\gamma\in[0,1]$:
+\[
+  U\big([s_0,s_1,s_2,\dots]\big) \;=\; R(s_0) + \gamma\,R(s_1) + \gamma^2 R(s_2) + \cdots \;=\; \sum_{t=0}^{\infty} \gamma^{t}\, R(s_t).
+\]
+
+\begin{intuice}
+\emph{Diskontovaná} odměna říká, že odměna o~jeden krok později má pro nás cenu jen $\gamma$-násobnou. Pro $\gamma<1$ je součet \emph{konečný} i~na nekonečné trajektorii: je-li $R(s)\le R_{\max}$, pak
+\[
+  U\big([s_0,s_1,\dots]\big) \;\le\; \sum_{t=0}^\infty \gamma^t R_{\max} \;=\; \frac{R_{\max}}{1-\gamma}.
+\]
+Diskontování má i~ekonomickou interpretaci (peníze dnes jsou cennější než zítra) a~modeluje nejistotu, zda se agent budoucnosti vůbec dožije. Pro $\gamma\to 1$ se blížíme k~prostému součtu odměn.
+\end{intuice}
+
+\subsubsection*{Strategie a~optimální strategie}
+
+V~stochastickém prostředí \emph{nelze} použít pevnou posloupnost akcí: agent může skončit v~jiném stavu, než zamýšlel. Řešením MDP proto musí být předpis, co dělat \emph{v~každém} stavu.
+
+\begin{definice}[Strategie a~optimální strategie]
+\textbf{Strategie} (policy) $\pi$ je funkce, která každému stavu $s$ přiřadí akci $\pi(s)\in A(s)$. \emph{Očekávaný užitek} strategie $\pi$ při startu ve stavu $s$ je
+\[
+  U^\pi(s) \;=\; \mathbb{E}\!\left[\sum_{t=0}^{\infty} \gamma^t R(S_t)\right],
+\]
+kde $S_t$ je (náhodný) stav v~čase $t$ při řízení strategií $\pi$. \textbf{Optimální strategie} $\pi^\ast$ maximalizuje očekávaný užitek:
+\[
+  \pi^\ast \;=\; \argmax_{\pi}\, U^\pi(s).
+\]
+\end{definice}
+
+\begin{intuice}
+Optimální strategie nezávisí na počátečním stavu (pro diskontovaný užitek na nekonečném horizontu): kdyby se dvě optimální strategie startující z~různých stavů setkaly ve společném stavu $c$, není důvod, aby se v~$c$ rozhodovaly různě. Proto má smysl mluvit o~jediné optimální strategii $\pi^\ast$ a~o~\emph{skutečném užitku stavu}
+\[
+  U(s) \;=\; U^{\pi^\ast}(s).
+\]
+Známe-li tyto pravé užitky, dostaneme optimální akci jednoduše principem MEU -- vybereme akci, která maximalizuje očekávaný užitek následujícího stavu:
+\[
+  \pi^\ast(s) \;=\; \argmax_{a\in A(s)} \sum_{s'} P(s'\mid s,a)\,U(s').
+\]
+\end{intuice}
+
+\subsection{Bellmanova rovnice}
+
+Mezi užitkem stavu a~užitky jeho sousedů platí přímý vztah: užitek stavu je jeho vlastní odměna plus diskontovaný očekávaný užitek toho, co bude následovat, zvolím-li nejlepší akci.
+
+\begin{veta}[Bellmanova rovnice]
+Pro skutečné užitky $U(s)=U^{\pi^\ast}(s)$ platí pro každý stav $s$
+\[
+  \boxed{\,U(s) \;=\; R(s) \;+\; \gamma \max_{a\in A(s)} \sum_{s'} P(s'\mid s,a)\,U(s')\,}
+\]
+Pro \emph{koncový} (terminální) stav, z~nějž se nepokračuje, je $U(s)=R(s)$.
+\end{veta}
+
+\begin{intuice}
+Bellmanova rovnice je rozklad dlouhodobého užitku na \emph{okamžitou} odměnu $R(s)$ a~\emph{diskontovaný} užitek budoucnosti. Vnitřní suma $\sum_{s'} P(s'\mid s,a)\,U(s')$ je očekávaný užitek následníka po akci $a$ (to je $EU$ z~principu MEU); maximem přes $a$ vybíráme nejlepší akci. Pro $n$~neterminálních stavů dostaneme soustavu $n$~rovnic o~$n$~neznámých $U(s)$. Soustava je ale \emph{nelineární} kvůli operátoru $\max$, takže ji obvykle neřešíme přímo, ale iterativně (iterace hodnot níže). Veličinu uvnitř maxima, $Q(s,a)=R(s)+\gamma\sum_{s'}P(s'\mid s,a)U(s')$, nazýváme \emph{akční hodnotou}; pak $U(s)=\max_a Q(s,a)$ a~$\pi^\ast(s)=\argmax_a Q(s,a)$.
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.05, every node/.style={font=\small}]
+% gridworld 4 sloupce x 3 radky; bunka (c,r) zabira (c-1,r-1)..(c,r)
+\fill[green!18] (3,2) rectangle (4,3);  % +1  pole (4,3)
+\fill[red!18]   (3,1) rectangle (4,2);  % -1  pole (4,2)
+\fill[black!18] (1,1) rectangle (2,2);  % zeď pole (2,2)
+\draw[thick] (0,0) grid (4,3);
+% terminalni / zed (vystredene)
+\node at (3.5,2.5) {$+1$}; \node at (3.5,1.5) {$-1$}; \node at (1.5,1.5) {zeď};
+% uzitky (AIMA, R=-0.04, gamma=1) v horni casti bunky
+\node at (0.5,2.68) {$0{,}812$}; \node at (1.5,2.68) {$0{,}868$}; \node at (2.5,2.68) {$0{,}918$};
+\node at (0.5,1.68) {$0{,}762$}; \node at (2.5,1.68) {$0{,}660$};
+\node at (0.5,0.68) {$0{,}705$}; \node at (1.5,0.68) {$0{,}655$}; \node at (2.5,0.68) {$0{,}611$}; \node at (3.5,0.68) {$0{,}388$};
+% optimalni strategie jako sipky ve spodni casti bunky
+\tikzset{pol/.style={->,>=Stealth,blue!60!black,thick}}
+% horni rada -> vpravo
+\draw[pol] (0.35,2.24)--(0.65,2.24); \draw[pol] (1.35,2.24)--(1.65,2.24); \draw[pol] (2.35,2.24)--(2.65,2.24);
+% (1,2) a (3,2) nahoru
+\draw[pol] (0.5,1.18)--(0.5,1.43); \draw[pol] (2.5,1.18)--(2.5,1.43);
+% spodni rada: (1,1) nahoru; (2,1)(3,1)(4,1) vlevo
+\draw[pol] (0.5,0.18)--(0.5,0.43);
+\draw[pol] (1.65,0.24)--(1.35,0.24); \draw[pol] (2.65,0.24)--(2.35,0.24); \draw[pol] (3.65,0.24)--(3.35,0.24);
+% popisky os
+\foreach \c in {1,2,3,4}{\node[font=\footnotesize,black!60] at (\c-0.5,-0.3) {\c};}
+\foreach \r in {1,2,3}{\node[font=\footnotesize,black!60] at (-0.3,\r-0.5) {\r};}
+\end{tikzpicture}
+\obrpopis{Klasický \emph{gridworld} $3\times 4$ (AIMA): koncové stavy $+1$ (pole $4,3$) a~$-1$ (pole $4,2$), zeď na poli $2,2$. Akce \{nahoru, dolů, vlevo, vpravo\} vyjde podle úmyslu s~pravd.\ $0{,}8$, jinak agenta vychýlí kolmo ($0{,}1+0{,}1$). Modré šipky ukazují optimální strategii, čísla jsou užitky $U(s)$ (pro $R(s)=-0{,}04$ v~neterminálních polích, $\gamma=1$). Každý užitek splňuje Bellmanovu rovnici $U(s)=R(s)+\gamma\max_a\sum_{s'}P(s'\mid s,a)U(s')$; např.\ ve startu $(1,1)$ je optimální jít \emph{nahoru} (snaha o~horní cestu k~$+1$ při vyhýbání se $-1$).}
+\end{center}
+
+\subsection{Iterace hodnot (value iteration)}
+
+Bellmanova rovnice je základem algoritmu \emph{iterace hodnot}. Protože je soustava nelineární (kvůli $\max$), nepočítáme ji přímo, ale opakovaně aplikujeme Bellmanovu rovnici jako \emph{aktualizační pravidlo} (Bellman update), dokud se užitky neustálí.
+
+\begin{algo}[Iterace hodnot (value iteration)]
+\ttfamily\small
+VALUE-ITERATION(mdp, $\varepsilon$):\\
+\hspace*{1.5em}\cmt{$\varepsilon$ = maximální dovolená chyba užitku libovolného stavu}\\
+\hspace*{1.5em}$U \leftarrow$ vektor nul (pro všechny stavy); $U' \leftarrow U$\\
+\hspace*{1.5em}\textbf{repeat}\\
+\hspace*{3em}$U \leftarrow U'$;\quad $\delta \leftarrow 0$ \cmt{$\delta$ = největší změna užitku v~tomto kole}\\
+\hspace*{3em}\textbf{for} každý stav $s \in S$:\\
+\hspace*{4.5em}$U'[s] \leftarrow R(s) + \gamma\,\max\limits_{a\in A(s)} \sum\limits_{s'} P(s'\mid s,a)\,U[s']$ \cmt{Bellman update}\\
+\hspace*{4.5em}\textbf{if} $|U'[s]-U[s]| > \delta$: $\delta \leftarrow |U'[s]-U[s]|$\\
+\hspace*{1.5em}\textbf{until} $\delta \le \varepsilon\,(1-\gamma)/\gamma$\\
+\hspace*{1.5em}\textbf{return} $U$
+\end{algo}
+
+\begin{intuice}
+Začneme s~libovolnými (typicky nulovými) užitky a~v~každém kole každý stav \emph{aktualizujeme} podle Bellmanovy rovnice z~aktuálních užitků sousedů. Operátor Bellmanova updatu je \emph{kontrakce} (pro $\gamma<1$ zmenšuje rozdíl mezi libovolnými dvěma odhady faktorem $\gamma$), takže iterace \emph{konverguje} k~jedinému pevnému bodu -- pravým užitkům $U(s)$. Důležité je, že updaty pro všechny stavy v~jednom kole čteme z~\emph{téhož} starého vektoru $U$ (synchronní varianta). Ukončovací podmínka $\delta\le\varepsilon(1-\gamma)/\gamma$ zaručí, že chyba užitku je nejvýš $\varepsilon$. Z~konvergovaných užitků pak jednorázově odečteme optimální strategii $\pi^\ast(s)=\argmax_a\sum_{s'}P(s'\mid s,a)U(s')$.
+\end{intuice}
+
+\subsection{Iterace strategií (policy iteration)}
+
+Často nás zajímá jen \emph{optimální strategie}, ne přesné užitky. Optimální akce se přitom ustálí dřív než užitky (na pořadí akcí stačí znát užitky přibližně). Toho využívá \emph{iterace strategií}: střídá dva kroky -- vyhodnocení strategie a~zlepšení strategie -- dokud se strategie přestane měnit.
+
+\begin{algo}[Iterace strategií (policy iteration)]
+\ttfamily\small
+POLICY-ITERATION(mdp):\\
+\hspace*{1.5em}$U \leftarrow$ vektor nul; $\pi \leftarrow$ libovolná počáteční strategie\\
+\hspace*{1.5em}\textbf{repeat}\\
+\hspace*{3em}\cmt{1) vyhodnocení strategie (policy evaluation)}\\
+\hspace*{3em}$U \leftarrow$ POLICY-EVALUATION($\pi, U,$ mdp)\\
+\hspace*{3em}\cmt{2) zlepšení strategie (policy improvement)}\\
+\hspace*{3em}\textit{beze\_zmeny} $\leftarrow$ \textbf{true}\\
+\hspace*{3em}\textbf{for} každý stav $s \in S$:\\
+\hspace*{4.5em}$a^\ast \leftarrow \argmax\limits_{a\in A(s)} \sum\limits_{s'} P(s'\mid s,a)\,U[s']$\\
+\hspace*{4.5em}\textbf{if} $\sum_{s'} P(s'\mid s,a^\ast)U[s'] > \sum_{s'} P(s'\mid s,\pi[s])U[s']$:\\
+\hspace*{6em}$\pi[s] \leftarrow a^\ast$;\quad \textit{beze\_zmeny} $\leftarrow$ \textbf{false}\\
+\hspace*{1.5em}\textbf{until} \textit{beze\_zmeny}\\
+\hspace*{1.5em}\textbf{return} $\pi$
+\end{algo}
+
+\begin{intuice}
+\textbf{Vyhodnocení strategie} (policy evaluation): pro \emph{pevnou} strategii $\pi_i$ spočítáme její užitky $U^{\pi_i}$. Protože akce je daná, \emph{zmizí operátor} $\max$ a~Bellmanovy rovnice se stanou \emph{lineárními}:
+\[
+  U^{\pi_i}(s) \;=\; R(s) + \gamma \sum_{s'} P\big(s'\mid s,\pi_i(s)\big)\, U^{\pi_i}(s').
+\]
+Pro malý počet stavů $n$ je vyřešíme přímo (Gaussova eliminace) v~čase $O(n^3)$; pro velké prostory uděláme pár kol zjednodušené iterace hodnot (bez $\max$).
+
+\textbf{Zlepšení strategie} (policy improvement): z~užitků $U^{\pi_i}$ spočítáme novou strategii principem MEU, $\pi_{i+1}(s)\leftarrow\argmax_a\sum_{s'}P(s'\mid s,a)U^{\pi_i}(s')$. Pokud se žádná akce nezměnila, je strategie optimální a~končíme. Strategie se nikdy nezhoršuje a~možných strategií je konečně mnoho, takže algoritmus skončí po konečně mnoha krocích.
+\end{intuice}
+
+\begin{poznamka}
+\textbf{Iterace hodnot vs.\ iterace strategií.} Obě řeší tutéž úlohu. Iterace hodnot dělá v~každém kole \emph{jeden} levný Bellman update na stav (s~$\max$), ale potřebuje víc kol. Iterace strategií dělá méně kol, ale každé je dražší (v~kroku vyhodnocení řeší lineární soustavu $O(n^3)$, případně sama iterací). Test optimality strategie -- „nezmění-li krok zlepšení žádnou akci, je strategie optimální`` -- je přímo \emph{Bellmanovo kritérium optimality} a~použijeme ho i~v~SZZ příkladu níže.
+\end{poznamka}
+
+\subsection{Částečně pozorovatelný MDP (POMDP)}
+
+V~MDP agent vždy ví, ve kterém stavu je (plná pozorovatelnost), takže může provést akci $\pi(s)$ předepsanou pro daný stav. V~reálném světě tomu tak často není: agent stav přímo nevidí, jen ho odhaduje z~nepřesných pozorování.
+
+\begin{definice}[Částečně pozorovatelný MDP (POMDP)]
+POMDP je jako MDP -- má přechodový model $P(s'\mid s,a)$, akce $A(s)$ a~odměnu $R(s)$ -- navíc ale obsahuje \textbf{senzorový model} $P(e\mid s)$: pravděpodobnost pozorování (evidence) $e$ ve stavu $s$. Agent neví, ve kterém stavu přesně je.
+\end{definice}
+
+\begin{intuice}
+Protože agent nezná svůj stav jistě, udržuje místo něj \emph{stav víry} (belief state) $b$ -- pravděpodobnostní rozdělení přes všechny možné stavy. Po každé akci a~pozorování $b$ aktualizuje filtrací (jako u~HMM). Klíčové pozorování: \emph{optimální chování závisí jen na aktuálním stavu víry}, takže POMDP lze chápat jako (obyčejný) MDP nad \emph{spojitým} prostorem stavů víry. Tím se ale úloha výrazně ztíží -- stavů víry je nekonečně mnoho a~techniky iterace hodnot je nutné upravit na spojitý případ (řeší se přes po částech lineární užitkové funkce, viz \texttt{POMDP-VALUE-ITERATION}). V~praxi se rozhodnutí dělají rozvíjením budoucích posloupností akcí a~pozorování dopředu (dynamická rozhodovací síť) a~výběrem nejlepší větve, podobně jako algoritmus expektimax u~stochastických her. Požadavky okruhu žádají jen \emph{základní definici}: POMDP = MDP + senzorový model $P(e\mid s)$, řešený nad stavy víry.
+\end{intuice}
+
+\subsection{Řešený příklad SZZ}
+
+\begin{priklad}[SZZ léto 2025 č.~29: Bellmanova rovnice užitku (MDP, iterace strategií)]
+\szzotazka{léto 2025}{29}{Bellmanova rovnice užitku (MDP, iterace strategií)}\par
+\textbf{Zadání.}\par
+Robot se pohybuje v~konečném stavovém prostoru. Pro každý stav $s$ známe množinu akcí $A(s)$ a~přechodový model $P(s'\mid s,a)$. Při průchodu stavem $s$ dostane robot odměnu $R(s)$, užitek je diskontován faktorem $\gamma=0{,}9$. Graf níže udává stavy, jejich odměny a~dvě možné akce z~každého neterminálního stavu. Zvolená akce vede do stavu daného svou hranou s~pravděpodobností $0{,}8$, jinak ($0{,}2$) do cíle \emph{druhé} akce daného stavu. Úkoly: \,(1)~napište rovnici pro maximální užitek $U(s)$;\, (2)~napište soustavu rovnic pro vyhodnocení strategie $B\to C$, $C\to D$, $D\to F$;\, (3)~jakým algoritmem ji vyřešíme;\, (4)~jak ověříme, že tato volba dává maximální užitky pro všechny stavy;\, (5)~jak najdeme akce maximalizující užitek pro všechny stavy.
+
+\medskip
+\textbf{Řešení.}
+
+\textbf{(1) Bellmanova rovnice.} Maximální užitek stavu je jeho odměna plus diskontovaný očekávaný užitek nejlepší akce:
+\[
+  U(s) \;=\; R(s) + \gamma \max_{a\in A(s)} \sum_{s'} P(s'\mid s,a)\,U(s'),
+\]
+s~koncovými stavy $U(E)=R(E)=5$ a~$U(F)=R(F)=6$.
+
+\textbf{(2) Soustava pro vyhodnocení strategie} $B\to C,\,C\to D,\,D\to F$. Pevná strategie odstraní $\max$, takže rovnice jsou \emph{lineární}. U~každého stavu vede zvolená akce do svého cíle s~pravd.\ $0{,}8$ a~do cíle druhé akce s~pravd.\ $0{,}2$ (druhá akce: $B$ má i~$\to D$, $C$ má i~$\to E$, $D$ má i~$\to B$):
+\[
+\begin{aligned}
+  U(B) &= -3 + 0{,}9\big[\,0{,}8\,U(C) + 0{,}2\,U(D)\,\big],\\
+  U(C) &= \phantom{-}1 + 0{,}9\big[\,0{,}8\,U(D) + 0{,}2\,U(E)\,\big],\\
+  U(D) &= \phantom{-}1 + 0{,}9\big[\,0{,}8\,U(F) + 0{,}2\,U(B)\,\big],\\
+  U(E) &= 5,\qquad U(F)=6.
+\end{aligned}
+\]
+
+\textbf{(3) Algoritmus řešení.} Jde o~\emph{vyhodnocení strategie} (policy evaluation). Soustava je lineární (tři rovnice o~třech neznámých $U(B),U(C),U(D)$), takže ji vyřešíme \emph{přímo} -- Gaussovou eliminací v~čase $O(n^3)$. Alternativně lze iterovat zjednodušený Bellman update bez $\max$ (iterace hodnot pro pevnou strategii), dokud se užitky neustálí. Dosazením $U(E)=5$, $U(F)=6$ a~vyřešením soustavy:
+\[
+  \boxed{U(B) \approx 2{,}383,\qquad U(C) \approx 6{,}039,\qquad U(D) \approx 5{,}749.}
+\]
+(Kontrola dosazením, např.\ $U(D)=1+0{,}9\,[\,0{,}8\cdot 6 + 0{,}2\cdot 2{,}383\,]=1+0{,}9\cdot 5{,}277\approx 5{,}749$.) Pár kol iterace dává $U^{(1)}=(-3{,}0;\,1{,}90;\,5{,}32)$, $U^{(2)}=(-0{,}67;\,5{,}73;\,4{,}78)$, $U^{(3)}=(1{,}99;\,5{,}34;\,5{,}20)$, $\dots$, postupně se ustaluje na hodnotách výše.
+
+\textbf{(4) Test optimality strategie.} Pro každý stav ověříme \emph{Bellmanovo kritérium optimality}: zda zvolená akce dosahuje $\max_{a}\sum_{s'}P(s'\mid s,a)U(s')$, tj.\ zda by krok \emph{zlepšení strategie} (policy improvement) některou akci změnil. Spočítáme očekávaný užitek obou akcí v~každém stavu (z~užitků výše):
+\begin{itemize}
+  \item $B$: akce $\to C$ dá $0{,}8\cdot 6{,}039 + 0{,}2\cdot 5{,}749 = 5{,}981$; akce $\to D$ dá $0{,}8\cdot 5{,}749 + 0{,}2\cdot 6{,}039 = 5{,}807$. Lepší je $\to C$ (zvolená).
+  \item $C$: akce $\to D$ dá $0{,}8\cdot 5{,}749 + 0{,}2\cdot 5 = 5{,}599$; akce $\to E$ dá $0{,}8\cdot 5 + 0{,}2\cdot 5{,}749 = 5{,}150$. Lepší je $\to D$ (zvolená).
+  \item $D$: akce $\to F$ dá $0{,}8\cdot 6 + 0{,}2\cdot 2{,}383 = 5{,}277$; akce $\to B$ dá $0{,}8\cdot 2{,}383 + 0{,}2\cdot 6 = 3{,}106$. Lepší je $\to F$ (zvolená).
+\end{itemize}
+V~žádném stavu by se akce nezměnila, takže zadaná strategie \textbf{je optimální} a~spočtené užitky jsou maximální možné. (Kdyby aspoň v~jednom stavu vyšla jiná akce lépe, strategie by optimální nebyla.)
+
+\textbf{(5) Hledání optimálních akcí.} Obecně použijeme \emph{iteraci strategií} (policy iteration): střídáme \emph{vyhodnocení strategie} (vyřeš lineární soustavu jako v~bodě 3) a~\emph{zlepšení strategie} (v~každém stavu vezmi akci s~nejvyšším očekávaným užitkem jako v~bodě 4), dokud se strategie přestane měnit. Výsledná strategie je optimální pro všechny stavy. (Alternativně lze rovnou spustit \emph{iteraci hodnot} s~$\max$ a~z~konvergovaných užitků odečíst $\pi^\ast(s)=\argmax_a\sum_{s'}P(s'\mid s,a)U(s')$.) Zde už jsme v~bodě 4 ověřili, že strategie $B\to C,\,C\to D,\,D\to F$ je optimální, takže iterace strategií by skončila hned.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0, every node/.style={font=\small}]
+\node[stav] (B) at (0,0) {$B$};
+\node[stav] (C) at (2.6,1.4) {$C$};
+\node[stav] (D) at (2.6,-1.4) {$D$};
+\node[stavg] (E) at (5.2,1.4) {$E$};
+\node[stavg] (F) at (5.2,-1.4) {$F$};
+% odmeny u uzlu
+\node[font=\footnotesize,black!60] at (0,0.75) {$R{=}{-}3$};
+\node[font=\footnotesize,black!60] at (2.6,2.15) {$R{=}1$};
+\node[font=\footnotesize,black!60] at (2.6,-2.15) {$R{=}1$};
+\node[font=\footnotesize,black!60] at (5.2,2.15) {$R{=}5$};
+\node[font=\footnotesize,black!60] at (5.2,-2.15) {$R{=}6$};
+% hrany (akce). Strategie B->C, C->D, D->F zelene tlustsi.
+\tikzset{akce/.style={->,>=Stealth,thick,black!55},
+         polA/.style={->,>=Stealth,very thick,green!45!black}}
+\draw[polA] (B) -- (C);                 % B->C (strategie)
+\draw[akce] (B) -- (D);                 % B->D
+\draw[polA] (C) -- (D);                 % C->D (strategie)
+\draw[akce] (C) -- (E);                 % C->E
+\draw[polA] (D) -- (F);                 % D->F (strategie)
+\draw[akce] (D) to[bend left=20] (B);   % D->B (zpetna)
+% legenda
+\node[font=\footnotesize,black!55] at (2.6,-3.1) {tučné zelené hrany = strategie $B\!\to\!C,\,C\!\to\!D,\,D\!\to\!F$};
+\end{tikzpicture}
+\obrpopis{Stavový graf MDP ze zadání: neterminální stavy $B(-3),C(1),D(1)$, terminální $E(5),F(6)$. Z~každého neterminálního stavu vedou dvě akce (orientované hrany): $B\!\to\!C$, $B\!\to\!D$; $C\!\to\!D$, $C\!\to\!E$; $D\!\to\!F$, $D\!\to\!B$. Zvolená akce vede do svého cíle s~pravd.\ $0{,}8$, do cíle druhé akce s~pravd.\ $0{,}2$. Tučně zeleně je vyznačena vyhodnocovaná strategie $B\!\to\!C,\,C\!\to\!D,\,D\!\to\!F$, o~níž výpočet ukázal, že je navíc optimální.}
+\end{center}
+\end{priklad}
+
+\noindent V~\texttt{priklady/} je u~této otázky původní zadání a~oříznutý stavový graf z~PDF (originál byl bez náčrtu řešení; hodnoty výše jsme ověřili výpočtem).

@@ -1,0 +1,52 @@
+% Zdroj: PDF priklady-jaro-2024.pdf, fyzická str. 3-4. Značka: společné okruhy. Zařazeno: M2.
+\section{Skalární součin}
+\szzotazka{jaro 2024}{3}{Skalární součin}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Ověřte, že $\langle \mathbf{A}, \mathbf{B} \rangle = \operatorname{trace}(\mathbf{A}^{\mathrm{T}} \mathbf{B})$ je skalární součin na $\mathbb{R}^{m \times n}$, přičemž tzv.\ \textit{stopa matice}, značená trace, je definována pro čtvercové matice řádu $n$ předpisem $\operatorname{trace}(\mathbf{C}) = \sum_{i=1}^{n} c_{ii}$.
+  \item Rozhodněte, zdali jsou matice $\mathbf{A}, \mathbf{B} \in \mathbb{R}^{4 \times 6}$ na sebe ortogonální vzhledem k uvedenému skalárnímu součinu pro matici
+    \[
+      \mathbf{A} = \begin{pmatrix}
+        1 & -2 & 3 & -4 & 5 & -6 \\
+        -2 & 3 & -4 & 5 & -6 & 7 \\
+        3 & -4 & 5 & -6 & 7 & -8 \\
+        -4 & 5 & -6 & 7 & -8 & 9
+      \end{pmatrix}
+    \]
+    a matici $\mathbf{B}$, jejíž všechny prvky jsou rovny $-13$.
+  \item Zformulujte Cauchyho--Schwarzovu nerovnost a rozhodněte, zda pro čtvercovou matici $\mathbf{A}$ řádu $n$ platí: $(\operatorname{trace}(\mathbf{A}))^2 \le n \cdot \operatorname{trace}(\mathbf{A}^{\mathrm{T}} \mathbf{A})$.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Po dosazení
+    \[
+      \langle \mathbf{A}, \mathbf{B} \rangle = \operatorname{trace}(\mathbf{A}^{\mathrm{T}} \mathbf{B})
+      = \sum_{i=1}^{n} (\mathbf{A}^{\mathrm{T}} \mathbf{B})_{ii}
+      = \sum_{i=1}^{n} \sum_{j=1}^{n} (\mathbf{A}^{\mathrm{T}})_{ij} b_{ji}
+      = \sum_{i=1}^{n} \sum_{j=1}^{n} a_{ji} b_{ji}.
+    \]
+    Neboli po složkách mezi sebou vynásobíme matice $\mathbf{A}$ a $\mathbf{B}$ a výsledek sečteme.
+
+    Toto zobrazení splňuje axiomy skalárního součinu:
+    \begin{itemize}
+      \item $\langle \mathbf{A}, \mathbf{A} \rangle = \sum_{i=1}^{n} \sum_{j=1}^{n} (a_{ji})^2 \ge 0$
+      \item $\langle \mathbf{A}, \mathbf{A} \rangle = \sum_{i=1}^{n} \sum_{j=1}^{n} (a_{ji})^2 = 0 \Rightarrow \forall i,j : a_{ij} = 0 \Rightarrow \mathbf{A} = \mathbf{0}$
+      \item $\langle \mathbf{A}, \mathbf{B} \rangle = \sum_{i=1}^{n} \sum_{j=1}^{n} a_{ji} b_{ji} = \sum_{i=1}^{n} \sum_{j=1}^{n} b_{ji} a_{ji} = \langle \mathbf{B}, \mathbf{A} \rangle$
+      \item $\langle \mathbf{A} + \mathbf{C}, \mathbf{B} \rangle = \sum_{i=1}^{n} \sum_{j=1}^{n} (a_{ji} + c_{ji}) b_{ji} = \sum_{i=1}^{n} \sum_{j=1}^{n} a_{ji} b_{ji} + \sum_{i=1}^{n} \sum_{j=1}^{n} c_{ji} b_{ji} = \langle \mathbf{A}, \mathbf{B} \rangle + \langle \mathbf{C}, \mathbf{B} \rangle$
+      \item $\langle t\mathbf{A}, \mathbf{B} \rangle = \sum_{i=1}^{n} \sum_{j=1}^{n} t a_{ji} b_{ji} = t \sum_{i=1}^{n} \sum_{j=1}^{n} a_{ji} b_{ji} = t \langle \mathbf{A}, \mathbf{B} \rangle$
+    \end{itemize}
+    Také vyplývá z toho, že jde o standardní skalární součin, pokud reálné matice typu $m \times n$ reprezentujeme jako reálné vektory o $mn$ složkách.
+
+  \item $\langle \mathbf{A}, \mathbf{B} \rangle = \sum_{i=1}^{n} \sum_{j=1}^{n} a_{ji} \cdot (-13) = -13 \sum_{i=1}^{n} \sum_{j=1}^{n} a_{ji} = 0$, protože $\mathbf{A}$ má řádkové součty $-3, 3, -3$ a $3$.
+
+  \item Cauchyho--Schwarzova nerovnost: Pro každý vektorový prostor $V$ se skalárním součinem a normu odvozenou z tohoto skalárního součinu platí: $\forall \mathbf{u}, \mathbf{v} \in V : |\langle \mathbf{u}, \mathbf{v} \rangle| \le \|\mathbf{u}\| \cdot \|\mathbf{v}\|$.
+
+    Dotazovaná nerovnost platí, umocněním obou stran Cauchyho--Schwarzovy nerovnosti dostaneme $\forall \mathbf{u}, \mathbf{v} \in V : \langle \mathbf{u}, \mathbf{v} \rangle^2 \le \langle \mathbf{u}, \mathbf{u} \rangle \langle \mathbf{v}, \mathbf{v} \rangle$. Do této nerovnosti dosadíme uvedený skalární součin a vektory $\mathbf{u} = \mathbf{I}_n$ a $\mathbf{v} = \mathbf{A}$.
+    Dostáváme: $(\operatorname{trace}(\mathbf{A}))^2 = (\operatorname{trace}(\mathbf{I}_n^{\mathrm{T}} \mathbf{A}))^2 = \langle \mathbf{I}_n, \mathbf{A} \rangle^2 \le \langle \mathbf{I}_n, \mathbf{I}_n \rangle \langle \mathbf{A}, \mathbf{A} \rangle = n \cdot \operatorname{trace}(\mathbf{A}^{\mathrm{T}} \mathbf{A})$.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} pro $\mathbf{A},\mathbf{B}\in\mathbb{R}^{m\times n}$ je $\mathbf{A}^{\mathrm{T}}\mathbf{B}$ typu $n\times n$, takže správně $\operatorname{trace}(\mathbf{A}^{\mathrm{T}}\mathbf{B})=\sum_{i=1}^{n}\sum_{j=1}^{m}a_{ji}b_{ji}$ (vnitřní součet jde přes $m$ řádků, v~náčrtu je horní mez $n$). Na závěru to nic nemění: jde o~součet součinů odpovídajících prvků přes všech $mn$ pozic. V~bodě~2 se sčítá přes všech $4\cdot6=24$ prvků matice $\mathbf{A}$; řádkové součty jsou $1-2+3-4+5-6=-3$, $-2+3-4+5-6+7=3$ a~dále se střídají, celkový součet je tedy $0$.

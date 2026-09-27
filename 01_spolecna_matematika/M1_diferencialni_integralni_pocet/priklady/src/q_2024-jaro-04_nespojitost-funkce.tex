@@ -1,0 +1,20 @@
+% Zdroj: PDF priklady-jaro-2024.pdf, fyzická str. 4. Značka: společné okruhy (matematika). Zařazeno: M1.
+\section{Nespojitost funkce}
+\szzotazka{jaro 2024}{4}{Nespojitost funkce}
+
+\noindent\textbf{Zadání.}\par
+Nechť $f : (0, 1) \to \mathbb{R}$ je reálná funkce.
+\begin{enumerate}
+  \item Definujte, co znamená, že $f$ je \emph{nespojitá} v bodu $\tfrac{1}{2}$.
+  \item Je funkce $f$, když ji na tomto intervalu definujeme jako $f(x) = \dfrac{2x-1}{1-2x}$ pro $x \neq \tfrac{1}{2}$ a jako $f\!\left(\tfrac{1}{2}\right) = -1$, nespojitá v bodu $\tfrac{1}{2}$?
+  \item Pokud ji zadáme vzorcem $f(x) = \dfrac{2x-1}{1-2x}$ na celém intervalu $(0, 1)$, je $f$ nespojitá v bodu $x = \tfrac{1}{2}$?
+\end{enumerate}
+Odpovědi v částech 2 a 3 zdůvodněte.
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Existuje $\varepsilon > 0$, že pro každé $\delta > 0$ existuje číslo $x \in (0, 1)$, že $\left|x - \tfrac{1}{2}\right| < \delta$, ale $\left|f(x) - f\!\left(\tfrac{1}{2}\right)\right| \geq \varepsilon$. Nebo: existuje posloupnost $(a_n) \subset (0, 1)$, že $\lim a_n = \tfrac{1}{2}$, ale $(f(a_n))$ nemá limitu $f\!\left(\tfrac{1}{2}\right)$.
+  \item Není. Pro tuto funkci je $\lim_{x \to \frac{1}{2}} f(x) = -1 = f\!\left(\tfrac{1}{2}\right)$ (což je vidět třeba z algebraické úpravy $\dfrac{2x-1}{1-2x} = -1$ pro $x \neq \tfrac{1}{2}$\footnote{V originálním PDF je zde uvedeno \uv{pro $x \neq -1$}; jde o překlep. Úprava $\frac{2x-1}{1-2x} = -1$ platí pro všechna $x$ s $1-2x \neq 0$, tj.\ pro $x \neq \frac{1}{2}$; zde uvedeno korektně.}), takže (podle charakterizace spojitosti funkce v bodu pomocí limity) je tato $f$ v $\tfrac{1}{2}$ spojitá, a ne nespojitá.
+  \item Ne, není; pro $x = \tfrac{1}{2}$ není ani definovaná.
+\end{enumerate}

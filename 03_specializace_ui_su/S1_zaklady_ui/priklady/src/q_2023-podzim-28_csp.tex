@@ -1,0 +1,22 @@
+% Zdroj: PDF priklady-podzim-2023.pdf, fyzická str. 18. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S1 (CSP / backtracking / arc consistency).
+\section{Problém splňování podmínek (CSP)}
+\szzotazka{podzim 2023}{28}{Problém splňování podmínek (CSP, backtracking, arc consistency)}
+
+\noindent\textbf{Zadání.}\par
+Definujte problém splňování podmínek (CSP z anglického Constraint Satisfaction Problem). Popište prohledávání s navracením (backtracking) jako způsob řešení CPS. Vysvětlete pojmy ,,hranová konzistence`` (arc consistency), ,,kontrola dopředu`` (forward checking) a ,,pohled dopředu`` (look ahead).
+
+Pomocí CSP modelujte problém Sudoku, tj. problém umístění čísel $1, \dots, 9$ do mřížky $9 \times 9$ takovým způsobem, že se v žádném sloupci, řádku ani boxu velikosti $3 \times 3$ žádná cifra neopakuje více než jednou. Předpokládejte, že některá čísla jsou už v mřížce zadaná.
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{itemize}[nosep]
+  \item Definice CSP -- trojice (proměnné, domény, podmínky), obecně může být pro každou proměnnou jiná doména, podmínek je konečně mnoho. Podmínka je relace mezi proměnnými, podmnožina Kartézského součinu domén.
+  \item Popis backtracking, arc consistency, forward checking a look ahead.
+  \begin{itemize}[nosep]
+    \item \textit{backtracking} -- přiřadíme hodnotu nějaké proměnné a opakujeme dokud nedostaneme validní řešení nebo spor. V případě sporu backtrackujeme a učiníme jiné rozhodnutí.
+    \item \textit{arc consistency} -- podmínka (arc, pokud máme pouze binární podmínky) je konzistentní, pokud pro každou hodnotu z domény existuje hodnota pro ostatní proměnné, které tuto podmínku splní. Hodnoty pro které neexistuje ohodnocení ostatních proměnných můžeme z domény vyloučit.
+    \item \textit{forward checking} -- po ohodnocení proměnné $x$ zkontrolujeme ostatní proměnné, které se vyskytují v podmínkách spolu s $x$. Odstraníme nekonzistentní hodnoty.
+    \item \textit{look ahead} -- podobné jako forward check, ale kontrolujeme postupně všechny podmínky, dokud se nějaké proměnné mění doména. Tj. jde o silnější techniku než forward check. Obdobně můžeme říct, že po ohodnocení proměnné se problém udělá arc consistent.
+  \end{itemize}
+  \item Model sudoku -- každé políčko je jedna proměnná, každá proměnná má doménu $1, \dots, 9$. Podmínky jsou ,,All Different`` (případně nerovnost po dvojicích) na vhodné podmnožiny proměnných (tj, sloupce, řádky, 3x3 políčka). Typicky máme v sudoku už zadaná nějaká čísla, ta můžeme přiřadit pomocí domén nebo pomocí podmínek.
+\end{itemize}

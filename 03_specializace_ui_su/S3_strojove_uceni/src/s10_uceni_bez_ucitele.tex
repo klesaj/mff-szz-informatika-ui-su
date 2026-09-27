@@ -1,0 +1,417 @@
+\section{Učení bez učitele: shlukování a redukce dimenze}\label{sec:bezucitele}
+
+Dosud měla každá data \emph{cíl} $t$ (label) -- učili jsme se s~učitelem. Při \textbf{učení bez učitele} máme jen vstupy $\mathbf{x}_1,\dots,\mathbf{x}_N$ \emph{bez} cílů a~hledáme v~nich \emph{strukturu}: přirozené skupiny (\emph{shlukování}) nebo nízkodimenzionální popis (\emph{redukce dimenze}). Není „správná odpověď`` k~porovnání, takže evaluace je vnitřní (jak kompaktní jsou shluky, kolik rozptylu zachováme).
+
+\begin{poznamka}[Vztah k~S1 a~M2]
+S1 (sekce \emph{Strojové učení}) zmiňuje EM jako Bayesovské učení se skrytými proměnnými a~poznamenává, že $k$-means je jeho speciální případ s~„tvrdým`` přiřazením. Zde shlukování rozvádíme do hloubky (algoritmus, kritérium, konvergence) a~EM dořešíme na konkrétní SZZ úloze. \emph{Redukce dimenze} přes PCA stojí na vlastních číslech a~vlastních vektorech symetrické matice (okruh \textbf{M2}); odtud bereme spektrální rozklad jako hotový nástroj.
+\end{poznamka}
+
+% =====================================================================
+\subsection{Shlukování algoritmem \texorpdfstring{$k$}{k}-means}\label{ssec:kmeans}
+
+\begin{definice}[Úloha shlukování a~kritérium $k$-means]
+Mějme $N$ bodů $\mathbf{x}_1,\dots,\mathbf{x}_N\in\mathbb{R}^D$ a~zadaný počet shluků $K$. Hledáme \emph{centroidy} (středy) $\mu_1,\dots,\mu_K\in\mathbb{R}^D$ a~přiřazení každého bodu k~jednomu shluku, popsané indikátory $z_{i,k}\in\{0,1\}$ ($z_{i,k}=1$, právě když bod $\mathbf{x}_i$ patří do shluku $k$; pro každé $i$ je právě jedno $z_{i,k}=1$). Minimalizujeme \textbf{kritérium} (součet čtverců vzdáleností bodů od jejich centroidu)
+\[
+  J(\{z_{i,k}\},\{\mu_k\}) \;=\; \sum_{i=1}^N\sum_{k=1}^K z_{i,k}\,\|\mathbf{x}_i-\mu_k\|^2 .
+\]
+\end{definice}
+
+\begin{intuice}
+$J$ je celková „rozptýlenost`` shluků: čím menší, tím kompaktnější jsou shluky kolem svých středů. Najít globální minimum přes \emph{všechna} přiřazení je NP-těžké (exponenciálně mnoho rozdělení), proto $k$-means minimalizuje $J$ \emph{střídavě}: drží středy a~optimalizuje přiřazení, pak drží přiřazení a~optimalizuje středy. To je přesně struktura EM (sekce~\ref{ssec:em}).
+\end{intuice}
+
+\begin{algo}[$k$-means (Lloydův algoritmus)]
+\textbf{Vstup:} body $\mathbf{x}_1,\dots,\mathbf{x}_N$, počet shluků $K$.\\[2pt]
+\textbf{1. Inicializace.} Zvol $K$ počátečních centroidů $\mu_1,\dots,\mu_K$ \cmt{náhodně z~dat / k-means++}\\[2pt]
+\textbf{2.} \textbf{opakuj} až do konvergence (přiřazení se nemění) nebo do limitu iterací:\\
+\hspace*{1.5em}\textbf{(a) Krok přiřazení.} Každý bod přiřaď k~\emph{nejbližšímu} centroidu:\hfill\cmt{drží středy, mění $z$}
+\[
+  z_{i,k}=\begin{cases}1 & k=\argmin_{j}\|\mathbf{x}_i-\mu_j\|^2,\\[1pt]0 & \text{jinak.}\end{cases}
+\]
+\hspace*{1.5em}\textbf{(b) Krok přepočtu.} Každý centroid přepočti jako \emph{průměr} bodů svého shluku:\hfill\cmt{drží $z$, mění středy}
+\[
+  \mu_k=\frac{\sum_i z_{i,k}\,\mathbf{x}_i}{\sum_i z_{i,k}} .
+\]
+\textbf{Výstup:} přiřazení $z_{i,k}$ a~centroidy $\mu_k$.
+\end{algo}
+
+\begin{intuice}
+Oba kroky jsou \emph{optimální pro svoji polovinu}. (a)~Při pevných středech je $J$ minimalizováno tím, že každý bod jde k~nejbližšímu středu (jiné přiřazení by jen zvětšilo jeho člen $\|\mathbf{x}_i-\mu_k\|^2$). (b)~Při pevném přiřazení je $\sum_i z_{i,k}\|\mathbf{x}_i-\mu\|^2$ jako funkce $\mu$ minimalizována \emph{průměrem} bodů shluku -- derivace podle $\mu$ je $-2\sum_i z_{i,k}(\mathbf{x}_i-\mu)=0$, odkud $\mu=\bar{\mathbf{x}}$ shluku. Proto se každý krok počítá tak, jak se počítá.
+\end{intuice}
+
+\subsubsection*{Inicializace: náhodně vs.\ k-means++}
+
+Náhodná inicializace volí $K$ počátečních středů jako náhodné body z~dat. Riziko: dva středy padnou do téhož hustého shluku a~jeden přirozený shluk zůstane bez středu. \textbf{k-means++} volí středy „rozprostřeně``: první náhodně, každý další s~pravděpodobností \emph{úměrnou čtverci vzdálenosti} od nejbližšího už zvoleného středu. Vzdálené (dosud nepokryté) oblasti tak mají větší šanci dostat střed. Dokazatelně dává v~očekávání $\mathcal{O}(\log K)$-aproximaci optimálního $J$.
+
+\begin{poznamka}[Praxe]
+Protože $k$-means konverguje jen k~\emph{lokálnímu} minimu (viz níže), spouští se obvykle \emph{vícekrát} s~různými inicializacemi a~vybere se běh s~\emph{nejmenším} $J$ (scikit-learn má ve výchozím stavu \texttt{n\_init=10}).
+\end{poznamka}
+
+\subsubsection*{Konvergence k~lokálnímu optimu}
+
+\begin{veta}[$k$-means konverguje (k~lokálnímu minimu)]
+Algoritmus $k$-means se po konečně mnoha iteracích zastaví; kritérium $J$ při tom neroste a~výsledek je \emph{lokální} (ne nutně globální) minimum.
+\end{veta}
+
+\begin{intuice}[Argument konvergence -- dotažený]
+Tvrzení stojí na dvou pozorováních a~jedné konečnosti:
+\begin{enumerate}
+  \item \textbf{Žádný krok $J$ nezvýší.} Krok přiřazení (a) přiřadí každý bod k~nejbližšímu středu, takže jeho příspěvek $\|\mathbf{x}_i-\mu_k\|^2$ klesne nebo zůstane -- $J$ neroste. Krok přepočtu (b) nahradí každý střed průměrem svého shluku, který \emph{minimalizuje} $\sum_i z_{i,k}\|\mathbf{x}_i-\mu\|^2$ (viz intuice výše) -- $J$ opět neroste. Posloupnost hodnot $J$ je tedy \emph{nerostoucí} a~zdola omezená nulou.
+  \item \textbf{Konečně mnoho stavů.} $J$ je plně určeno \emph{přiřazením} $\{z_{i,k}\}$ (středy jsou pak dané průměry). Různých přiřazení $N$ bodů do $K$ shluků je konečně mnoho ($\le K^N$).
+  \item \textbf{Závěr.} Algoritmus prochází přiřazeními tak, že $J$ neroste; kdyby se přiřazení změnilo, $J$ \emph{ostře} klesne (jinak jsme v~minimu a~iterace se zastaví). Ostře klesající hodnota na konečné množině stavů nemůže pokračovat donekonečna -- žádný stav se nezopakuje. Po konečně mnoha krocích se přiřazení přestane měnit, tehdy se zastavíme.
+\end{enumerate}
+Že jde jen o~\emph{lokální} minimum, plyne z~toho, že střídavá minimalizace optimalizuje vždy jen jednu skupinu proměnných; výsledek je „nejlepší v~okolí``, ne globálně. \emph{Proto} je výsledek citlivý na inicializaci a~spouští se vícekrát (viz výše).
+\end{intuice}
+
+\begin{poznamka}[Pozor na prázdnou frázi]
+Říct „$k$-means konverguje, protože $J$ klesá`` je \emph{neúplné}: klesání samo ještě nezaručuje \emph{zastavení} (klesat lze i~nekonečně, $1/n\to 0$). Klíč je \emph{konečnost} počtu přiřazení -- proto se posloupnost monotónně klesajících hodnot na konečné množině stavů musí ustálit.
+\end{poznamka}
+
+\begin{center}
+\begin{tikzpicture}[scale=0.84]
+% --- Panel 1: krok prirazeni ---
+\begin{scope}
+  \draw[osa] (0,0) -- (4.2,0) node[right,font=\scriptsize]{$x_1$};
+  \draw[osa] (0,0) -- (0,3.9) node[above,font=\scriptsize]{$x_2$};
+  % body shluku 1 (vlevo dole), 2 (vpravo nahore)
+  \node[cls1] at (0.8,0.7) {}; \node[cls1] at (1.3,1.1) {}; \node[cls1] at (0.6,1.4) {};
+  \node[cls1] at (1.1,0.5) {};
+  \node[cls2] at (3.0,3.0) {}; \node[cls2] at (3.4,2.5) {}; \node[cls2] at (2.6,3.3) {};
+  \node[cls2] at (3.2,3.5) {};
+  % stare centroidy (jeste neprepoctene -- mimo teziste shluku)
+  \node[centroid] (m1) at (1.7,1.6) {};
+  \node[centroid] (m2) at (2.4,2.5) {};
+  \node[font=\scriptsize,anchor=south] at (1.7,1.80) {$\mu_1$};
+  \node[font=\scriptsize,anchor=south] at (2.4,2.70) {$\mu_2$};
+  \node[font=\scriptsize] at (2.1,3.78) {\textbf{(a) krok přiřazení}};
+\end{scope}
+% --- Panel 2: krok prepoctu ---
+\begin{scope}[xshift=5.6cm]
+  \draw[osa] (0,0) -- (4.2,0) node[right,font=\scriptsize]{$x_1$};
+  \draw[osa] (0,0) -- (0,3.9) node[above,font=\scriptsize]{$x_2$};
+  \node[cls1] at (0.8,0.7) {}; \node[cls1] at (1.3,1.1) {}; \node[cls1] at (0.6,1.4) {};
+  \node[cls1] at (1.1,0.5) {};
+  \node[cls2] at (3.0,3.0) {}; \node[cls2] at (3.4,2.5) {}; \node[cls2] at (2.6,3.3) {};
+  \node[cls2] at (3.2,3.5) {};
+  % stare centroidy (svetle) a sipka na nove (prumer = teziste shluku)
+  \node[star,star points=5,draw=black!35,fill=yellow!30,inner sep=0pt,minimum size=9pt] (o1) at (1.7,1.6) {};
+  \node[star,star points=5,draw=black!35,fill=yellow!30,inner sep=0pt,minimum size=9pt] (o2) at (2.4,2.5) {};
+  \draw[->,>=Stealth,black!65,thick] (o1) -- (0.98,0.95);
+  \draw[->,>=Stealth,black!65,thick] (o2) -- (3.05,3.075);
+  \node[centroid] (n1) at (0.95,0.925) {};
+  \node[centroid] (n2) at (3.05,3.075) {};
+  \node[font=\scriptsize,anchor=west] at (1.18,0.88) {$\mu_1'$};
+  \node[font=\scriptsize,anchor=west] at (3.22,3.02) {$\mu_2'$};
+  \node[font=\scriptsize] at (2.1,3.78) {\textbf{(b) krok přepočtu}};
+\end{scope}
+\end{tikzpicture}
+\obrpopis{Jedna iterace $k$-means. (a)~Krok přiřazení: každý bod (modrý kruh / červený čtverec) jde k~bližšímu z~centroidů (žluté hvězdy $\mu_1,\mu_2$). (b)~Krok přepočtu: každý centroid se posune do těžiště (průměru) bodů svého shluku -- šipka vede od staré polohy k~nové $\mu_k'$. Kroky se střídají, dokud se přiřazení nemění.}
+\end{center}
+
+\subsubsection*{Řešené příklady: $k$-means}
+
+\begin{priklad}[SZZ léto 2022 č.~12: K-means -- první iterace]
+\szzotazka{léto 2022}{12}{Shlukování (K-means)}\par
+\textbf{Zadání.} Šest bodů s~příznaky $A_1,A_2$: $1(2,4)$, $2(1,3)$, $3(0,4)$, $4(5,2)$, $5(6,2)$, $6(4,0)$; $K=2$, počáteční náhodné přiřazení $C_1=\{2,3,4\}$, $C_2=\{1,5,6\}$. (1)~Spočítejte centroidy obou shluků. (2)~Přiřaďte každý bod k~nejbližšímu centroidu (euklidovsky) a~uveďte nové shluky.
+
+\smallskip
+\textbf{Řešení.} (1)~Centroid je průměr bodů shluku:
+\[ c_1=\Big(\tfrac{1+0+5}{3},\tfrac{3+4+2}{3}\Big)=(2,3),\qquad c_2=\Big(\tfrac{2+6+4}{3},\tfrac{4+2+0}{3}\Big)=(4,2). \]
+(2)~Pro každý bod porovnáme čtverce vzdáleností k~$c_1=(2,3)$ a~$c_2=(4,2)$:
+\[
+\begin{array}{c|cc|c}
+\text{bod} & \|{\cdot}-c_1\|^2 & \|{\cdot}-c_2\|^2 & \text{shluk}\\\hline
+1\,(2,4) & 1  & 8  & C_1\\
+2\,(1,3) & 1  & 10 & C_1\\
+3\,(0,4) & 5  & 20 & C_1\\
+4\,(5,2) & 10 & 1  & C_2\\
+5\,(6,2) & 17 & 4  & C_2\\
+6\,(4,0) & 13 & 4  & C_2
+\end{array}
+\]
+Nové shluky: $C_1=\{1,2,3\}$, $C_2=\{4,5,6\}$.
+\end{priklad}
+
+\begin{priklad}[SZZ léto 2023 č.~8: $k$-means iterace + hierarchické shlukování]
+\szzotazka{léto 2023}{8}{Shlukování}\par
+\textbf{Zadání.} Data $(1,1),(2,1),(3,2),(4,3),(4,2)$, $k=2$, počáteční středy $\mu_1=(1,1)$, $\mu_2=(3,2)$. (1)~Nové středy po jedné iteraci? (2)~Co v~dalších iteracích? (3)~Popište hierarchické shlukování a~jeho výsledek na těchto datech.
+
+\smallskip
+\textbf{Řešení.} (1) \emph{Krok přiřazení} -- ke každému bodu spočteme vzdálenost k~oběma středům (stačí porovnat čtverce):
+\[
+\begin{array}{c|cc|c}
+\text{bod} & \|{\cdot}-\mu_1\| & \|{\cdot}-\mu_2\| & \text{shluk}\\\hline
+(1,1) & 0 & \sqrt5 & 1\\
+(2,1) & 1 & \sqrt2 & 1\\
+(3,2) & \sqrt5 & 0 & 2\\
+(4,3) & \sqrt{13} & \sqrt2 & 2\\
+(4,2) & \sqrt{10} & 1 & 2
+\end{array}
+\]
+Shluk~1 $=\{(1,1),(2,1)\}$, shluk~2 $=\{(3,2),(4,3),(4,2)\}$. \emph{Krok přepočtu} (průměry):
+\[
+  \mu_1=\Big(\tfrac{1+2}{2},\tfrac{1+1}{2}\Big)=\boxed{(1{,}5,\;1)},\qquad
+  \mu_2=\Big(\tfrac{3+4+4}{3},\tfrac{2+3+2}{3}\Big)=\boxed{\big(\tfrac{11}{3},\,\tfrac{7}{3}\big)}.
+\]
+(2)~Opakované přiřazení s~novými středy dá \emph{totéž} rozdělení (body $(1,1),(2,1)$ zůstanou u~$\mu_1$, zbytek u~$\mu_2$), takže se středy už \textbf{nemění -- algoritmus zkonvergoval} (po jedné iteraci).
+
+(3)~\emph{Aglomerativní} shlukování (viz~\ref{ssec:hier}): začni s~pěti jednobodovými shluky a~opakovaně slučuj dva nejbližší. Při \emph{single linkage} (vzdálenost nejbližších bodů) mají tři dvojice vzdálenost $1$: $(1,1)$--$(2,1)$, $(3,2)$--$(4,2)$ a~$(4,2)$--$(4,3)$. Ve výšce $1$ tak vzniknou skupiny $\{(1,1),(2,1)\}$ a~$\{(3,2),(4,2),(4,3)\}$ (při postupném slučování po jedné dvojici v~libovolném pořadí), které se nakonec spojí ve výšce $\sqrt2$ (vzdálenost $(2,1)$--$(3,2)$). Řez dendrogramu na dvě skupiny dá \emph{stejné dva shluky jako $k$-means}: $\{(1,1),(2,1)\}$ a~$\{(3,2),(4,2),(4,3)\}$.
+\begin{center}
+\begin{tikzpicture}[scale=0.85]
+  \draw[osa] (0,0) -- (5.0,0) node[right,font=\scriptsize]{$x_1$};
+  \draw[osa] (0,0) -- (0,3.8) node[above,font=\scriptsize]{$x_2$};
+  \foreach \t in {1,2,3,4}{\draw (\t,0.05)--(\t,-0.05) node[below,font=\tiny]{\t};}
+  \foreach \t in {1,2,3}{\draw (0.05,\t)--(-0.05,\t) node[left,font=\tiny]{\t};}
+  % shluk 1
+  \node[cls1] at (1,1) {}; \node[cls1] at (2,1) {};
+  % shluk 2
+  \node[cls2] at (3,2) {}; \node[cls2] at (4,3) {}; \node[cls2] at (4,2) {};
+  % centroidy po konvergenci
+  \node[centroid] at (1.5,1) {}; \node[centroid] at (3.6667,2.3333) {};
+  \node[font=\tiny,anchor=south] at (1.5,1.15) {$\mu_1$};
+  \node[font=\tiny,anchor=west] at (3.78,2.33) {$\mu_2$};
+\end{tikzpicture}
+\obrpopis{Data úlohy léto~2023. $k$-means s~$k=2$ konverguje na shluky $\{(1,1),(2,1)\}$ a~$\{(3,2),(4,2),(4,3)\}$ s~centroidy $(1{,}5,1)$ a~$(\tfrac{11}{3},\tfrac73)$ (žluté hvězdy). Single-linkage aglomerativní shlukování dává řezem na dvě skupiny totéž rozdělení.}
+\end{center}
+\end{priklad}
+
+\begin{priklad}[SZZ jaro 2024 č.~28: $k$-means se třemi shluky]
+\szzotazka{jaro 2024}{28}{Shlukování}\par
+\textbf{Zadání.} Body $A(-2,1)$, $B(-1,-1)$, $C(3,-2)$, $D(4,-1)$, $E(3,3)$, $F(4,4)$, $G(-3,0)$, $H(4,2)$, $I(4,-2)$, $J(6,1)$; $k=3$, počáteční středy $A$, $F$, $J$. (1)~Hlavní kroky $k$-means. (2)~Rozdělení a~nové středy po první iteraci (euklidovská vzdálenost). (3)~Změní se středy dál?
+
+\smallskip
+\textbf{Řešení.} (1)~Inicializuj $K$ středů; pak opakuj \emph{přiřazení} (každý bod k~nejbližšímu středu) a~\emph{přepočet} (střed $=$ průměr bodů shluku), dokud se přiřazení mění.
+
+(2)~\emph{Krok přiřazení} ke středům $A(-2,1)$, $F(4,4)$, $J(6,1)$. Vzdálenosti levých bodů jsou nejmenší k~$A$, horních pravých k~$F$, dolních/krajně pravých k~$J$. Např.\ $C(3,-2)$: k~$A$ je $\sqrt{25+9}=\sqrt{34}$, k~$F$ je $\sqrt{1+36}=\sqrt{37}$, k~$J$ je $\sqrt{9+9}=\sqrt{18}$ -- nejblíž $J$; $H(4,2)$: k~$F$ je $\sqrt{0+4}=2$, k~$J$ je $\sqrt{4+1}=\sqrt5$ -- nejblíž $F$. Výsledek:
+\[
+  \text{shluk }A:\{A,B,G\},\quad \text{shluk }F:\{E,F,H\},\quad \text{shluk }J:\{C,D,I,J\}.
+\]
+\emph{Krok přepočtu} (průměry):
+\[
+  \mu_A=\Big(\tfrac{-2-1-3}{3},\tfrac{1-1+0}{3}\Big)=\boxed{(-2,\,0)},\quad
+  \mu_F=\Big(\tfrac{3+4+4}{3},\tfrac{3+4+2}{3}\Big)=\boxed{\big(\tfrac{11}{3},\,3\big)},
+\]
+\[
+  \mu_J=\Big(\tfrac{3+4+4+6}{4},\tfrac{-2-1-2+1}{4}\Big)=\boxed{\big(\tfrac{17}{4},\,-1\big)}.
+\]
+(3)~Opakované přiřazení k~novým středům dá \emph{totéž} rozdělení, takže se středy už \textbf{nemění} -- algoritmus zkonvergoval.
+\end{priklad}
+
+\begin{priklad}[SZZ léto 2025 č.~31: kritérium a~lokální optimum]
+\szzotazka{léto 2025}{31}{Shlukování ($k$-means)}\par
+\textbf{Zadání.} (1)~Popište $k$-means (volba a~úprava středů, ukončení). (2)~Jaké kritérium optimalizuje? (3)~Na datech se třemi zjevnými shluky $k$-means ($k=3$) nenašel optimální shluky -- proč a~jak zvýšit šanci na lepší výsledek?
+
+\smallskip
+\textbf{Řešení.} (1)~Středy se volí (náhodně z~dat / k-means++); pak se střídá přiřazení bodů k~nejbližšímu středu a~přepočet středu na průměr shluku; končí se, když se přiřazení přestane měnit (nebo po daném počtu iterací). (2)~Minimalizuje $J=\sum_{i}\sum_{k}z_{i,k}\|\mathbf{x}_i-\mu_k\|^2$ (součet čtverců vzdáleností bodů od jejich centroidu).
+
+(3)~$k$-means konverguje jen k~\emph{lokálnímu} minimu $J$, závislému na inicializaci. Při nešťastné inicializaci se některý přirozený shluk rozdělí mezi dva středy, zatímco jiný přirozený shluk vlastní střed nedostane. Na obrázku ze zadání si velký levý dolní shluk rozdělily značky „čtvereček`` a~„kolečko``, přičemž kolečka zároveň pokrývá malý horní prostřední shluk; oficiální náčrt to popisuje tak, že prostřední shluk (\emph{mnohem menší} než zbylé dva) byl přiřazen k~části levého. Takové rozdělení je lokálně stabilní (žádný bod nechce přejít k~jinému středu), ale má vyšší $J$ než pravé tři shluky. \textbf{Náprava:} spustit $k$-means \emph{vícekrát} z~různých inicializací a~vzít běh s~nejmenším $J$; použít \emph{k-means++} inicializaci, která rozprostře počáteční středy.
+\end{priklad}
+
+\begin{priklad}[SZZ jaro 2026 č.~28: $k$-means a~argument konvergence]
+\szzotazka{jaro 2026}{28}{Shlukování pomocí $K$-means}\par
+\textbf{Zadání.} (1)~Popište $k$-means, k~čemu slouží, jeho kroky a~inicializaci. (2)~Jakou ztrátovou funkci optimalizuje? (3)~Konverguje? Zformulujte argument a~uveďte praktické důsledky.
+
+\smallskip
+\textbf{Řešení.} (1)~$k$-means je metoda \emph{učení bez učitele} pro rozdělení dat do $K$ shluků podle geometrické podobnosti. Inicializuje $K$ centroidů (náhodně z~dat nebo k-means++: první náhodně, další úměrně čtverci vzdálenosti od nejbližšího už zvoleného) a~opakuje přiřazení (bod $\to$ nejbližší centroid) a~přepočet (centroid $=$ průměr shluku), dokud se přiřazení mění. (2)~$J=\sum_i\sum_k z_{i,k}\|\mathbf{x}_i-\mu_k\|^2$.
+
+(3)~\textbf{Ano, konverguje k~lokálnímu minimu.} Argument: oba kroky $J$ \emph{nezvýší} (přiřazení k~nejbližšímu středu i~přepočet na průměr jsou každý optimální pro svoji proměnnou); $J$ je zdola omezené nulou; a~hodnota $J$ je určena \emph{přiřazením}, kterých je jen \emph{konečně mnoho} ($\le K^N$). Nerostoucí posloupnost, která při každé skutečné změně přiřazení ostře klesá, se na konečné množině stavů musí po konečně mnoha krocích ustálit -- tehdy se přiřazení nemění a~zastavíme. \textbf{Praktické důsledky:} výsledek je jen \emph{lokální} optimum a~závisí na inicializaci, proto se algoritmus spouští vícekrát a~bere se nejlepší (nejmenší $J$); inicializace k-means++ kvalitu zlepšuje. (Konvergence je obvykle rychlá -- pár iterací.)
+\end{priklad}
+
+% =====================================================================
+\subsection{Hierarchické shlukování}\label{ssec:hier}
+
+$k$-means vyžaduje předem zvolené $K$ a~dává „placaté`` rozdělení. \textbf{Aglomerativní (zdola-nahoru) hierarchické shlukování} žádné $K$ předem nepotřebuje: vybuduje celou \emph{hierarchii} vnořených shluků a~rozhodnutí o~počtu skupin nechá až na konec (řez dendrogramu).
+
+\begin{algo}[Aglomerativní hierarchické shlukování]
+\textbf{Vstup:} body $\mathbf{x}_1,\dots,\mathbf{x}_N$, míra vzdálenosti shluků (\emph{linkage}).\\[2pt]
+\textbf{1.} Začni s~$N$ shluky, každý bod sám jeden shluk. \cmt{singletony}\\
+\textbf{2.} \textbf{opakuj}, dokud nezbude jeden shluk:\\
+\hspace*{1.5em}(a) najdi dvojici shluků s~\emph{nejmenší} vzdáleností (dle zvoleného linkage);\\
+\hspace*{1.5em}(b) sluč je do jednoho a~zaznamenej výšku spojení $=$ jejich vzdálenost.\\
+\textbf{Výstup:} \emph{dendrogram} -- strom slučování s~výškami.
+\end{algo}
+
+\begin{definice}[Linkage: vzdálenost dvou shluků $\mathcal{A},\mathcal{B}$]
+\[
+\begin{aligned}
+&\textbf{single}\ (\text{nejbližší soused}): && d(\mathcal A,\mathcal B)=\min_{a\in\mathcal A,b\in\mathcal B}\|a-b\|;\\
+&\textbf{complete}\ (\text{nejvzdálenější}): && d(\mathcal A,\mathcal B)=\max_{a\in\mathcal A,b\in\mathcal B}\|a-b\|;\\
+&\textbf{average}\ (\text{průměrná}): && d(\mathcal A,\mathcal B)=\tfrac{1}{|\mathcal A||\mathcal B|}\sum_{a,b}\|a-b\|;\\
+&\textbf{Ward}: && \text{slučuj dvojici, která nejméně zvýší vnitroshlukový rozptyl.}
+\end{aligned}
+\]
+\end{definice}
+
+\begin{intuice}
+Volba linkage mění \emph{tvar} shluků: \emph{single} umí natáhnout shluk podél řetězce blízkých bodů (riziko „řetězení`` -- dva oddělené shluky spojené můstkem splynou), \emph{complete} preferuje kompaktní kulaté shluky, \emph{average} je kompromis. \emph{Ward} minimalizuje růst rozptylu -- dává podobně kompaktní shluky jako $k$-means a~je výchozí volbou např.\ ve \texttt{scikit-learn}. \textbf{Dendrogram} je strom, jehož listy jsou body a~výška spojení je vzdálenost slučovaných shluků. \emph{Vodorovný řez} v~určité výšce rozpadne strom na shluky: čím níž řežeme, tím \emph{víc} shluků. Počet shluků tak volíme až dodatečně, čtením z~dendrogramu.
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0]
+% Dendrogram 5 bodu: a,b blizko; d,e blizko; c pripoji k {d,e}; pak obe skupiny.
+% listy na ose x: a=0, b=1, c=2, d=3, e=4 (jednotka = 1cm). vyska = vzdalenost spojeni.
+  \def\hab{0.8}   % spojeni a-b
+  \def\hde{1.0}   % spojeni d-e
+  \def\hcde{1.8}  % c k {d,e}
+  \def\htop{3.0}  % obe skupiny
+  % osa vysky
+  \draw[osa] (-0.6,0) -- (-0.6,3.4) node[above,font=\scriptsize]{výška (vzdálenost)};
+  \foreach \y in {1,2,3}{\draw (-0.65,\y)--(-0.55,\y) node[left,font=\tiny,xshift={0-2pt}]{\y};}
+  % listy
+  \foreach \x/\lab in {0/a,1/b,2/c,3/d,4/e}{\node[font=\scriptsize] at (\x,-0.25){$\lab$}; \draw[black!30,dotted] (\x,0)--(\x,3.0);}
+  % spojeni a-b
+  \draw[thick] (0,0)--(0,\hab); \draw[thick] (1,0)--(1,\hab);
+  \draw[thick] (0,\hab)--(1,\hab);
+  % spojeni d-e
+  \draw[thick] (3,0)--(3,\hde); \draw[thick] (4,0)--(4,\hde); \draw[thick] (3,\hde)--(4,\hde);
+  % c k {d,e}
+  \draw[thick] (2,0)--(2,\hcde); \draw[thick] (3.5,\hde)--(3.5,\hcde); \draw[thick] (2,\hcde)--(3.5,\hcde);
+  % top
+  \draw[thick] (0.5,\hab)--(0.5,\htop); \draw[thick] (2.75,\hcde)--(2.75,\htop); \draw[thick] (0.5,\htop)--(2.75,\htop);
+  % rez
+  \draw[red!70!black,dashed,thick] (-0.4,2.4)--(4.4,2.4) node[right,font=\tiny,red!70!black]{řez ($2$ shluky)};
+\end{tikzpicture}
+\obrpopis{Dendrogram aglomerativního shlukování pěti bodů. Nejdřív se spojí blízké páry ($a,b$ a~$d,e$), pak se $c$ přidá ke~skupině $\{d,e\}$, nakonec splynou obě skupiny. Výška vodorovné spojnice $=$ vzdálenost slučovaných shluků. Vodorovný \emph{řez} (červeně) protne dvě svislé čáry, tedy dělí data na \textbf{dva} shluky $\{a,b\}$ a~$\{c,d,e\}$; nižší řez by dal víc shluků.}
+\end{center}
+
+\begin{poznamka}[Hustotní shlukování -- jen zmínka]
+Existují i~\emph{hustotní} metody (DBSCAN): shluk $=$ souvislá oblast s~dostatečnou hustotou bodů, určenou parametry $\varepsilon$ (poloměr) a~\texttt{minPts}; body v~řídkých oblastech zůstanou jako šum. Umí najít shluky libovolného tvaru a~nepotřebuje předem $K$, ale v~požadavcích S3 jmenováno není (uvádíme jednou větou pro úplnost).
+\end{poznamka}
+
+% =====================================================================
+\subsection{Redukce dimenze: analýza hlavních komponent (PCA)}\label{ssec:pca}
+
+\textbf{Prokletí dimenzionality} (sekce~\ref{sec:preuceni}) i~potřeba vizualizace motivují \emph{redukci dimenze}: nahradit $D$ příznaků menším počtem $M<D$ nových příznaků, které zachovají co nejvíc informace. \textbf{PCA} (analýza hlavních komponent) je lineární metoda, která nové osy volí ve směrech \emph{největšího rozptylu} dat.
+
+\begin{definice}[PCA: hlavní komponenty]
+Mějme matici dat $\mathbf{X}\in\mathbb{R}^{N\times D}$ (příklad na řádku). PCA:
+\begin{enumerate}
+  \item \textbf{Centrování:} odečti průměr, $\tilde{\mathbf{X}}=\mathbf{X}-\bar{\mathbf{x}}$ (každý sloupec má střední hodnotu $0$).
+  \item \textbf{Kovarianční matice:} $\mathbf{S}=\frac1N\tilde{\mathbf{X}}^{\!\top}\tilde{\mathbf{X}}\in\mathbb{R}^{D\times D}$ (symetrická, pozitivně semidefinitní).
+  \item \textbf{Spektrální rozklad:} najdi vlastní čísla $\lambda_1\ge\lambda_2\ge\dots\ge\lambda_D\ge0$ a~ortonormální vlastní vektory $\mathbf{v}_1,\dots,\mathbf{v}_D$ matice $\mathbf{S}$. \emph{Hlavní komponenty} jsou vlastní vektory $\mathbf{v}_k$, seřazené sestupně podle $\lambda_k$.
+  \item \textbf{Projekce:} nové souřadnice bodu jsou jeho průměty na prvních $M$ komponent, $\mathbf{z}_i=(\mathbf{v}_1^{\!\top}\tilde{\mathbf{x}}_i,\dots,\mathbf{v}_M^{\!\top}\tilde{\mathbf{x}}_i)\in\mathbb{R}^M$.
+\end{enumerate}
+\end{definice}
+
+\begin{intuice}
+Vlastní číslo $\lambda_k$ je přesně \emph{rozptyl dat ve směru} $\mathbf{v}_k$ (kovarianční matice měří rozptyl, její vlastní směry jsou hlavní osy „mraku`` dat). První hlavní komponenta $\mathbf{v}_1$ míří tam, kde jsou data nejvíc rozprostřená; $\mathbf{v}_2$ je na ni kolmá s~druhým největším rozptylem atd. Zahodit komponenty s~malým $\lambda$ znamená zahodit směry, v~nichž se data skoro nemění -- ztratíme nejmíň informace (v~smyslu rozptylu). \emph{Kolik komponent} vzít? Podle \emph{podílu zachyceného rozptylu} $\frac{\lambda_1+\dots+\lambda_M}{\lambda_1+\dots+\lambda_D}$ (např.\ tolik $M$, aby zachoval $95\,\%$), nebo z~„lomu`` v~grafu seřazených $\lambda$ (scree plot).
+\end{intuice}
+
+\begin{poznamka}[Souvislost se SVD a~M2]
+PCA je vlastní rozklad symetrické pozitivně semidefinitní matice $\mathbf{S}=\mathbf{V}\Lambda\mathbf{V}^{\!\top}$ (M2: taková matice má reálná nezáporná vlastní čísla a~ortonormální vlastní vektory). Ekvivalentně lze hlavní komponenty získat z~\emph{singulárního rozkladu} $\tilde{\mathbf{X}}=\mathbf{U}\Sigma\mathbf{V}^{\!\top}$ (sloupce $\mathbf{V}$ jsou tytéž vlastní vektory, $\lambda_k=\sigma_k^2/N$); v~praxi se počítá přes SVD, numericky stabilnější. Pro jen pár prvních komponent stačí \emph{power iteration} (opakované násobení $\mathbf{S}$ s~normalizací konverguje k~dominantnímu vlastnímu vektoru). Detail SVD a~Eckart-Youngovu větu (nejlepší nízkohodnotová aproximace) zde nerozvádíme -- jen zmiňujeme.
+\end{poznamka}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[width=9.8cm,height=7.4cm,axis equal image,
+  xlabel={$x_1$},ylabel={$x_2$},
+  xlabel style={at={(axis description cs:1.0,0.5)},anchor=north,yshift=-2pt,font=\scriptsize},
+  ylabel style={at={(axis description cs:0.5,1.0)},anchor=east,xshift=-2pt,font=\scriptsize},
+  xmin=-4.4,xmax=4.4,ymin=-3.4,ymax=3.4,
+  xtick={-3,0,3},ytick={-2,0,2},tick label style={font=\scriptsize},
+  axis lines=middle,
+  every axis plot/.append style={thick},clip=false]
+  \addplot[only marks,mark=*,mark size=1.1pt,blue!55!black,opacity=0.7]
+    table[x=x,y=y]{fig/s10_pca_cloud.dat};
+  % PC1 (dlouha osa, max rozptyl) a PC2 (kratsi, kolma) -- z gen_s10_pca.py
+  \addplot[->,>=Stealth,very thick,red!70!black] coordinates {(0,0) (2.779,1.463)};
+  \addplot[->,>=Stealth,very thick,red!70!black] coordinates {(0,0) (-2.779,-1.463)};
+  \addplot[->,>=Stealth,very thick,green!45!black] coordinates {(0,0) (-0.404,0.768)};
+  \addplot[->,>=Stealth,very thick,green!45!black] coordinates {(0,0) (0.404,-0.768)};
+  \node[font=\scriptsize\bfseries,red!70!black,anchor=south west] at (axis cs:2.95,1.55) {$\mathbf{v}_1$\,(PC1)};
+  \node[font=\scriptsize\bfseries,green!45!black,anchor=south east] at (axis cs:-0.55,0.95) {$\mathbf{v}_2$\,(PC2)};
+\end{axis}
+\end{tikzpicture}
+\obrpopis{PCA na protáhlém 2D mraku (centrovaná data). První hlavní komponenta $\mathbf{v}_1$ (červeně) míří směrem \emph{největšího rozptylu}, druhá $\mathbf{v}_2$ (zeleně) je na ni kolmá s~menším rozptylem. Zde $\mathbf{v}_1$ zachycuje přes $90\,\%$ rozptylu, takže projekcí na samotnou $\mathbf{v}_1$ ($M=1$) ztratíme jen málo informace. Komponenty jsou vlastní vektory kovarianční matice, seřazené dle vlastních čísel $=$ rozptylů.}
+\end{center}
+
+\subsubsection*{Řešený příklad: PCA a~vliv na klasifikaci}
+
+\begin{priklad}[SZZ léto 2024 č.~29: směry komponent a~PCA před $k$-NN]
+\szzotazka{léto 2024}{29}{PCA analýza}\par
+\textbf{Zadání.} Data se dvěma atributy ze tří tříd (obrázek -- tři protáhlé, vzájemně oddělené mraky podél „antidiagonály``, tj.\ směru klesající přímky). (1)~Jak funguje PCA, jak spočítat hlavní komponenty? (2)~Bez počítání odhadněte směry obou hlavních komponent. (3)~$k$-NN po redukci PCA na 1D -- jaká accuracy (přesnost) oproti původním datům? Vysvětlete.
+
+\smallskip
+\textbf{Řešení.} (1)~Viz výklad výše: centruj data, sestav kovarianční matici, její vlastní vektory (seřazené dle vlastních čísel) jsou hlavní komponenty; projekcí na prvních $M$ z~nich snížíš dimenzi.
+
+(2)~Rozptyl dat je \emph{největší podél antidiagonály} (mraky se táhnou a~zároveň jsou rozmístěny ve směru klesající přímky, přes celý graf). \textbf{1.~hlavní komponenta $\mathbf{v}_1$ tedy míří podél této antidiagonály} (směr $\approx(1,-1)$, klesající), \textbf{2.~komponenta $\mathbf{v}_2$ je na ni kolmá} (směr $\approx(1,1)$, stoupající). Obě se zakreslí jako šipky z~těžiště dat.
+
+(3)~\textbf{Accuracy klesne} (na původních 2D datech je $k$-NN téměř bezchybný, po projekci na 1D se třídy $+$ a~$\bullet$ z~velké části překryjí). Vysvětlení: PCA je \emph{bez učitele} -- maximalizuje rozptyl, \textbf{ne} oddělitelnost tříd. Projekce na $\mathbf{v}_1$ (antidiagonála) sice zachová nejvíc rozptylu, ale \emph{stlačí dohromady} třídy, které se liší hlavně v~\emph{kolmém} (málorozptylovém) směru $\mathbf{v}_2$ -- jejich průměty na $\mathbf{v}_1$ se překryjí a~$k$-NN je splete. Redukce na 1D vždy zahodí jednu souřadnici, takže může smazat právě tu informaci, která třídy dělila. (Projekce na málorozptylovou $\mathbf{v}_2$ by tu nebyla lepší: v~ní se zase překryjí třídy $\times$ a~$\bullet$, jejichž součty souřadnic $x_1+x_2$ jsou podobné -- ukázka, že „víc rozptylu`` $\ne$ „lepší pro klasifikaci``.)
+\begin{center}
+\begin{tikzpicture}[scale=0.78]
+  \draw[osa] (0,0) -- (5.5,0) node[right,font=\scriptsize]{atribut~1};
+  \draw[osa] (0,0) -- (0,5.5) node[above,font=\scriptsize]{atribut~2};
+  % tri protahle mraky podel antidiagonaly (schematicky)
+  % trida X vlevo nahore
+  \foreach \i in {0,...,5}{\pgfmathsetmacro\x{0.5+0.18*\i}\pgfmathsetmacro\y{4.7-0.18*\i}\node[font=\scriptsize] at (\x,\y) {$\times$};}
+  % trida + uprostred vpravo
+  \foreach \i in {0,...,5}{\pgfmathsetmacro\x{3.5+0.18*\i}\pgfmathsetmacro\y{2.2-0.18*\i}\node[font=\scriptsize] at (\x,\y) {$+$};}
+  % trida o vpravo dole
+  \foreach \i in {0,...,5}{\pgfmathsetmacro\x{3.7+0.18*\i}\pgfmathsetmacro\y{1.1-0.18*\i}\node[font=\scriptsize] at (\x,\y) {$\bullet$};}
+  % tezisko (priblizne stred vsech)
+  \coordinate (ctr) at (2.6,2.2);
+  % PC1 podel antidiagonaly (klesajici), PC2 kolma (stoupajici)
+  \draw[->,>=Stealth,very thick,red!70!black] (ctr) -- ++(1.7,-1.7) node[anchor=north west,font=\scriptsize]{$\mathbf{v}_1$};
+  \draw[->,>=Stealth,very thick,red!70!black] (ctr) -- ++(-1.7,1.7);
+  \draw[->,>=Stealth,very thick,green!45!black] (ctr) -- ++(1.0,1.0) node[anchor=south west,font=\scriptsize]{$\mathbf{v}_2$};
+  \draw[->,>=Stealth,very thick,green!45!black] (ctr) -- ++(-1.0,-1.0);
+\end{tikzpicture}
+\obrpopis{Schéma dat úlohy léto~2024: tři protáhlé třídy ($\times$, $+$, $\bullet$) podél antidiagonály. Odhadnuté hlavní komponenty: $\mathbf{v}_1$ (červeně) podél směru největšího rozptylu (klesající antidiagonála), $\mathbf{v}_2$ (zeleně) kolmá. Projekce na samotnou $\mathbf{v}_1$ překryje třídy $+$ a~$\bullet$ (liší se kolmo), proto $k$-NN po redukci na 1D ztrácí accuracy.}
+\end{center}
+\end{priklad}
+
+% =====================================================================
+\subsection{Měkké shlukování: EM a~směs Gaussovců}\label{ssec:em}
+
+\begin{poznamka}[Zařazení]
+EM a~směs Gaussovců nejsou v~požadavcích S3 jmenovány přímo, ale jde o~\emph{pravděpodobnostní zobecnění $k$-means} (měkké místo tvrdého přiřazení) a~okruh má na ně reálnou SZZ otázku; uvádíme je proto stručně a~vyřešíme otázku. Obecný princip EM (E-krok/M-krok pro modely se skrytými proměnnými) je vyložen v~S1.
+\end{poznamka}
+
+$k$-means přiřazuje bod \emph{tvrdě} k~jedinému shluku. \textbf{Směs Gaussovců} (Gaussian mixture) modeluje data jako směs $K$ normálních rozdělení a~přiřazuje \emph{měkce}: každý bod patří do shluku $k$ s~pravděpodobností (zodpovědností) $r_{i,k}\in[0,1]$, $\sum_k r_{i,k}=1$. Navíc dovolí shlukům \emph{různou velikost i~elipsovitý tvar} (vlastní kovarianční matici), kdežto $k$-means implicitně předpokládá kulové shluky podobné velikosti. Parametry (váhy, středy, kovariance) se učí \textbf{EM algoritmem}:
+\begin{itemize}
+  \item \textbf{E-krok:} při současných parametrech spočti zodpovědnosti $r_{i,k}=P(\text{shluk }k\mid\mathbf{x}_i)$ (Bayesova věta).
+  \item \textbf{M-krok:} přepočti parametry jako \emph{vážené} (zodpovědnostmi) odhady -- vážené průměry a~kovariance.
+\end{itemize}
+$k$-means je limitní případ EM se sférickými Gaussovci nekonečně malého rozptylu, kde zodpovědnosti zkolabují na $0/1$ (tvrdé přiřazení).
+
+\begin{priklad}[SZZ léto 2025 č.~32: EM na bayesovské síti]
+\szzotazka{léto 2025}{32}{EM algoritmus}\par
+\textbf{Zadání.} Bayesovská síť: skrytá $\mathit{Cluster}\in\{1,2\}$ je rodičem $\mathit{Color}\in\{\text{blue},\text{green}\}$ a~$\mathit{Holes}\in\{\text{yes},\text{no}\}$ (mezi $\mathit{Color}$ a~$\mathit{Holes}$ hrana není). (1)~Popište EM. (2)~Určete parametry, inicializujte z~$\{0{,}4,0{,}6\}$. (3)~Proveďte jednu EM aktualizaci jednoho parametru na datech (řádky $\mathit{Color},\mathit{Holes}$, $\mathit{Cluster}$ chybí).
+
+\smallskip
+\textbf{Řešení.} (1)~EM odhaduje parametry modelu se \emph{skrytou} proměnnou (zde $\mathit{Cluster}$) střídáním E-kroku (spočti očekávané hodnoty / zodpovědnosti skryté proměnné při daných parametrech) a~M-kroku (přepočti parametry maximalizací věrohodnosti na „doplněných`` datech), dokud parametry nezkonvergují.
+
+(2)~Model má 5~nezávislých parametrů; inicializujeme z~$\{0{,}4,0{,}6\}$ tak, aby podmínky pro $\mathit{Cluster}{=}1$ a~$\mathit{Cluster}{=}2$ nebyly stejné:
+\[
+\begin{array}{llc}
+\theta=P(\mathit{Cluster}{=}1)=0{,}6, &
+\theta_{B1}=P(\text{blue}\mid 1)=0{,}6, & \theta_{B2}=P(\text{blue}\mid 2)=0{,}4,\\
+& \theta_{H1}=P(\text{yes}\mid 1)=0{,}6, & \theta_{H2}=P(\text{yes}\mid 2)=0{,}4.
+\end{array}
+\]
+(3)~Aktualizujeme nejjednodušší parametr $\theta=P(\mathit{Cluster}{=}1)$. \emph{E-krok} -- pro každý řádek spočti zodpovědnost $P(\mathit{Cluster}{=}1\mid\text{data})$ Bayesovou větou (faktorizace dle sítě: $P(C,\text{col},\text{hol})=P(C)P(\text{col}\mid C)P(\text{hol}\mid C)$):
+\[
+P(C{=}1\mid \text{col},\text{hol})=\frac{\theta\,P(\text{col}\mid1)P(\text{hol}\mid1)}{\theta\,P(\text{col}\mid1)P(\text{hol}\mid1)+(1-\theta)\,P(\text{col}\mid2)P(\text{hol}\mid2)} .
+\]
+Po řádcích (čitatel $=\theta\,P(\text{col}\mid1)P(\text{hol}\mid1)$, jmenovatel $+\,(1-\theta)\,P(\text{col}\mid2)P(\text{hol}\mid2)$) -- blue,no: $0{,}6\cdot0{,}6\cdot0{,}4=0{,}144$ vs.\ $0{,}4\cdot0{,}4\cdot0{,}6=0{,}096$; blue,yes: $0{,}6\cdot0{,}6\cdot0{,}6=0{,}216$ vs.\ $0{,}4\cdot0{,}4\cdot0{,}4=0{,}064$; green,yes: $0{,}6\cdot0{,}4\cdot0{,}6=0{,}144$ vs.\ $0{,}4\cdot0{,}6\cdot0{,}4=0{,}096$:
+\[
+\begin{array}{c|c|c}
+\mathit{Color} & \mathit{Holes} & P(C{=}1\mid\text{data})\\\hline
+\text{blue} & \text{no} & \dfrac{0{,}144}{0{,}144+0{,}096}=0{,}6\\[4pt]
+\text{blue} & \text{yes} & \dfrac{0{,}216}{0{,}216+0{,}064}\approx0{,}77\\[4pt]
+\text{blue} & \text{no} & 0{,}6\\[2pt]
+\text{green} & \text{yes} & \dfrac{0{,}144}{0{,}144+0{,}096}=0{,}6\\[4pt]
+\text{green} & \text{yes} & 0{,}6
+\end{array}
+\]
+\emph{M-krok} -- nové $\theta$ je průměr zodpovědností (očekávaný podíl příkladů ve shluku~1):
+\[
+  \theta^{\text{nové}}=\frac{0{,}6+0{,}77+0{,}6+0{,}6+0{,}6}{5}=\frac{3{,}17}{5}=\boxed{0{,}634}.
+\]
+(Číslo přesně: $\tfrac{4\cdot0{,}6+0{,}7714}{5}=0{,}6343$.) Ostatní parametry by se aktualizovaly analogicky -- váženými četnostmi $\sum_j r_{j}\,[\dots]$ místo tvrdých počtů.
+\end{priklad}
+
+% =====================================================================
+\subsection*{Shrnutí sekce}
+
+\emph{Shlukování} ($k$-means) minimalizuje $J=\sum_i\sum_k z_{i,k}\|\mathbf{x}_i-\mu_k\|^2$ střídáním přiřazení (bod $\to$ nejbližší střed) a~přepočtu (střed $=$ průměr shluku); konverguje k~\emph{lokálnímu} minimu (oba kroky $J$ nezvyšují, přiřazení je konečně mnoho), proto se spouští vícekrát / s~k-means++. \emph{Hierarchické} (aglomerativní) shlukování buduje dendrogram slučováním nejbližších shluků (linkage single/complete/average/Ward); počet shluků určí řez dendrogramu. \emph{PCA} centruje data, vezme vlastní vektory kovarianční matice (hlavní komponenty seřazené dle vlastních čísel $=$ rozptylů) a~projektuje na prvních $M$ -- pozor, maximalizuje rozptyl, ne oddělitelnost tříd. \emph{EM / směs Gaussovců} je měkké, pravděpodobnostní zobecnění $k$-means.

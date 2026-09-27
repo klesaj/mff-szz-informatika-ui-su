@@ -1,0 +1,42 @@
+% Zdroj: PDF priklady-leto-2024.pdf, fyzická str. 3. Značka: společné okruhy. Zařazeno: M2.
+\section{Báze vektorových prostorů}
+\szzotazka{léto 2024}{3}{Báze vektorových prostorů}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Zformulujte Steinitzovu větu o výměně vhodných vektorů mezi lineárně nezávislou a generující množinou (čili nikoli nutně bázemi).
+  \item Mějme reálnou matici $\mathbf{A}$ takovou, že je podobná diagonální matici $\mathbf{D}$ prostřednictvím součinu $\mathbf{R}^{-1} \mathbf{A} \mathbf{R}$, kde
+    \[
+      \mathbf{R} = \begin{pmatrix}
+        -1 & -1 & -8 & -2 & -8 \\
+        0 & 1 & -3 & 0 & 2 \\
+        -1 & -2 & 6 & -2 & 3 \\
+        -1 & -3 & 7 & -1 & -4 \\
+        1 & 2 & 0 & 2 & 4
+      \end{pmatrix},
+    \]
+    přičemž je známo, že prvky na diagonále $\mathbf{D}$ jsou čísla $17, 17, 23, 17, 23$ v uvedeném pořadí.
+
+    Rozhodněte, zdali některý ze sloupců matice $\mathbf{R}$ lze vyměnit za následující vektor $\mathbf{u}_i$, aby matici $\mathbf{A}$ bylo stále možné diagonalizovat i prostřednictvím výsledné matice $\mathbf{R}'$.
+
+    Pokud taková výměna je možná, určete všechny sloupce matice $\mathbf{R}$, které mohou být vyměněny.
+    \begin{enumerate}
+      \item[(a)] Řešte pro $\mathbf{u}_1 = (4,2,2,-3,-2)^{\mathrm{T}}$.
+      \item[(b)] Řešte pro $\mathbf{u}_2 = (7,-6,-2,12,-6)^{\mathrm{T}}$.
+    \end{enumerate}
+    Své odpovědi zdůvodněte.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Nechť $B$ je konečná lineárně nezávislá množina ve vektorovém prostoru $V$ a $C$ generuje $V$. Pak existuje $D$ taková, že: $D$ generuje $V$, $B \subseteq D$, $|D| = |C|$ a $D \setminus B \subseteq C$.
+  \item Vzhledem k bázi $B$ ze sloupců $\mathbf{R}$ jsou (spočteno řešením soustav):
+    \begin{enumerate}
+      \item[(a)] $[\mathbf{u}_1]_B = (0,2,0,-3,0)^{\mathrm{T}}$ tedy $\mathbf{u}_1$ lze vyměnit za 2.\ a 4.\ sloupec, ty odpovídají stejnému vlastnímu číslu 17, tedy se podprostor vlastních vektorů nezmění.
+      \item[(b)] $[\mathbf{u}_2]_B = (0,1,1,0,-2)^{\mathrm{T}}$ čili $\mathbf{u}_2$ neleží v ani jednom podprostoru vlastních vektorů, není tedy vlastním vektorem a proto výměnu provést nelze.
+    \end{enumerate}
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} $\mathbf{R}$ je regulární (její sloupce tvoří bázi), takže souřadnice $[\mathbf{u}_i]_B$ jsou jednoznačné. Podle diagonály $\mathbf{D}$ tvoří sloupce $1,2,4$ bázi vlastního podprostoru čísla $17$ a~sloupce $3,5$ bázi vlastního podprostoru čísla $23$. V~(a) je $\mathbf{u}_1=2\mathbf{R}_{*2}-3\mathbf{R}_{*4}$ kombinací vektorů z~podprostoru čísla $17$, takže je to vlastní vektor pro $17$. Výměnou sloupce zůstane báze právě tehdy, když má $\mathbf{u}_1$ u~vyměňovaného sloupce nenulovou souřadnici (jinak by $\mathbf{u}_1$ ležel v~obalu zbylých sloupců a~vznikl by lineárně závislý systém). Vyměnit lze tedy \emph{buď} 2., \emph{nebo} 4.\ sloupec (každý zvlášť), ne 1., 3.\ ani 5. V~(b) je $\mathbf{u}_2=\mathbf{R}_{*2}+\mathbf{R}_{*3}-2\mathbf{R}_{*5}$, tedy $\mathbf{A}\mathbf{u}_2=17\mathbf{R}_{*2}+23\mathbf{R}_{*3}-46\mathbf{R}_{*5}$. Kdyby $\mathbf{A}\mathbf{u}_2=\lambda\mathbf{u}_2$, porovnání souřadnic by dalo $\lambda=17$ i~$\lambda=23$, což je spor.

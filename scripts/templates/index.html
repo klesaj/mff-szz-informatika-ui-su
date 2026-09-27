@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bakalářské státnice MFF UK</title>
+<meta name="description" content="Studijní materiály k bakalářské státní zkoušce z informatiky na MFF UK: výklad všech okruhů a řešené reálné otázky 2022 až 2026.">
+<style>
+  :root { --bg:#fbfbfa; --fg:#1d1d1f; --muted:#62636a; --card:#fff; --line:#e3e3e0; --accent:#1f5fbf; --accent-bg:#eef3fb; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16171a; --fg:#e8e8ea; --muted:#9a9ba3; --card:#1e2024; --line:#2e3036; --accent:#7fb0ff; --accent-bg:#1f2a3d; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:980px; margin:0 auto; padding:2.5rem 1rem 3rem; }
+  h1 { font-size:1.75rem; line-height:1.25; margin:0 0 .5rem; }
+  .lead { color:var(--muted); max-width:46rem; margin:0 0 .75rem; }
+  .note { font-size:.92rem; color:var(--muted); max-width:46rem; border-left:3px solid var(--line); padding:.1rem 0 .1rem .9rem; margin:1rem 0 0; }
+  h2 { font-size:1.05rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:2.5rem 0 .75rem; }
+  ul { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:.75rem; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:.9rem 1rem 1rem; display:flex; flex-direction:column; }
+  .code { font-weight:700; color:var(--accent); font-size:.85rem; letter-spacing:.03em; }
+  .name { font-weight:600; margin:.1rem 0 .7rem; }
+  .links { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:auto; }
+  .links a { display:inline-flex; flex-direction:column; text-decoration:none; color:var(--accent); background:var(--accent-bg);
+             border-radius:7px; padding:.35rem .65rem; font-size:.93rem; font-weight:600; }
+  .links a:hover { outline:1px solid var(--accent); }
+  .meta { font-weight:400; font-size:.78rem; color:var(--muted); }
+  a { color:var(--accent); }
+  footer { margin-top:3rem; font-size:.85rem; color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Bakalářské státnice z informatiky na MFF UK</h1>
+  <p class="lead">Studijní materiály ke společné části státní závěrečné zkoušky (matematika a informatika)
+  a ke specializaci Umělá inteligence se zaměřením Strojové učení. Ke každému okruhu je výklad
+  (definice, věty, řešené příklady, obrázky) a sbírka reálných otázek z let 2022 až 2026 s řešeními.</p>
+  <p class="note">Materiály vznikly s výraznou pomocí AI (Claude) a prošly opakovanou kontrolou. Přesto
+  mohou obsahovat chyby. Závazné jsou oficiální požadavky na webu MFF. Chybu prosím nahlaste
+  v issues na GitHubu.</p>
+  {{SECTIONS}}
+  <footer>{{BUILT}}</footer>
+</main>
+</body>
+</html>

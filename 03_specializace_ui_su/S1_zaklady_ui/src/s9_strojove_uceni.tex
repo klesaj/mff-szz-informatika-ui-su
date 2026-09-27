@@ -1,0 +1,403 @@
+\section{Strojové učení -- přehled (druhy učení, rozhodovací stromy, regrese, SVM, zpětnovazební učení)}
+
+\emph{Učení} znamená zlepšování chování agenta na budoucích úlohách na základě pozorování. Programovat řešení napřímo často nejde: návrhář nedokáže předvídat všechny situace ani jejich změny v~čase a~někdy ani neví, jak řešení naprogramovat. Tato sekce dává \textbf{přehled strojového učení na úrovni úvodního kurzu} (NAIL120): druhy učení, rozhodovací stromy, lineární modely a~SVM, Bayesovské a~EM učení a~zpětnovazební učení.
+
+\begin{poznamka}[Vztah k~okruhu S3]
+Strojové učení má vlastní samostatný státnicový okruh \textbf{S3 -- Strojové učení}, kde se témata probírají do hloubky. \emph{Hlubší rozbor} (jádrový trik a~duální formulace SVM, evaluační metriky a~křížová validace, regularizace a~přeučení, prokletí dimenzionality, shlukování, PCA) patří do S3. Tato sekce ho \textbf{nezdvojuje}: drží úroveň „základní principy`` podle požadavků S1, tedy hlavní myšlenky, definice a~klíčové algoritmy tak, jak je podává úvodní kurz UI.
+\end{poznamka}
+
+\subsection{Druhy učení}
+
+Strojové učení se dělí podle toho, jakou \emph{zpětnou vazbu} má agent k~dispozici.
+
+\begin{definice}[Tři základní druhy učení]
+\begin{itemize}
+  \item \textbf{Učení s~učitelem} (supervised): agent dostane množinu příkladů ve formě dvojic \emph{vstup--výstup} $(x_1,y_1),\dots,(x_N,y_N)$, kde $y_i=f(x_i)$ pro neznámou funkci $f$, a~hledá \emph{hypotézu} $h$, která $f$ co nejlépe aproximuje.
+  \item \textbf{Učení bez učitele} (unsupervised): agent dostane jen vstupy bez označení a~hledá v~nich \emph{vzory} (typicky shluky nebo nízkodimenzionální strukturu).
+  \item \textbf{Zpětnovazební učení} (reinforcement): agent se učí z~posloupnosti \emph{odměn a~trestů}; zpětná vazba je řidší a~opožděná, neříká „správný výstup``, jen ohodnotí důsledky akcí.
+\end{itemize}
+\end{definice}
+
+\begin{intuice}
+U~učení s~učitelem se podle typu výstupu rozlišuje:
+\begin{itemize}
+  \item \textbf{klasifikace} -- výstup $y$ je z~\emph{konečné} množiny (např.\ \emph{slunečno / oblačno / deštivo});
+  \item \textbf{regrese} -- výstup $y$ je \emph{číslo} (např.\ teplota, cena).
+\end{itemize}
+Hypotéza je \emph{konzistentní} s~příkladem $(x_i,y_i)$, pokud $h(x_i)=y_i$. Konzistentních hypotéz bývá více; kterou vybrat?
+\end{intuice}
+
+\begin{definice}[Ockhamova břitva]
+Mezi hypotézami konzistentními se stejnými daty preferujeme tu \textbf{nejjednodušší}. Jde o~zásadu \emph{indukce}: jednodušší hypotéza je méně náchylná k~přeučení (zapamatování šumu místo zachycení zákonitosti) a~lépe \emph{generalizuje} na nová data.
+\end{definice}
+
+\subsection{Rozhodovací stromy}
+
+\textbf{Rozhodovací strom} je jedna z~nejjednodušších a~přitom velmi úspěšných forem naučené funkce. Na vstupu dostane vektor hodnot atributů a~vrací \emph{rozhodnutí} -- jednu výstupní hodnotu.
+
+\begin{definice}[Rozhodovací strom]
+Rozhodovací strom dospívá k~rozhodnutí posloupností \emph{testů}:
+\begin{itemize}
+  \item každý \textbf{vnitřní uzel} testuje hodnotu jednoho vstupního atributu,
+  \item \textbf{větve} z~uzlu jsou označeny možnými hodnotami testovaného atributu,
+  \item každý \textbf{list} udává výstupní hodnotu (rozhodnutí), kterou funkce vrátí.
+\end{itemize}
+Prostor hypotéz je množina všech rozhodovacích stromů; hledáme strom \emph{konzistentní} s~příklady a~přitom co \emph{nejmenší} (Ockhamova břitva).
+\end{definice}
+
+\begin{center}
+\begin{tikzpicture}[
+  scale=1.0,
+  vnitrni/.style={draw,thick,rounded corners=2pt,fill=blue!8,font=\small,minimum height=6mm,inner sep=3pt},
+  listuzel/.style={draw,thick,fill=green!12,font=\small,minimum height=6mm,inner sep=3pt},
+  vetev/.style={->,>=Stealth,thick},
+  popis/.style={font=\scriptsize,fill=white,inner sep=1pt}
+]
+\node[vnitrni] (pat) at (0,3) {Patrons?};
+\node[listuzel]  (no1) at (-3.4,1.4) {Ne};
+\node[listuzel]  (yes1) at (-0.6,1.4) {Ano};
+\node[vnitrni] (we)  at (2.8,1.4) {WaitEstimate?};
+\draw[vetev] (pat) -- node[popis,above left]{None} (no1);
+\draw[vetev] (pat) -- node[popis,left]{Some} (yes1);
+\draw[vetev] (pat) -- node[popis,above right]{Full} (we);
+\node[listuzel]  (no2) at (1.1,-0.4) {Ne};
+\node[vnitrni] (hun) at (3.0,-0.4) {Hungry?};
+\node[listuzel]  (yes2) at (4.9,-0.4) {Ano};
+\draw[vetev] (we) -- node[popis,left]{$>60$} (no2);
+\draw[vetev] (we) -- node[popis,left]{$10$--$30$} (hun);
+\draw[vetev] (we) -- node[popis,right]{$0$--$10$} (yes2);
+\node[listuzel]  (no3) at (2.2,-2.0) {Ano};
+\node[vnitrni]  (yes3) at (3.8,-2.0) {Alternate?\,\dots};
+\draw[vetev] (hun) -- node[popis,above left]{Ne} (no3);
+\draw[vetev] (hun) -- node[popis,above right]{Ano} (yes3);
+\end{tikzpicture}
+\obrpopis{Část rozhodovacího stromu pro úlohu „počká host na stůl v~restauraci?“ (AIMA; větev $30$--$60$ a~další testy pod Hungry${}={}$Ano jsou vynechány). Vnitřní uzly testují atributy (kolik je hostů, odhad čekání, hlad), listy dávají rozhodnutí Ano/Ne. Strom se staví shora dolů a~v~každém uzlu se vybírá \emph{nejinformativnější} atribut (viz informační zisk níže).}
+\end{center}
+
+\subsubsection*{Konstrukce: hladová strategie rozděl a~panuj}
+
+Malý konzistentní strom stavíme \textbf{hladovou} strategií „rozděl a~panuj``: v~kořeni vybereme \emph{nejdůležitější} atribut, podle jeho hodnot rozdělíme příklady do skupin a~v~každé skupině rekurzivně postavíme podstrom. Rekurze končí, když jsou všechny zbývající příklady stejné třídy (vrátíme tu třídu), když dojdou atributy (vrátíme většinovou třídu), nebo když je skupina příkladů prázdná (vrátíme většinovou třídu rodiče).
+
+\begin{algo}[Učení rozhodovacího stromu (AIMA \textsc{Learn-Decision-Tree})]
+\ttfamily\small
+LEARN-DECISION-TREE(examples, attributes, parent\_examples):\\
+\hspace*{1.5em}\textbf{if} examples je prázdná: \textbf{return} PLURALITY-VALUE(parent\_examples) \cmt{většinová třída rodiče}\\
+\hspace*{1.5em}\textbf{else if} všechny examples mají stejnou klasifikaci: \textbf{return} tu klasifikaci\\
+\hspace*{1.5em}\textbf{else if} attributes je prázdná: \textbf{return} PLURALITY-VALUE(examples)\\
+\hspace*{1.5em}\textbf{else}:\\
+\hspace*{3em}$A \leftarrow \argmax_{a\,\in\,\text{attributes}}$ IMPORTANCE(a, examples) \cmt{nejvyšší informační zisk}\\
+\hspace*{3em}tree $\leftarrow$ nový strom s~testem $A$ v~kořeni\\
+\hspace*{3em}\textbf{for} každou hodnotu $v$ atributu $A$:\\
+\hspace*{4.5em}exs $\leftarrow$ \{ $e \in$ examples : $e.A = v$ \}\\
+\hspace*{4.5em}subtree $\leftarrow$ LEARN-DECISION-TREE(exs, attributes $-\,A$, examples)\\
+\hspace*{4.5em}přidej do tree větev s~popiskem $(A=v)$ a~podstromem subtree\\
+\hspace*{3em}\textbf{return} tree
+\end{algo}
+
+\subsubsection*{Který atribut je nejdůležitější: entropie a~informační zisk}
+
+\emph{Nejdůležitější} atribut je ten, který nejvíc \emph{rozliší} příklady -- po jeho otestování zbude co nejméně nejistoty o~klasifikaci. Nejistotu měříme \textbf{entropií}.
+
+\begin{definice}[Entropie a~informační zisk]
+Entropie náhodné veličiny $V$ s~hodnotami $v_k$ a~pravděpodobnostmi $p(v_k)$ (v~\emph{bitech}, $\log=\log_2$):
+\[ H(V) = -\sum_k p(v_k)\,\log_2 p(v_k). \]
+Pro \emph{booleovskou} veličinu, která je pravdivá s~pravděpodobností $q$, píšeme
+\[ B(q) = -\,q\log_2 q - (1-q)\log_2(1-q). \]
+Mějme $p$ kladných a~$n$ záporných příkladů; entropie celé množiny je $B\!\big(\tfrac{p}{p+n}\big)$. Atribut $A$ rozděluje příklady podle hodnot do skupin; $k$-tá skupina má $p_k$ kladných a~$n_k$ záporných příkladů. \emph{Zbytková} entropie po otestování $A$ je vážený průměr
+\[ \mathrm{Remainder}(A) = \sum_k \frac{p_k+n_k}{p+n}\;B\!\Big(\frac{p_k}{p_k+n_k}\Big). \]
+\textbf{Informační zisk} (information gain) atributu $A$ je očekávané \emph{snížení} entropie:
+\[ \mathrm{Gain}(A) = B\!\Big(\frac{p}{p+n}\Big) - \mathrm{Remainder}(A). \]
+V~kořeni vybíráme atribut s~\emph{největším} $\mathrm{Gain}(A)$.
+\end{definice}
+
+\begin{priklad}[Information gain: atribut Patrons vs.\ Type (AIMA restaurace)]
+Trénovací množina má $12$ příkladů, $6$ kladných a~$6$ záporných (host počká / nepočká). Entropie celé množiny je
+\[ B\!\Big(\tfrac{6}{12}\Big) = B(\tfrac12) = -\tfrac12\log_2\tfrac12-\tfrac12\log_2\tfrac12 = 1 \text{ bit}. \]
+
+\textbf{Atribut Patrons} (kolik je hostů) má tři hodnoty s~rozdělením příkladů
+\[ \text{None: } (0^{+},2^{-}),\qquad \text{Some: } (4^{+},0^{-}),\qquad \text{Full: } (2^{+},4^{-}). \]
+None a~Some jsou \emph{čisté} skupiny: $B(0)=B(1)=0$ (žádná nejistota). Full má $B(\tfrac{2}{6})=B(\tfrac13)\approx 0{,}9183$. Zbytek
+\[ \mathrm{Remainder}(\text{Patrons}) = \tfrac{2}{12}B(0) + \tfrac{4}{12}B(1) + \tfrac{6}{12}B(\tfrac13) = \tfrac12\cdot 0{,}9183 = 0{,}4591, \]
+\[ \boxed{\;\mathrm{Gain}(\text{Patrons}) = 1 - 0{,}4591 = 0{,}5409 \approx 0{,}541 \text{ bitu}.\;} \]
+
+\textbf{Atribut Type} (kuchyně: French, Italian, Thai, Burger) rozdělí příklady tak, že každá hodnota má vyrovnaný poměr $1\!:\!1$ resp.\ $2\!:\!2$, tedy $B(\tfrac12)=1$ v~každé skupině:
+\[ \mathrm{Remainder}(\text{Type}) = \tfrac{2}{12}\cdot 1 + \tfrac{2}{12}\cdot 1 + \tfrac{4}{12}\cdot 1 + \tfrac{4}{12}\cdot 1 = 1, \qquad \boxed{\;\mathrm{Gain}(\text{Type}) = 1 - 1 = 0.\;} \]
+
+\textbf{Závěr.} Patrons je \emph{dobrý} atribut ($0{,}541$~bitu), Type \emph{bezcenný} ($0$~bitů) -- po otestování Type je nejistota stejná jako předtím. Algoritmus proto v~kořeni zvolí Patrons.
+\end{priklad}
+
+\begin{poznamka}
+Information gain mírně \emph{nadhodnocuje} atributy s~mnoha hodnotami (extrémně: jedinečné ID by každý příklad oddělilo do vlastní skupiny, $\mathrm{Gain}$ maximální, ale strom by negeneralizoval). V~praxi se proto používá normalizace (gain ratio) a~\emph{prořezávání} (pruning) přeučených větví; detaily patří do S3.
+\end{poznamka}
+
+\subsection{Lineární modely: regrese a~klasifikace}
+
+\subsubsection*{Lineární regrese}
+
+Hypotézou je \emph{lineární funkce} vstupů. Pro jeden vstup (přímka)
+\[ h_{\mathbf{w}}(x) = w_1 x + w_0, \qquad \mathbf{w}=[w_0,w_1]; \]
+pro více vstupů $h_{\mathbf{w}}(\mathbf{x}) = w_0 + \sum_i w_i x_i$. Kvalitu proložení měříme \textbf{kvadratickou ztrátou} (L2):
+\[ \mathrm{Loss}(h_{\mathbf{w}}) = \sum_j \big(y_j - h_{\mathbf{w}}(x_j)\big)^2, \qquad \mathbf{w}^{*} = \argmin_{\mathbf{w}} \mathrm{Loss}(h_{\mathbf{w}}). \]
+
+\begin{intuice}
+Pro jednorozměrnou lineární regresi je řešení \emph{jednoznačné} a~lze ho dostat analyticky (položíme parciální derivace ztráty podle $w_0$ a~$w_1$ rovny nule a~vyřešíme soustavu). Obecněji -- a~vždy, když je prostor hypotéz složitější -- použijeme \textbf{gradientní sestup}: začneme v~libovolném bodě prostoru vah a~opakovaně se posuneme proti gradientu ztráty,
+\[ w_i \leftarrow w_i - \alpha\,\frac{\partial}{\partial w_i}\mathrm{Loss}(h_{\mathbf{w}}), \]
+kde $\alpha$ je \emph{rychlost učení} (krok); $\alpha$ může být konstantní nebo s~časem klesat. Pro L2 ztrátu vychází pravidlo $w_i \leftarrow w_i + \alpha\sum_j (y_j-h_{\mathbf{w}}(x_j))\,x_{j,i}$ (znaménko se obrátí, protože derivace $(y-h)^2$ dá faktor $-2(y-h)$).
+\end{intuice}
+
+\subsubsection*{Lineární klasifikace a~logistická regrese}
+
+Pro klasifikaci do dvou tříd hledáme \emph{rozhodovací hranici} -- v~rovině přímku (obecně nadrovinu), která třídy odděluje. Říkáme, že data jsou \textbf{lineárně separabilní}, pokud taková nadrovina existuje. Lineární klasifikátor vrací
+\[ h_{\mathbf{w}}(\mathbf{x}) = \mathrm{Threshold}(\mathbf{w}\cdot\mathbf{x}), \qquad \mathrm{Threshold}(z)=\begin{cases}1 & z\ge 0,\\ 0 & z<0.\end{cases} \]
+Váhy lze učit \emph{perceptronovým pravidlem} $w_i \leftarrow w_i + \alpha\,(y-h_{\mathbf{w}}(\mathbf{x}))\,x_i$.
+
+\begin{intuice}
+Tvrdý práh je nespojitý (nelze přes něj počítat gradient) a~perceptronové pravidlo na neseparabilních datech \emph{nekonverguje}. Proto se práh „změkčí`` \textbf{logistickou funkcí}
+\[ \mathrm{Threshold}(z) = \frac{1}{1+e^{-z}}, \]
+jejíž výstup je z~intervalu $(0,1)$ a~dá se číst jako \emph{pravděpodobnost} třídy $1$. To je \textbf{logistická regrese}, jedna z~nejpoužívanějších klasifikačních technik. Váhy se učí gradientním sestupem; využije se hezká vlastnost derivace logistické funkce $\mathrm{Threshold}'(z)=\mathrm{Threshold}(z)\,(1-\mathrm{Threshold}(z))$.
+\end{intuice}
+
+\subsubsection*{Parametrické vs.\ neparametrické modely; k-NN}
+
+\begin{definice}[Parametrický a~neparametrický model]
+\textbf{Parametrický} model shrne data do \emph{pevného počtu} parametrů (vah) nezávislého na počtu příkladů; po naučení lze trénovací data zahodit (lineární a~logistická regrese, neuronové sítě). \textbf{Neparametrický} model si k~reprezentaci hypotézy ponechá (část) původních dat; počet „parametrů`` roste s~daty.
+\end{definice}
+
+Typický neparametrický model je \textbf{k~nejbližších sousedů} (k-NN): pro nový bod $\mathbf{x}$ najdeme $k$ nejbližších trénovacích příkladů a~odpověď složíme z~jejich $y$ -- u~klasifikace \emph{většinovým hlasováním} sousedů, u~regrese \emph{průměrem}. Vzdálenost se měří \emph{Minkowského} metrikou $L_p(\mathbf{x}_j,\mathbf{x}_q)=\big(\sum_i |x_{j,i}-x_{q,i}|^p\big)^{1/p}$ ($p\!=\!1$ Manhattan, $p\!=\!2$ Euklid); na rozdílné škály atributů je dobré data \emph{normalizovat}.
+
+\subsection{Support vector machines (SVM)}
+
+\textbf{SVM} je dnes jeden z~nejpopulárnějších přístupů učení s~učitelem „z~krabice``. Stojí na dvou myšlenkách: \emph{maximální margin} a~\emph{jádrová transformace}.
+
+\begin{definice}[Maximum-margin separátor a~podpůrné vektory]
+SVM hledá lineární oddělující nadrovinu s~\textbf{největším možným odstupem} (margin) od nejbližších příkladů obou tříd. Příklady ležící \emph{nejblíž} k~separátoru jsou \textbf{podpůrné vektory} (support vectors); právě ony separátor určují (ostatní body lze odebrat, aniž se hranice změní). SVM je \emph{neparametrická} metoda: hypotézu reprezentují podpůrné vektory.
+\end{definice}
+
+\begin{intuice}
+Mezi mnoha přímkami, které data oddělí, vybere SVM tu „nejodvážnější`` -- s~co největší rezervou na obě strany. Široký margin znamená lepší \emph{generalizaci}: malé posuny bodů hranici nepřekročí. Hledání maximálního marginu je úloha kvadratického programování (konvexní, tedy s~jednoznačným optimem); její duální tvar a~detaily patří do S3.
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0]
+% --- levý panel: maximum-margin separátor v 2D ---
+\begin{scope}
+  \draw[->,>=Stealth] (-0.3,0) -- (4.2,0) node[right,font=\small]{$x_1$};
+  \draw[->,>=Stealth] (0,-0.3) -- (0,4.2) node[above,font=\small]{$x_2$};
+  % separátor: x2 = -x1 + 4
+  \draw[very thick,blue!55!black] (0.3,3.7) -- (3.7,0.3);
+  % marginové přímky (rovnoběžky)
+  \draw[dashed,blue!55!black] (1.0,3.8) -- (3.8,1.0);
+  \draw[dashed,blue!55!black] (-0.2,3.0) -- (3.0,-0.2);
+  % záporná třída (vlevo dole) -- kolečka
+  \fill[red!70!black] (0.7,0.9) circle (2.2pt);
+  \fill[red!70!black] (1.3,0.6) circle (2.2pt);
+  \fill[red!70!black] (0.5,1.7) circle (2.2pt);
+  % podpůrný vektor záporné třídy (na marginu)
+  \draw[red!70!black,thick] (1.4,1.4) circle (3.6pt); \fill[red!70!black] (1.4,1.4) circle (2.2pt);
+  % kladná třída (vpravo nahoře) -- křížky
+  \draw[green!45!black,thick] (3.0,3.1) ++(-0.13,-0.13) -- ++(0.26,0.26); \draw[green!45!black,thick] (3.0,3.1) ++(-0.13,0.13) -- ++(0.26,-0.26);
+  \draw[green!45!black,thick] (3.6,2.7) ++(-0.13,-0.13) -- ++(0.26,0.26); \draw[green!45!black,thick] (3.6,2.7) ++(-0.13,0.13) -- ++(0.26,-0.26);
+  \draw[green!45!black,thick] (2.6,3.7) ++(-0.13,-0.13) -- ++(0.26,0.26); \draw[green!45!black,thick] (2.6,3.7) ++(-0.13,0.13) -- ++(0.26,-0.26);
+  % podpůrný vektor kladné třídy (na marginu)
+  \draw[green!45!black,thick] (2.4,2.4) circle (3.6pt);
+  \draw[green!45!black,thick] (2.4,2.4) ++(-0.13,-0.13) -- ++(0.26,0.26); \draw[green!45!black,thick] (2.4,2.4) ++(-0.13,0.13) -- ++(0.26,-0.26);
+  \draw[<->,>=Stealth,blue!55!black] (1.68,1.68) -- (2.12,2.12);
+  \node[font=\scriptsize,blue!55!black] at (2.35,1.35) {margin};
+\end{scope}
+\node[font=\small] at (2.0,-1.0) {(a) maximum-margin separátor};
+% --- pravý panel: jádrová transformace (posunut nahoru, ať popisek nekoliduje s kruhem) ---
+\begin{scope}[xshift=6.6cm,yshift=2cm]
+  \draw[->,>=Stealth] (-2.0,0) -- (2.1,0) node[right,font=\small]{$x_1$};
+  \draw[->,>=Stealth] (0,-2.0) -- (0,2.1) node[above,font=\small]{$x_2$};
+  % vnitřní třída (uvnitř kruhu) -- křížky
+  \foreach \a in {20,140,260}{
+    \draw[green!45!black,thick] ({0.6*cos(\a)},{0.6*sin(\a)}) ++(-0.1,-0.1) -- ++(0.2,0.2);
+    \draw[green!45!black,thick] ({0.6*cos(\a)},{0.6*sin(\a)}) ++(-0.1,0.1) -- ++(0.2,-0.2);
+  }
+  \draw[green!45!black,thick] (0,0) ++(-0.1,-0.1) -- ++(0.2,0.2); \draw[green!45!black,thick] (0,0) ++(-0.1,0.1) -- ++(0.2,-0.2);
+  % vnější třída (na kruhu) -- kolečka
+  \foreach \a in {30,90,150,210,270,330}{ \fill[red!70!black] ({1.5*cos(\a)},{1.5*sin(\a)}) circle (2.0pt); }
+  % oddělující kruh (nelineární hranice ve vstupním prostoru)
+  \draw[dashed,blue!55!black] (0,0) circle (1.05);
+\end{scope}
+\node[font=\small] at (6.6,-1.0) {(b) nelineárně separabilní data};
+\end{tikzpicture}
+\obrpopis{(a) SVM volí oddělující přímku s~\emph{maximálním marginem} (plná čára), ohraničeným čárkovaně; kroužkem zvýrazněné body na okraji marginu jsou \emph{podpůrné vektory} a~samy hranici určují. (b) Data, která nejdou oddělit přímkou (jedna třída uvnitř, druhá kolem): \emph{jádrová funkce} je zobrazí do prostoru vyšší dimenze (např.\ atributy $x_1^2,\,x_2^2,\,\sqrt{2}\,x_1x_2$), kde se stanou lineárně separabilní. Detail jádrového triku je v~okruhu S3.}
+\end{center}
+
+\begin{intuice}[Jádrová transformace]
+Nejsou-li data lineárně separabilní, zobrazí je SVM \emph{jádrovou funkcí} do prostoru vyšší dimenze, kde lineárně separabilní jsou; přímka v~novém prostoru odpovídá zakřivené hranici v~původním. Trik je v~tom, že stačí umět počítat \emph{skalární součiny} v~novém prostoru (jádro), aniž bychom transformaci prováděli explicitně. Plný rozbor (Mercerova podmínka, polynomiální a~RBF jádra, měkký margin) patří do S3.
+\end{intuice}
+
+\subsection{Bayesovské učení a~EM algoritmus}
+
+Učit lze i~\emph{pravděpodobnostní modely}, a~to nástroji pravděpodobnostního usuzování (viz sekce~4 o~Bayesovských sítích).
+
+\begin{definice}[Maximálně věrohodná hypotéza a~Bayesovská predikce]
+Mějme prostor hypotéz $\{h_i\}$ s~apriorními pravděpodobnostmi $P(h_i)$ a~pozorovaná data $d$.
+\begin{itemize}
+  \item \textbf{Maximálně věrohodná} (ML) hypotéza maximalizuje \emph{věrohodnost dat} $P(d\mid h)$:
+  \[ h_{\mathrm{ML}} = \argmax_{h} P(d\mid h). \]
+  \item \textbf{Aposteriorní} pravděpodobnost hypotézy je $P(h_i\mid d)=\alpha\,P(d\mid h_i)\,P(h_i)$ (Bayes; $\alpha$ normalizuje).
+  \item \textbf{Bayesovsky optimální predikce} neznámé veličiny $X$ je \emph{vážený průměr} predikcí všech hypotéz, vážený jejich aposteriorními pravděpodobnostmi:
+  \[ P(X\mid d) = \sum_i P(X\mid h_i)\,P(h_i\mid d). \]
+\end{itemize}
+\end{definice}
+
+\begin{intuice}
+Bayesovské učení nepředpovídá jednou „nejlepší`` hypotézou, ale \emph{všemi naráz}, vážením podle jejich pravděpodobnosti. Při nezávislých stejně rozdělených pozorováních (i.i.d.) se věrohodnost faktorizuje, $P(d\mid h_i)=\prod_j P(d_j\mid h_i)$, takže každé pozorování její hodnotu jen násobí. Jak data přibývají, aposteriorní rozdělení se zostřuje kolem skutečné hypotézy a~Bayesovská predikce konverguje k~predikci ML hypotézy.
+\end{intuice}
+
+\begin{priklad}[SZZ jaro 2025 č.~30: Bayesovské učení (jablka od tří dodavatelů)]
+\szzotazka{jaro 2025}{30}{Bayesovské učení}\par
+\textbf{Zadání (zkráceně).} Supermarket bere bedny jablek od dodavatelů A, B, C s~apriorními pravděpodobnostmi $P(A)=\tfrac12$, $P(B)=\tfrac13$, $P(C)=\tfrac16$. Naměřené četnosti velikostí (9/10/11 cm) jsou A: $5,4,1$ (celkem 10); B: $9,8,3$ (celkem 20); C: $1,8,1$ (celkem 10). (1)~Uveďte maximálně věrohodné odhady rozdělení velikostí pro každého dodavatele. (2)~Definujte \emph{maximálně věrohodnou hypotézu}. (3)~Z~jedné bedny jsme vzali dvě jablka, $10$ cm a~$11$ cm; která hypotéza je maximálně věrohodná? (4)~Jaká je \emph{Bayesovsky optimální predikce} pravděpodobnosti $10$ cm pro další jablko z~téže bedny?
+
+\medskip
+\textbf{Řešení.}
+
+\textbf{(1) ML odhady rozdělení.} Pro diskrétní rozdělení je maximálně věrohodný odhad relativní četnost (podíl):
+\begin{center}\small
+\begin{tabular}{c|ccc}
+\toprule
+$P(\text{velikost}\mid h)$ & 9 cm & 10 cm & 11 cm \\
+\midrule
+A & $0{,}5$  & $0{,}4$ & $0{,}1$ \\
+B & $0{,}45$ & $0{,}4$ & $0{,}15$ \\
+C & $0{,}1$  & $0{,}8$ & $0{,}1$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{(2) Definice.} Maximálně věrohodná hypotéza je hypotéza maximalizující věrohodnost dat $P(\text{data}\mid h)$ (tj.\ $h_{\mathrm{ML}}=\argmax_h P(\text{data}\mid h)$).
+
+\textbf{(3) Která hypotéza je ML.} Dvě nezávislá pozorování ($10$ cm a~$11$ cm), věrohodnost je součin:
+\[ P(d\mid A)=0{,}4\cdot 0{,}1=0{,}04,\quad P(d\mid B)=0{,}4\cdot 0{,}15=0{,}06,\quad P(d\mid C)=0{,}8\cdot 0{,}1=0{,}08. \]
+Největší je $0{,}08$, takže \textbf{maximálně věrohodná je hypotéza C}.
+
+\textbf{(4) Bayesovsky optimální predikce $P(\text{příští}=10\,\text{cm})$.} Spočteme aposteriorní pravděpodobnosti hypotéz $P(h\mid d)\propto P(h)\,P(d\mid h)$ a~jimi vážíme predikce $P(10\,\text{cm}\mid h)$:
+\begin{center}\small
+\begin{tabular}{c|c|c|c|c|c}
+\toprule
+$h$ & $P(h)$ & $P(d\mid h)$ & $P(h,d)$ & $P(h\mid d)$ & příspěvek $P(10\mid h)\cdot P(h\mid d)$ \\
+\midrule
+A & $\tfrac12$ & $0{,}04$ & $0{,}02$    & $\tfrac38$ & $0{,}4\cdot\tfrac38 = 0{,}15$ \\
+B & $\tfrac13$ & $0{,}06$ & $0{,}02$    & $\tfrac38$ & $0{,}4\cdot\tfrac38 = 0{,}15$ \\
+C & $\tfrac16$ & $0{,}08$ & $0{,}0133$  & $\tfrac28$ & $0{,}8\cdot\tfrac28 = 0{,}20$ \\
+\midrule
+ & & \multicolumn{2}{c|}{$P(d)=0{,}16/3 \approx 0{,}0533$} & & $\Sigma = \mathbf{0{,}5}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Sdružené pravděpodobnosti $P(h,d)=P(h)\,P(d\mid h)$ se sečtou na $P(d)=0{,}16/3$; normalizací vyjdou aposteriory $\tfrac38,\tfrac38,\tfrac28$. \textbf{Bayesovsky optimální predikce} je
+\[ P(10\,\text{cm}\mid d) = 0{,}4\cdot\tfrac38 + 0{,}4\cdot\tfrac38 + 0{,}8\cdot\tfrac28 = 0{,}15+0{,}15+0{,}20 = \boxed{0{,}5}. \]
+Všimněte si, že ML hypotéza (C) sama by predikovala $0{,}8$; Bayesovská predikce je nižší, protože bere v~úvahu i~hypotézy A a~B, které jsou aposteriorně pravděpodobnější.
+\end{priklad}
+
+\noindent Originál zadání a~oficiální náčrt řešení této otázky jsou ve složce \texttt{priklady/}.
+
+\subsubsection*{EM algoritmus}
+
+Mnoho reálných modelů má \textbf{skryté proměnné}, jejichž hodnota není v~datech pozorována (např.\ ze které ze dvou smíchaných beden bonbon pochází). Maximálně věrohodný odhad parametrů tehdy nejde spočítat přímo, protože neznáme, ke které „komponentě`` každý příklad patří.
+
+\begin{definice}[EM \textnormal{(expectation--maximization)}]
+EM hledá maximálně věrohodné parametry modelu se skrytými proměnnými iterací dvou kroků:
+\begin{itemize}
+  \item \textbf{E-krok} (expectation): při \emph{současném odhadu} parametrů dopočítej \emph{očekávané hodnoty} (resp.\ očekávané čítače) skrytých proměnných -- „doplň`` data libovolným inferenčním algoritmem.
+  \item \textbf{M-krok} (maximization): ber doplněná data jako jistá a~přepočítej parametry tak, aby \emph{maximalizovaly věrohodnost}.
+\end{itemize}
+Kroky se střídají do \emph{konvergence}. Každá iterace věrohodnost nezhorší.
+\end{definice}
+
+\begin{intuice}
+EM rozplete slepičí-vejce problém: kdybychom znali parametry, dopočítali bychom přiřazení ke komponentám; kdybychom znali přiřazení, dopočítali bychom parametry. EM oboje střídá -- začne náhodnými parametry, v~E-kroku spočítá \emph{očekávané čítače} (např.\ $N(\text{Bedna}{=}1)=\sum_j P(\text{Bedna}{=}1\mid \text{příklad}_j)$ místo tvrdého počtu) a~v~M-kroku z~nich přepočítá parametry $\theta_{ijk}\leftarrow N(X_i{=}x_{ij},U_i{=}u_{ik})/N(U_i{=}u_{ik})$. Pozor: EM konverguje k~\emph{lokálnímu} maximu věrohodnosti, výsledek závisí na inicializaci. Algoritmus k-means (S3) je speciální případ EM s~„tvrdým`` přiřazením.
+\end{intuice}
+
+\subsection{Zpětnovazební učení (reinforcement learning)}
+
+Agent je umístěn do prostředí a~má se v~něm naučit úspěšně chovat. Pozorováním stavů (předpokládáme \emph{plně pozorovatelné} prostředí) se může učit přechodový model. Aby věděl, co je dobré a~co špatné, dostává zpětnou vazbu ve formě \textbf{odměny} (reinforcement). Úkolem je z~pozorovaných odměn naučit se \emph{optimální (nebo téměř optimální) strategii}. Prostředí má tvar Markovova rozhodovacího procesu (MDP, viz sekce~7): stavy $s$, akce $a$, přechodový model $P(s'\mid s,a)$, odměna $R(s)$, diskontní faktor $\gamma$; cílem je strategie $\pi$. Na rozdíl od plánování v~MDP agent přechodový model ani odměny \emph{předem nezná}.
+
+\begin{definice}[Pasivní a~aktivní učení]
+\begin{itemize}
+  \item \textbf{Pasivní} učení: strategie $\pi$ je \emph{pevná} (ve stavu $s$ agent vždy provede $\pi(s)$). Úkolem je naučit se, jak je tato strategie dobrá -- tedy \emph{užitkovou funkci}
+  \[ U^{\pi}(s) = \mathbb{E}\Big[\textstyle\sum_{t=0}^{\infty}\gamma^{t}R(s_t)\Big]. \]
+  \item \textbf{Aktivní} učení: agent strategii \emph{nezná} a~musí se rozhodovat, \emph{co dělat} -- naučit se nejen užitky, ale i~optimální akce.
+\end{itemize}
+V~obou případech agent provádí v~prostředí \emph{zkušební běhy} (trials) podle své strategie a~z~vnímání získává aktuální stav a~obdrženou odměnu.
+\end{definice}
+
+\subsubsection*{Pasivní učení: ADP a~TD}
+
+Naivní \emph{přímý odhad užitku} (direct utility estimation) bere užitek stavu jako průměrnou celkovou odměnu „dále z~tohoto stavu`` (reward-to-go) přes mnoho běhů. Je to vlastně učení s~učitelem (vstup = stav, výstup = reward-to-go), ale \emph{neefektivní}: ignoruje, že užitky stavů spolu souvisí (sousední stavy se vážou Bellmanovými rovnicemi), a~tak konverguje pomalu. Lepší jsou metody, které Bellmanovy rovnice využijí.
+
+\begin{definice}[ADP a~TD pro pasivní učení]
+\begin{itemize}
+  \item \textbf{Adaptivní dynamické programování} (ADP): agent se z~pozorování naučí přechodový model $P(s'\mid s,\pi(s))$ (jako relativní četnost přechodů, např.\ $P((2,3)\mid (1,3),\text{Right})=\tfrac23$) a~odměny $R(s)$, a~pak \emph{vyřeší} Bellmanovy rovnice pro pevnou strategii (např.\ iterací hodnot):
+  \[ U^{\pi}(s) = R(s) + \gamma\sum_{s'}P(s'\mid s,\pi(s))\,U^{\pi}(s'). \]
+  \item \textbf{Učení s~časovými rozdíly} (temporal-difference, TD): \emph{nepotřebuje} model. Po každém pozorovaném přechodu $s\to s'$ posune odhad o~malý kousek směrem ke konzistenci s~Bellmanovou rovnicí.
+\end{itemize}
+\end{definice}
+
+\begin{algo}[Aktualizace TD]
+Po pozorovaném přechodu ze stavu $s$ (s~odměnou $R(s)$) do stavu $s'$:
+\[ U^{\pi}(s) \;\leftarrow\; U^{\pi}(s) + \alpha\,\big(\underbrace{R(s) + \gamma\,U^{\pi}(s') - U^{\pi}(s)}_{\text{časový rozdíl (TD error)}}\big), \]
+kde $\alpha$ je rychlost učení. Závorka je rozdíl mezi „pozorovaným`` cílem $R(s)+\gamma U^{\pi}(s')$ a~stávajícím odhadem $U^{\pi}(s)$.
+\end{algo}
+
+\begin{intuice}
+ADP a~TD jsou dva konce téhož kompromisu. \textbf{ADP} po každém pozorování upraví odhady tak, aby \emph{všechny} stavy souhlasily se všemi nástupci (vyřeší soustavu) -- rychle se učí (vzhledem k~počtu pozorování), ale každý krok je drahý a~vyžaduje model. \textbf{TD} udělá jen \emph{jednu} úpravu na pozorovaný přechod (přiblíží stav jeho jedinému viděnému nástupci), model nepotřebuje a~je levné; za to konverguje pomaleji a~„zašuměněji``. Mají stejnou limitu: ustálené hodnoty $U^{\pi}$ splní Bellmanovy rovnice.
+\end{intuice}
+
+\subsubsection*{Aktivní učení: explorace vs.\ exploitace, Q-učení, SARSA}
+
+Aktivní agent musí sám \emph{volit akce}. Naivní „hladový`` agent vždy zahraje akci optimální podle dosud naučeného modelu -- a~snadno uvázne: jakmile najde nějakou cestu k~odměně, drží se jí a~nikdy neobjeví lepší. Naučený model totiž není skutečné prostředí; akce navíc neslouží jen k~odměnám, ale i~k~\emph{poznávání} modelu.
+
+\begin{definice}[Explorace vs.\ exploitace]
+Agent musí volit kompromis mezi \textbf{exploitací} (využít dosavadní znalost a~maximalizovat okamžitou odměnu) a~\textbf{explorací} (zkoušet i~méně známé akce a~zlepšit model kvůli dlouhodobému prospěchu). Čistá exploitace riskuje uvíznutí v~suboptimu; čistá explorace nikdy znalost nevyužije.
+\end{definice}
+
+\begin{intuice}
+Praktické \emph{explorační strategie}: (a)~zvolit s~klesající pravděpodobností $O(1/t)$ náhodnou akci (jinak hladově) -- konverguje k~optimu, ale pomalu; (b)~rozumnější je dávat \emph{optimistický} odhad užitku málo vyzkoušeným dvojicím stav--akce. V~iteraci hodnot se užije \emph{explorační funkce} $f(u,n)$ rostoucí v~$u$ a~klesající v~$n$ (počet vyzkoušení), např.\ $f(u,n)=R^{+}$ (optimistická konstanta), dokud $n<N_e$, jinak $u$. To agenta táhne i~do neprozkoumaných oblastí, i~kdyby byly daleko.
+\end{intuice}
+
+Aktivní TD učení obvykle pracuje s~\textbf{Q-hodnotami}: $Q(s,a)$ je hodnota provedení akce $a$ ve stavu $s$. Vztah k~užitku: $U(s)=\max_a Q(s,a)$. Výhoda je, že se z~$Q$ dá rovnou číst nejlepší akce $\argmax_a Q(s,a)$ \emph{bez modelu}.
+
+\begin{definice}[Q-učení a~SARSA]
+Obě metody odhadují $Q(s,a)$ z~pozorovaných přechodů $s,a,r,s',a'$.
+\begin{itemize}
+  \item \textbf{Q-učení} (off-policy): aktualizace používá \emph{nejlepší} akci v~dalším stavu,
+  \[ Q(s,a) \;\leftarrow\; Q(s,a) + \alpha\,\big(R(s) + \gamma\,\max_{a'}Q(s',a') - Q(s,a)\big). \]
+  \item \textbf{SARSA} (on-policy): aktualizace používá akci $a'$, kterou agent \emph{skutečně provedl} v~$s'$,
+  \[ Q(s,a) \;\leftarrow\; Q(s,a) + \alpha\,\big(R(s) + \gamma\,Q(s',a') - Q(s,a)\big). \]
+  Pravidlo se aplikuje na konci každé pětice $(s,a,r,s',a')$ -- odtud název.
+\end{itemize}
+Obě jsou \emph{bez modelu} (model-free, nepotřebují $P(s'\mid s,a)$); stačí jim Q-hodnoty.
+\end{definice}
+
+\begin{intuice}[Q-učení vs.\ SARSA]
+Liší se v~tom, čím nahradí budoucí hodnotu. \textbf{Q-učení} dosadí $\max_{a'}Q(s',a')$ -- hodnotu \emph{optimální} budoucí akce bez ohledu na to, co agent vážně udělá; učí se proto rovnou optimální (hladovou) strategii i~během explorace, je \emph{off-policy}. \textbf{SARSA} dosadí $Q(s',a')$ skutečně zahrané akce $a'$; učí hodnotu \emph{té strategie, kterou se agent řídí} (vč.\ explorace), je \emph{on-policy}. Shodují-li se obě s~hladovou volbou, splývají; při explorativní politice je SARSA „opatrnější`` (počítá s~občasnými explorativními chybami).
+\end{intuice}
+
+\begin{algo}[Aktivní Q-učící agent (AIMA \textsc{Q-Learning-Agent})]
+\ttfamily\small
+Q-LEARNING-AGENT(percept):\\
+\hspace*{1.5em}vstup: percept = aktuální stav $s'$ a~odměna $r$ za poslední přechod (v~konvenci odměn stavů $r=R(s)$)\\
+\hspace*{1.5em}stav: $Q$ (tabulka hodnot dvojic stav--akce, zpočátku 0); $N_{sa}$ (čítače); $s,a$ (předchozí stav a~akce)\\
+\hspace*{1.5em}\textbf{if} $s$ není null:\\
+\hspace*{3em}$N_{sa}[s,a] \mathrel{+}{=} 1$\\
+\hspace*{3em}$Q[s,a] \leftarrow Q[s,a] + \alpha(N_{sa}[s,a])\,\big(r + \gamma\max_{a'}Q[s',a'] - Q[s,a]\big)$\\
+\hspace*{1.5em}$s,a \leftarrow s',\ \argmax_{a'} f\big(Q[s',a'],\,N_{sa}[s',a']\big)$ \cmt{$f$ = explorační funkce}\\
+\hspace*{1.5em}\textbf{return} $a$
+\end{algo}
+
+\subsection{Shrnutí sekce}
+
+\begin{poznamka}[Co si odnést]
+\begin{itemize}
+  \item Tři druhy učení podle zpětné vazby: \emph{s~učitelem} (dvojice vstup--výstup), \emph{bez učitele} (vzory bez označení), \emph{zpětnovazební} (odměny). U~učení s~učitelem: klasifikace (diskrétní výstup) vs.\ regrese (číslo); Ockhamova břitva preferuje nejjednodušší konzistentní hypotézu.
+  \item \emph{Rozhodovací strom} -- testy v~uzlech, rozhodnutí v~listech; staví se hladově shora dolů, atribut se vybírá podle \textbf{informačního zisku} $=B(\tfrac{p}{p+n})-\mathrm{Remainder}(A)$ (Patrons $0{,}541$ b., Type $0$ b.).
+  \item \emph{Lineární regrese} -- L2 ztráta, analyticky nebo gradientním sestupem; \emph{logistická regrese} -- změkčený práh, výstup jako pravděpodobnost. \emph{k-NN} je neparametrický (drží data), lineární/logistická regrese parametrické (drží váhy).
+  \item \emph{SVM} -- maximum-margin separátor určený \emph{podpůrnými vektory}; \emph{jádro} zobrazí neseparabilní data do vyšší dimenze. Detaily v~S3.
+  \item \emph{Bayesovské učení} predikuje váženým průměrem všech hypotéz ($P(X\mid d)=\sum_i P(X\mid h_i)P(h_i\mid d)$); ML hypotéza maximalizuje $P(d\mid h)$. \emph{EM} hledá ML parametry se skrytými proměnnými střídáním E-kroku (doplnění očekávaných čítačů) a~M-kroku (přepočet parametrů).
+  \item \emph{Zpětnovazební učení}: \textbf{pasivní} (pevná $\pi$, učíme $U^{\pi}$) přes \emph{ADP} (naučí model, vyřeší Bellmana) a~\emph{TD} (bez modelu, $U(s)\!\leftarrow\!U(s)+\alpha(R(s)+\gamma U(s')-U(s))$); \textbf{aktivní} (volíme akce) řeší \emph{exploraci vs.\ exploitaci} a~učí Q-hodnoty: \emph{Q-učení} (off-policy, $\max_{a'}$) a~\emph{SARSA} (on-policy, $Q(s',a')$).
+\end{itemize}
+\end{poznamka}

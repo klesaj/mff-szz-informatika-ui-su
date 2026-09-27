@@ -1,0 +1,51 @@
+% Zdroj: PDF priklady-leto-2023.pdf, fyzická str. 1-2. Sada bez značek (starší formát 2023). Otázka studijního zaměření. Zařazeno: S1 (HMM).
+\section{Skrytý Markovův model}
+\szzotazka{léto 2023}{5}{Skrytý Markovův model (HMM)}
+
+\noindent\textbf{Zadání.}\par
+Definujte skrytý Markovův model (HMM z anglického Hidden Markov Model). Co je Markovův předpoklad? Jaký je rozdíl mezi filtrací (filtering), predikcí (prediction) a vyhlazováním (smoothing)? Za použití vzorce
+\[
+  P(X_t \mid E_{1:t}) = \alpha\, P(E_t \mid X_t) \sum_{X_{t-1}} P(X_t \mid X_{t-1})\, P(X_{t-1} \mid E_{1:t-1})
+\]
+vyřešte následující příklad:
+
+Předpokládejme, že proměnná $X_i$ vyjadřuje, jaké je počasí ve dne $i$. Každý den prší ($X_i = P$) nebo je slunečno ($X_i = S$). Tuto proměnnou nemůžeme přímo pozorovat, máme k dispozici pouze pozorování $E_i$, zda si náš kolega přinesl dnes deštník ($E_i = D$) nebo ne ($E_i = N$). Podmíněné pravděpodobnosti změny počasí z předchozího dne na dnešek a závislost pozorování deštníku na skutečném počasí uvádějí následující tabulky.
+
+\begin{center}
+\begin{tabular}{ccc}
+\toprule
+$X_{i-1}$ & $P(X_i = P \mid X_{i-1})$ & $P(X_i = S \mid X_{i-1})$ \\
+\midrule
+$P$ & $0.7$ & $0.3$ \\
+$S$ & $0.3$ & $0.7$ \\
+\bottomrule
+\end{tabular}
+\qquad
+\begin{tabular}{ccc}
+\toprule
+$X_i$ & $P(E_i = D \mid X_i)$ & $P(E_i = N \mid X_i)$ \\
+\midrule
+$P$ & $0.9$ & $0.1$ \\
+$S$ & $0.2$ & $0.8$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Předpokládejme, že ve dne $0$ je pravděpodobnost deště $P(X_0 = P) = 0.5$ a slunečna $P(X_0 = S) = 0.5$. Jaká je pravděpodobnost deště ve druhém dni ($P(X_2 = P) = ?$), pokud první i druhý den pozorujeme, že si náš kolega přinesl deštník ($E_1 = D$ a $E_2 = D$)?
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, výpočet ověřen numericky.)}\par
+
+\noindent\emph{HMM a Markovův předpoklad.} Skrytý Markovův model je posloupnost skrytých stavů $X_t$ (počasí $\in\{P,S\}$) a~pozorování $E_t$ (deštník $\in\{D,N\}$), daná priorem $P(X_0)$, přechodovým modelem $P(X_t\mid X_{t-1})$ a~senzorovým modelem $P(E_t\mid X_t)$. \emph{Markovův předpoklad}: stav závisí jen na~bezprostředně předchozím stavu, $P(X_t\mid X_{0:t-1})=P(X_t\mid X_{t-1})$; pozorování závisí jen na~aktuálním stavu, $P(E_t\mid X_{0:t},E_{1:t-1})=P(E_t\mid X_t)$.
+
+\noindent\emph{Filtrace, predikce, vyhlazování.} Filtrace počítá rozdělení \emph{nynějšího} stavu z~dosavadních pozorování, $P(X_t\mid E_{1:t})$; predikce \emph{budoucího} stavu $P(X_{t+k}\mid E_{1:t})$ ($k>0$); vyhlazování \emph{minulého} stavu $P(X_k\mid E_{1:t})$ ($k<t$), které využívá i~pozdější pozorování, a~je proto přesnější než filtrace v~témže okamžiku.
+
+\noindent\emph{Výpočet} $P(X_2=P\mid E_1=D,E_2=D)$ rekurzí (predikce $+$ update senzorem $+$ normalizace), zaokrouhleno na~4 desetinná místa:
+\begin{itemize}[nosep]
+  \item Prior $f_0=P(X_0)=\langle P{:}\,0{,}5;\ S{:}\,0{,}5\rangle$.
+  \item Den~1 -- predikce: $P(X_1{=}P)=0{,}7\cdot0{,}5+0{,}3\cdot0{,}5=0{,}5$, $P(X_1{=}S)=0{,}5$.
+  \item Den~1 -- update $E_1{=}D$: $\langle 0{,}9\cdot0{,}5;\ 0{,}2\cdot0{,}5\rangle=\langle0{,}45;\,0{,}10\rangle$, součet $0{,}55$, normalizace $f_1=\langle 0{,}8182;\,0{,}1818\rangle$.
+  \item Den~2 -- predikce: $P(X_2{=}P)=0{,}7\cdot0{,}8182+0{,}3\cdot0{,}1818=0{,}6273$, $P(X_2{=}S)=0{,}3727$.
+  \item Den~2 -- update $E_2{=}D$: $\langle 0{,}9\cdot0{,}6273;\ 0{,}2\cdot0{,}3727\rangle=\langle0{,}5645;\,0{,}0745\rangle$, součet $0{,}6391$, normalizace $f_2=\langle 0{,}8834;\,0{,}1166\rangle$.
+\end{itemize}
+Tedy $P(X_2=P\mid E_1{=}D,E_2{=}D)\approx \boxed{0{,}883}$. Dva po~sobě jdoucí deštníky posílí víru v~déšť z~$50\,\%$ na~téměř $90\,\%$.

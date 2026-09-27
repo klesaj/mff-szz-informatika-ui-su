@@ -1,0 +1,268 @@
+\section{Splňování podmínek -- CSP (hranová konzistence AC-3, algoritmus MAC)}
+
+V~předchozí sekci jsme stav chápali \emph{atomicky} -- jako nedělitelný „černý box``, o~jehož vnitřní stavbě prohledávací algoritmus nic nevěděl. \emph{Splňování podmínek} (Constraint Satisfaction Problem, CSP) je naopak \emph{faktorovaná} reprezentace: stav je rozložen na množinu \emph{proměnných}, každá s~vlastní \emph{doménou} hodnot, a~řešení je takové přiřazení hodnot proměnným, které splňuje zadané \emph{podmínky}. Tato struktura má dvě výhody. Za prvé řadu úloh (N-dam, Sudoku, rozvrhování, obarvení mapy) lze popsat v~jednotném formalismu a~řešit obecným \emph{řešičem}. Za druhé -- a~to je klíčové -- nám podmínky umožní \emph{aktivně prořezávat} domény ještě před tím, než cokoli přiřadíme: hodnotu, která nemůže být součástí žádného řešení, vyřadíme z~domény (\emph{inference}), čímž dramaticky zmenšíme prohledávaný prostor.
+
+\subsection{Definice CSP}
+
+\begin{definice}[Problém splňování podmínek (CSP)]
+\emph{CSP} je dán trojicí $(X, D, C)$:
+\begin{itemize}
+  \item \textbf{proměnné} $X = \{X_1,\dots,X_n\}$ -- popisují hledané rysy stavu světa (např.\ pozice dam na šachovnici);
+  \item \textbf{domény} $D = \{D_1,\dots,D_n\}$ -- $D_i$ je \emph{konečná} množina možných hodnot proměnné $X_i$ (různé proměnné mohou mít různé domény);
+  \item \textbf{podmínky} $C = \{C_1,\dots,C_m\}$ -- každá podmínka je \emph{relace} nad nějakou podmnožinou proměnných, tj.\ podmnožina kartézského součinu jejich domén. Podmínku lze zadat \emph{extenzionálně} (výčtem $n$-tic, které ji splňují) nebo \emph{formulí} (např.\ $\mathit{row}_A \neq \mathit{row}_B$). Počet proměnných v~podmínce je její \emph{arita}.
+\end{itemize}
+\emph{Ohodnocení} je přiřazení hodnot proměnným; je \emph{úplné}, má-li hodnotu každá proměnná, a~\emph{konzistentní}, splňuje-li všechny podmínky. \emph{(Přípustným) řešením} CSP je úplné a~konzistentní ohodnocení.
+\end{definice}
+
+\begin{definice}[Binární CSP]
+CSP je \textbf{binární}, pokud má každá podmínka aritu nejvýše $2$ (váže nanejvýš dvě proměnné). Binární CSP přirozeně reprezentujeme \emph{sítí podmínek} (constraint network): graf, jehož vrcholy jsou proměnné a~každá binární podmínka mezi $X_i$ a~$X_j$ je \emph{hrana} (oblouk, „arc``) $(X_i,X_j)$.
+\end{definice}
+
+\begin{intuice}
+Na binární CSP se omezujeme hlavně proto, že na něm krásně funguje pojem hranové konzistence (a~že každý CSP lze na binární převést). Síť podmínek dává geometrickou představu: techniky inference si pak představíme jako \emph{šíření} omezení po hranách sítě -- zúžím-li doménu jedné proměnné, „informace`` o~tom poteče po hranách k~sousedům, kteří mohou zúžit svoje domény, a~tak dál.
+\end{intuice}
+
+\begin{poznamka}[Vstup a~výstup]
+Pohledem rozhodovacího problému: \emph{vstupem} CSP je trojice $(X,D,C)$, \emph{výstupem} je buď konkrétní řešení (úplné konzistentní ohodnocení), nebo informace, že žádné neexistuje. Rozhodnout, zda obecný CSP řešení má, je \textbf{NP-úplný} problém (proto se vyplatí inference, která prostor prořezává).
+\end{poznamka}
+
+\subsection{Modelování (jak úlohu zformulovat jako CSP)}
+
+Prvním krokem je vždy \emph{modelování} -- volba proměnných, domén a~podmínek. Stejnou úlohu lze obvykle namodelovat víc způsoby a~na volbě modelu hodně záleží.
+
+\begin{priklad}[N~dam jako CSP]
+Hledáme rozmístění $N$ dam na šachovnici $N\times N$ tak, aby se žádné dvě neohrožovaly (nesmí být ve stejném řádku, sloupci ani diagonále). \textbf{Klíčové pozorování modelu:} každou dámu předem přiřadíme do \emph{vlastního sloupce}, takže hledáme jen \emph{řádek}. \emph{Proměnné:} $r_1,\dots,r_N$ (řádek dámy v~$i$-tém sloupci). \emph{Domény:} $D_i=\{1,\dots,N\}$. \emph{Podmínky:} pro každé $i\neq j$
+\[ r_i \neq r_j \quad(\text{různé řádky}) \qquad\text{a}\qquad |i-j| \neq |r_i - r_j| \quad(\text{různé diagonály}). \]
+Sloupce jsou ošetřeny už samotnou volbou modelu (jedna dáma na sloupec). Prostor se tím zmenší z~$(N\!\cdot\!N)^N$ (libovolné políčko každé dámy) na $N^N$, navíc je to binární CSP.
+\end{priklad}
+
+\subsection{Řešení prohledáváním s~navracením (backtracking)}
+
+Nejjednodušší způsob řešení CSP je \emph{prohledávání s~navracením} (backtracking). Je to hloubkové prohledávání nad částečnými ohodnoceními: vybereme dosud nepřiřazenou proměnnou, zkusíme jí přiřadit hodnotu, ověříme podmínky vůči už přiřazeným proměnným, a~je-li ohodnocení konzistentní, pokračujeme na další proměnnou. Narazíme-li na spor (žádná hodnota nejde přiřadit), \emph{navrátíme se} (backtrack) k~předchozí proměnné a~zkusíme jinou hodnotu.
+
+\begin{algo}[Prohledávání s~navracením (BACKTRACK)]
+\ttfamily\small
+BACKTRACK(csp, ohodnocení):\\
+\hspace*{1.5em}\textbf{if} ohodnocení je úplné: \textbf{return} ohodnocení\\
+\hspace*{1.5em}$X \leftarrow$ vyber nepřiřazenou proměnnou \cmt{heuristika pořadí: dom / deg}\\
+\hspace*{1.5em}\textbf{for} každou hodnotu $v$ z~$D_X$ v~nějakém pořadí: \cmt{heuristika pořadí hodnot}\\
+\hspace*{3em}\textbf{if} $v$ je konzistentní s~ohodnocením: \cmt{vůči už přiřazeným proměnným}\\
+\hspace*{4.5em}přidej $\{X=v\}$ do ohodnocení\\
+\hspace*{4.5em}inference $\leftarrow$ INFERENCE(csp, $X$, $v$) \cmt{forward checking / udržení AC; volitelné}\\
+\hspace*{4.5em}\textbf{if} inference $\neq$ selhání:\\
+\hspace*{6em}výsledek $\leftarrow$ BACKTRACK(csp, ohodnocení)\\
+\hspace*{6em}\textbf{if} výsledek $\neq$ selhání: \textbf{return} výsledek\\
+\hspace*{4.5em}vrať zpět $\{X=v\}$ a~změny inference \cmt{backtrack}\\
+\hspace*{1.5em}\textbf{return} selhání
+\end{algo}
+
+\begin{intuice}
+Holý backtracking je často \emph{neefektivní}: spor odhalí až ve chvíli, kdy se ke sporné proměnné dostane a~zkusí jí přiřadit hodnotu, i~když už dávno bylo „jasné``, že volba dál nahoře nemůže vést k~řešení. Proto ho posílíme \emph{inferencí} ve volání \texttt{INFERENCE} -- po každém přiřazení proaktivně vyřadíme z~domén nepřiřazených proměnných hodnoty, které jsou s~nově přiřazenou hodnotou v~rozporu. Tím spor odhalíme dřív (případně už při přiřazení) a~ořežeme celé podstromy.
+\end{intuice}
+
+\subsection{Konzistenční techniky: hranová konzistence}
+
+Místo pouhé \emph{kontroly} podmínek při přiřazování je můžeme využít \emph{aktivně} k~prořezávání domén. Motivační příklad: máme $A\in\{3,\dots,7\}$, $B\in\{1,\dots,5\}$ a~podmínku $A<B$. Hodnota $A=7$ nemůže být v~žádném řešení, protože v~doméně $B$ není žádná hodnota větší než~$7$; podobně $A\in\{5,6,7\}$ a~$B\in\{1,2,3\}$ jsou neudržitelné. Zúžením domén dostaneme $A\in\{3,4\}$, $B\in\{4,5\}$ -- a~to vše \emph{bez jediného přiřazení}. Tato úvaha vede k~pojmu hranové konzistence.
+
+\begin{definice}[Hranová konzistence (arc consistency)]
+Mějme binární CSP. Hrana (oblouk) $(X_i,X_j)$ je \textbf{hranově konzistentní}, pokud pro \emph{každou} hodnotu $x\in D_i$ existuje hodnota $y\in D_j$ taková, že dvojice $(x,y)$ splňuje (binární) podmínku mezi $X_i$ a~$X_j$. Hodnotě $y$ se říká \emph{opora} (support) hodnoty $x$. CSP je \textbf{hranově konzistentní}, je-li hranově konzistentní každá jeho hrana v~\emph{obou} směrech.
+\end{definice}
+
+\begin{poznamka}[Směrovost]
+Hranová konzistence je \emph{směrová}: konzistence $(X_i,X_j)$ nezaručuje konzistenci $(X_j,X_i)$. V~příkladu výše je po zúžení $A\in\{3,4\}$, $B\in\{4,5\}$ hrana $(A,B)$ konzistentní (pro každé $a$ existuje větší $b$), ale i~$(B,A)$ musíme ověřit zvlášť (pro každé $b$ existuje menší $a$). Proto „CSP je AC`` znamená konzistenci \emph{všech hran v~obou směrech}.
+\end{poznamka}
+
+\begin{center}
+\begin{tikzpicture}[y=1cm,x=1cm]
+% --- after AC (dole, y=0..1.7) ---
+\node[uzel] (a2) at (0,0) {$A$};
+\node[uzel] (b2) at (3,0) {$B$};
+\draw[hrana] (a2) -- node[above,font=\small] {$A<B$} (b2);
+\node[font=\small,align=center] at (0,1) {$D_A=\{3,4\}$};
+\node[font=\small,align=center] at (3,1) {$D_B=\{4,5\}$};
+\node[font=\small] at (1.5,1.7) {po AC: $(A,B)$ i~$(B,A)$ konzistentní};
+% --- before AC (nahoře, y=3.5..5.2) ---
+\node[uzel] (a1) at (0,3.5) {$A$};
+\node[uzel] (b1) at (3,3.5) {$B$};
+\draw[hrana] (a1) -- node[above,font=\small] {$A<B$} (b1);
+\node[font=\small,align=center] at (0,4.5) {$D_A=\{3,4,5,6,7\}$};
+\node[font=\small,align=center] at (3,4.5) {$D_B=\{1,2,3,4,5\}$};
+\node[font=\small] at (1.5,5.2) {před AC: žádná hrana není konzistentní};
+\end{tikzpicture}
+\obrpopis{Síť podmínek (constraint graph) pro jedinou binární podmínku $A<B$. Uzly jsou proměnné, hrana je podmínka. \emph{Před} hranovou konzistencí (nahoře) má $A$ hodnoty bez opory ($5,6,7$ -- v~$D_B$ není nic většího) a~$B$ má hodnoty bez opory ($1,2,3$). \emph{Po} prořezání (dole) zbude $D_A=\{3,4\}$, $D_B=\{4,5\}$. Pozor: hranová konzistence \emph{nezaručuje}, že každá zbylá kombinace je řešení -- např.\ $A=4,B=4$ podmínku $A<B$ neplní.}
+\end{center}
+
+\subsection{Algoritmus AC-3}
+
+Pro \emph{nastolení} hranové konzistence v~celé síti slouží algoritmus \textbf{AC-3}. Drží frontu hran, které je třeba zkontrolovat (zpočátku všechny hrany). Z~fronty vždy vybere hranu $(X_i,X_j)$ a~zavolá podproceduru \textsc{Revize}$(X_i,X_j)$, která z~domény $D_i$ vyřadí všechny hodnoty bez opory v~$D_j$. Pokud se $D_i$ \emph{zúžila}, mohly tím přijít o~oporu hodnoty v~doménách \emph{sousedů} proměnné $X_i$ (těch, kteří na $X_i$ závisí podmínkou). Proto do fronty znovu zařadíme všechny hrany \emph{vedoucí do} $X_i$, tj.\ $(X_k,X_i)$ pro každého souseda $X_k\neq X_j$. Algoritmus končí, když je fronta prázdná (síť je hranově konzistentní), nebo když nějaká doména zůstane prázdná (CSP nemá řešení).
+
+\begin{algo}[Hranová konzistence: AC-3]
+\ttfamily\small
+AC-3(csp): \cmt{vrátí \textbf{false} při nekonzistenci, jinak \textbf{true}}\\
+\hspace*{1.5em}fronta $\leftarrow$ všechny hrany $(X_i,X_j)$ sítě podmínek\\
+\hspace*{1.5em}\textbf{while} fronta $\neq \emptyset$:\\
+\hspace*{3em}$(X_i,X_j) \leftarrow$ odeber hranu z~fronty\\
+\hspace*{3em}\textbf{if} REVIZE(csp, $X_i$, $X_j$): \cmt{doména $D_i$ se zúžila}\\
+\hspace*{4.5em}\textbf{if} $|D_i| = 0$: \textbf{return} false \cmt{prázdná doména $\Rightarrow$ bez řešení}\\
+\hspace*{4.5em}\textbf{for} každého souseda $X_k$ proměnné $X_i$ kromě $X_j$:\\
+\hspace*{6em}přidej hranu $(X_k, X_i)$ do fronty \cmt{hrany vedoucí DO změněné $X_i$}\\
+\hspace*{1.5em}\textbf{return} true\\[4pt]
+REVIZE(csp, $X_i$, $X_j$): \cmt{vrátí \textbf{true}, právě když zúžila $D_i$}\\
+\hspace*{1.5em}revidováno $\leftarrow$ false\\
+\hspace*{1.5em}\textbf{for} každou hodnotu $x \in D_i$:\\
+\hspace*{3em}\textbf{if} žádné $y \in D_j$ nesplní s~$x$ podmínku mezi $X_i, X_j$: \cmt{$x$ nemá oporu}\\
+\hspace*{4.5em}vyřaď $x$ z~$D_i$;\quad revidováno $\leftarrow$ true\\
+\hspace*{1.5em}\textbf{return} revidováno
+\end{algo}
+
+\begin{poznamka}[Složitost a~varianty]
+Časová složitost AC-3 je $O(e\,d^{3})$, kde $e$ je počet podmínek a~$d$ velikost největší domény: každou z~$O(e)$ hran můžeme do fronty vložit až $d$-krát a~jedna \textsc{Revize} stojí $O(d^{2})$. Není to optimální -- zapamatováním výsledků kontrol (algoritmy AC-4, AC-3.1, AC-2001) lze dosáhnout $O(e\,d^{2})$. Znalost \emph{sémantiky} podmínky kontrolu dále zrychlí (pro $X<Y$ stačí porovnat krajní hodnoty).
+\end{poznamka}
+
+\begin{veta}[Co hranová konzistence (ne)zaručuje]
+Hranová konzistence je \emph{lokální} vlastnost: zaručuje konzistenci po dvojicích, ne globálně. Proto:
+\begin{itemize}
+  \item Hranově konzistentní CSP \textbf{nemusí být splnitelný} (může mít prázdnou množinu řešení).
+  \item Pokud nějaká doména po AC-3 \emph{zbude prázdná}, CSP \textbf{řešení nemá} (to je jediná jistá implikace o~(ne)existenci řešení, kterou AC-3 dává).
+  \item CSP, který \emph{není} hranově konzistentní, \textbf{může} mít řešení (nekonzistence se týká jednotlivých hodnot, ne nutně celého problému).
+\end{itemize}
+\end{veta}
+
+\begin{intuice}
+Proč hranová konzistence nestačí? Zachycuje jen interakci \emph{dvou} proměnných najednou. Klasický protipříklad: tři proměnné $X_1,X_2,X_3$ s~doménami $\{0,1\}$ a~podmínkami $X_i\neq X_j$ pro každou dvojici. Každá hrana je hranově konzistentní -- pro $0$ je oporou $1$ a~naopak -- a~přesto problém \emph{nemá řešení}: tři proměnné nelze obarvit dvěma hodnotami tak, aby byly po dvojicích různé. AC-3 tu žádnou hodnotu nevyřadí. Globální spor odhalí až prohledávání (nebo silnější, ale dražší $k$-konzistence).
+\end{intuice}
+
+\begin{poznamka}[$k$-konzistence -- jen pro kontext]
+Hranová konzistence je speciální případ obecnější $k$-konzistence ($\mathrm{AC} = 2$-konzistence; cestová/path konzistence $= 3$-konzistence): pro každé konzistentní ohodnocení $k-1$ proměnných existuje hodnota $k$-té proměnné, která ho rozšíří. Je-li CSP $i$-konzistentní pro všechna $i$, lze ho vyřešit \emph{bez navracení}. Vyšší konzistence ale stojí čas \emph{exponenciální v~$k$}, takže se v~praxi místo ní používají \emph{globální podmínky} (např.\ $\mathit{all\_different}$ s~efektivním prořezáváním přes párování v~bipartitním grafu). Požadavky okruhu jmenují jen hranovou konzistenci a~AC-3; $k$-konzistence tu slouží jako kontext.
+\end{poznamka}
+
+\subsection{Inference v~průběhu prohledávání: FC, look-ahead a~MAC}
+
+Konzistenční techniky teprve naplno vyniknou \emph{uvnitř} prohledávání, jako obsah procedury \texttt{INFERENCE}. Po každém přiřazení proměnné z~domén nepřiřazených proměnných odstraníme hodnoty, které se s~přiřazením neslučují. Liší se jen \emph{rozsah} prořezávání.
+
+\begin{definice}[Forward checking, look-ahead / MAC]
+\begin{itemize}
+  \item \textbf{Kontrola dopředu} (forward checking, FC): po přiřazení $X=v$ projdeme jen podmínky obsahující \emph{právě přiřazenou} proměnnou $X$ a~z~domén jejích dosud nepřiřazených sousedů vyřadíme hodnoty neslučitelné s~$v$. Selže-li tím nějaká doména na prázdnou, hned se navrátíme.
+  \item \textbf{Pohled dopředu} (look-ahead) / \textbf{udržení hranové konzistence} (\emph{Maintaining Arc Consistency}, MAC): po přiřazení $X=v$ obnovíme \emph{plnou hranovou konzistenci} -- spustíme AC-3 (s~frontou inicializovanou hranami $(X_k,X)$ od nepřiřazených sousedů $X_k$ k~$X$) a~necháme prořezání \emph{šířit} po síti, dokud se mění nějaká doména. Je to silnější technika než FC: kontroluje \emph{všechny} podmínky zasažené šířením, ne jen ty s~$X$, a~tak vyřadí víc nekonzistentních hodnot.
+\end{itemize}
+\end{definice}
+
+\begin{intuice}
+Rozdíl FC vs.\ MAC: \emph{forward checking} se dívá jen „o~krok dál`` (sousedé přiřazené proměnné), \emph{look-ahead/MAC} nechá efekt zúžení \emph{propagovat dál do sítě} -- zúžím-li doménu souseda, znovu zkontroluji i~jeho sousedy atd. MAC tedy odhalí spor dřív a~prořeže víc, za cenu vyšší práce na uzel. Bartákovo srovnání na N-damách: holý backtracking potřeboval $19$ pokusů, forward checking~$3$, a~look-ahead jen~$2$.
+\end{intuice}
+
+\begin{poznamka}[MAC $=$ AC-3 inkrementálně]
+MAC je přesně AC-3 spouštěné \emph{inkrementálně} během prohledávání. Na začátku problém \emph{jednou} zhranověkonzistentníme (AC-3 na vstupu). Po každém přiřazení $X=v$ je doména $X$ jednoprvková a~do fronty AC-3 vložíme jen hrany $(X_k,X)$ od sousedů; AC-3 pak prořeže a~šíří. Při navracení se vyřazené hodnoty vrátí zpět. Volání \texttt{INFERENCE} v~pseudokódu BACKTRACK je tedy „spusť AC-3 z~hran k~právě přiřazené proměnné``.
+\end{poznamka}
+
+\subsection{Heuristiky pořadí proměnných a~hodnot}
+
+Heuristiky pořadí požadavky přímo nejmenují, ale patří k~efektivnímu řešiči a~stojí za to je znát. Backtracking instancuje proměnné a~zkouší hodnoty v~\emph{nějakém} pořadí; dobré pořadí dramaticky zkrátí prohledávání. Vede nás princip „spor odhalit co nejdřív``:
+\begin{itemize}
+  \item \textbf{Pořadí proměnných -- princip „fail-first``:} ber jako další tu proměnnou, jejíž přiřazení nejspíš povede ke sporu (a~tedy spor odhalíme brzy, blízko kořene).
+  \begin{itemize}
+    \item \textbf{dom} (minimum remaining values): proměnná s~\emph{nejmenší doménou} jako první (nejmíň možností $\Rightarrow$ nejdřív „dojdou`` hodnoty).
+    \item \textbf{deg} (degree): proměnná v~\emph{nejvíce podmínkách} jako první (typicky rozhodne při rovnosti \textbf{dom}).
+  \end{itemize}
+  \item \textbf{Pořadí hodnot -- princip „succeed-first``:} naopak zkus nejdřív hodnotu, která nejspíš \emph{patří do řešení}. Heuristika \emph{least constraining value}: hodnota, která \emph{nejméně omezuje} ostatní proměnné (ponechá nejvíc flexibility). Hledání skutečně nejlepší hodnoty bývá drahé, takže se používají doménově specifické heuristiky.
+\end{itemize}
+
+\begin{intuice}
+Proč u~proměnných „fail-first`` (nejhůř první) a~u~hodnot „succeed-first`` (nejlíp první)? Proměnnou musíme \emph{tak jako tak} přiřadit -- chceme tedy nejdřív tu nejproblematičtější, ať případný spor přijde co nejdřív a~ořízne velký podstrom. U~hodnoty naopak chceme rychle najít \emph{jedno} řešení, takže zkoušíme nejnadějnější hodnotu jako první.
+\end{intuice}
+
+\subsection{Řešené příklady SZZ}
+
+\begin{priklad}[SZZ podzim 2023 č.~28: CSP, backtracking, konzistence, model Sudoku]
+\szzotazka{podzim 2023}{28}{Problém splňování podmínek (CSP, backtracking, arc consistency, forward checking, look-ahead, Sudoku)}\par
+\textbf{Zadání.}\par
+Definujte problém splňování podmínek (CSP). Popište prohledávání s~navracením (backtracking) jako způsob řešení CSP. Vysvětlete pojmy „hranová konzistence`` (arc consistency), „kontrola dopředu`` (forward checking) a~„pohled dopředu`` (look-ahead). Pomocí CSP namodelujte Sudoku (umístit čísla $1,\dots,9$ do mřížky $9\times 9$ tak, aby se v~žádném řádku, sloupci ani $3\times 3$ boxu žádná cifra neopakovala; některá čísla jsou předem zadaná).
+
+\medskip
+\textbf{Řešení.}
+
+\textbf{(1) Definice CSP.} CSP je trojice $(X,D,C)$: konečná množina \emph{proměnných} $X$, ke každé proměnné \emph{doména} (konečná množina jejích možných hodnot; různé proměnné mohou mít různé domény) a~konečná množina \emph{podmínek} $C$. Podmínka je \emph{relace} nad podmnožinou proměnných, tj.\ podmnožina kartézského součinu jejich domén (zadaná výčtem $n$-tic nebo formulí). \emph{Řešením} je úplné a~konzistentní ohodnocení -- každá proměnná má hodnotu a~všechny podmínky jsou splněny.
+
+\textbf{(2) Backtracking.} Hloubkové prohledávání nad částečnými ohodnoceními: vybereme nepřiřazenou proměnnou, přiřadíme jí hodnotu a~ověříme podmínky vůči už přiřazeným proměnným. Je-li ohodnocení konzistentní, rekurzivně pokračujeme na další proměnnou; nastane-li spor (žádná hodnota nejde přiřadit), \emph{navrátíme se} k~předchozí proměnné a~zkusíme jinou hodnotu. Skončíme buď úplným konzistentním ohodnocením (řešení), nebo vyčerpáním všech možností (řešení neexistuje).
+
+\textbf{(3) Konzistenční techniky.}
+\begin{itemize}
+  \item \emph{Hranová konzistence (arc consistency).} Hrana $(X_i,X_j)$ je konzistentní, pokud pro každou hodnotu $x\in D_i$ existuje hodnota $y\in D_j$ splňující s~$x$ podmínku mezi $X_i,X_j$. Hodnoty bez takové opory z~$D_i$ vyřadíme. Jde o~\emph{předzpracování/inferenci}: prořeže domény nezávisle na konkrétním přiřazení.
+  \item \emph{Kontrola dopředu (forward checking).} Po přiřazení proměnné $X$ projdeme \emph{jen} podmínky obsahující $X$ a~z~domén jejích nepřiřazených sousedů vyřadíme hodnoty neslučitelné s~přiřazením. Spor (prázdnou doménu) tak odhalíme dřív než holý backtracking.
+  \item \emph{Pohled dopředu (look-ahead).} Silnější než FC: po přiřazení obnovíme \emph{plnou hranovou konzistenci} (spustíme AC-3), takže prořezání \emph{šíříme} přes všechny zasažené podmínky, dokud se mění nějaká doména -- ne jen přes podmínky s~právě přiřazenou proměnnou. Vyřadí proto víc nekonzistentních hodnot.
+\end{itemize}
+
+\textbf{(4) Model Sudoku.}
+\begin{itemize}
+  \item \emph{Proměnné:} jedno políčko $=$ jedna proměnná, $X_{r,c}$ pro řádek $r$ a~sloupec $c$ ($81$ proměnných).
+  \item \emph{Domény:} $D_{r,c}=\{1,\dots,9\}$.
+  \item \emph{Podmínky:} na každý \emph{řádek}, každý \emph{sloupec} a~každý $3\times 3$ \emph{box} podmínka $\mathit{all\_different}$ (všech $9$ proměnných různých) -- ekvivalentně nerovnosti po dvojicích $X_{r,c}\neq X_{r',c'}$ pro políčka ve stejném řádku / sloupci / boxu.
+  \item \emph{Zadaná čísla:} buď zúžíme doménu políčka na jednoprvkovou ($D_{r,c}=\{k\}$), nebo přidáme podmínku $X_{r,c}=k$.
+\end{itemize}
+Sudoku se pak řeší backtrackingem s~inferencí (FC, resp.\ look-ahead/MAC); často ho silné prořezávání vyřeší skoro bez navracení.
+\begin{poznamka}
+Sudoku je hezká ukázka, že hranová konzistence \emph{nestačí} ke globální konzistenci: existují rozpracovaná Sudoku, která jsou hranově konzistentní, a~přesto vyžadují prohledávání (nebo silnější inferenci) k~dořešení.
+\end{poznamka}
+\end{priklad}
+
+\begin{priklad}[SZZ jaro 2026 č.~27: binární CSP, hranová konzistence, běh AC-3]
+\szzotazka{jaro 2026}{27}{CSP (binární CSP, hranová konzistence, běh algoritmu AC-3)}\par
+\textbf{Zadání.}\par
+(1)~Definujte binární CSP (vstup a~výstup) a~vysvětlete pojem „hranová konzistence``. (2)~Je-li problém hranově konzistentní, je zaručeně splnitelný? Může být splnitelný problém, který hranově konzistentní \emph{není}? Zdůvodněte nebo dejte protipříklady. (3)~Aplikujte AC-3 na CSP s~celočíselnými proměnnými $A,B,C,D$, doménami $D_A=\{1\}$, $D_B=D_C=D_D=\{1,2,3\}$ a~podmínkami $C_1\!:\,C+D=4$, $C_2\!:\,A+B\le 3$, $C_3\!:\,B+C\ge 4$. Uveďte postup.
+
+\medskip
+\textbf{Řešení.}
+
+\textbf{(1) Definice a~hranová konzistence.} \emph{Binární CSP} je trojice $(X,D,C)$, kde každá podmínka váže nejvýše dvě proměnné. \emph{Vstup:} proměnné, jejich domény a~podmínky. \emph{Výstup:} úplné konzistentní ohodnocení (řešení), nebo informace, že žádné neexistuje. Hrana $(X_i,X_j)$ je \emph{hranově konzistentní}, pokud pro každou hodnotu $x\in D_i$ existuje $y\in D_j$ tak, že $(x,y)$ splňuje podmínku mezi $X_i,X_j$; CSP je hranově konzistentní, je-li taková každá hrana v~obou směrech.
+
+\textbf{(2) Co AC zaručuje.} \emph{Hranově konzistentní problém nemusí být splnitelný.} Protipříklad: $X_1,X_2,X_3$ s~doménami $\{0,1\}$ a~podmínkami $X_i\neq X_j$ pro každou dvojici. Každá hrana je konzistentní (oporou $0$ je $1$ a~naopak), takže AC-3 nic nevyřadí, a~přesto problém \emph{nemá řešení} -- tři proměnné nelze obarvit dvěma hodnotami po dvojicích různě. \emph{Hranově nekonzistentní problém naopak může být splnitelný}: nekonzistence se týká jednotlivých hodnot, ne celého problému -- ostatně i~zadaný CSP z~bodu (3) hranově konzistentní \emph{není} (např.\ při $D_A=\{1\}$ podmínka $C_2\!:A+B\le3$ vylučuje $B=3$, takže hrana $(B,A)$ konzistentní není), a~přitom řešení má (viz dále). \emph{Jediná jistota:} zbude-li po AC-3 prázdná doména, řešení \emph{neexistuje}.
+
+\textbf{(3) Běh AC-3.} Síť podmínek má hrany $C_1$ mezi $C,D$; $C_2$ mezi $A,B$; $C_3$ mezi $B,C$ (viz obrázek). Fronta startuje se všemi hranami v~obou směrech. Pro každou hranu \textsc{Revize} vyřadí z~„první`` proměnné hodnoty bez opory; po zúžení vrátíme do fronty hrany vedoucí \emph{do} zúžené proměnné. Pečlivý průchod (proměnná $A$ s~jednoprvkovou doménou je „pevná`` a~tlačí na sousedy):
+
+\begin{enumerate}
+  \item \textbf{$C_2$ zúží $B$ podle $A$.} $A=1$ a~$A+B\le3$ dává $B\le2$, takže $B=3$ nemá v~$D_A$ oporu: \textsc{Revize}$(B,A)$ vyřadí $3$, $\boxed{D_B=\{1,2\}}$. (Hrana $(A,B)$ konzistentní: $a=1$ má oporu $b\le2$ -- $D_A$ se nemění.)
+  \item \textbf{$C_3$ zúží $C$ podle $B$.} $B\in\{1,2\}$ a~$B+C\ge4$ dává $C\ge4-B\ge4-2=2$, takže $C=1$ nemá oporu: \textsc{Revize}$(C,B)$ vyřadí $1$, $\boxed{D_C=\{2,3\}}$. (Hrana $(B,C)$: pro $b\in\{1,2\}$ existuje $c=3$ s~$b+c\ge4$ -- $D_B$ beze změny.)
+  \item \textbf{$C$ se změnila $\Rightarrow$ překontroluj hrany do $C$} \emph{kromě} té, kterou jsme právě revidovali (pravidlo „kromě $X_j$``), tj. $C_1$ od $D$ (nikoli $C_3$ od $B$). Hrana $C_1$ navíc zúží $D$ podle $C$: $C+D=4$ a~$C\in\{2,3\}$ dává $D=4-C\in\{1,2\}$, takže $D=3$ nemá oporu: \textsc{Revize}$(D,C)$ vyřadí $3$, $\boxed{D_D=\{1,2\}}$.
+  \item \textbf{$D$ se změnila $\Rightarrow$ překontroluj hrany do $D$:} $C_1$ od $C$. \textsc{Revize}$(C,D)$: pro $c=2$ je opora $d=2$, pro $c=3$ je opora $d=1$ -- obě v~$D_D=\{1,2\}$, takže $D_C$ se nemění. Žádná další doména se už nemění, fronta se vyprázdní.
+\end{enumerate}
+
+\noindent Výsledné hranově konzistentní domény:
+\[ \boxed{D_A=\{1\},\quad D_B=\{1,2\},\quad D_C=\{2,3\},\quad D_D=\{1,2\}.} \]
+Problém je nyní splnitelný (řešení např.\ $A{=}1,B{=}2,C{=}2,D{=}2$ nebo $A{=}1,B{=}2,C{=}3,D{=}1$ -- obě splní $C+D=4$, $A+B\le3$, $B+C\ge4$). To je v~souladu s~bodem (2): AC-3 jen prořezal domény; splnitelnost potvrdí teprve nalezení úplného ohodnocení.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0]
+\node[uzel] (A) at (0,2) {$A$};
+\node[uzel] (B) at (3,2) {$B$};
+\node[uzel] (C) at (3,0) {$C$};
+\node[uzel] (D) at (0,0) {$D$};
+\draw[hrana] (A) -- node[above,font=\small] {$C_2\!:\,A{+}B\le3$} (B);
+\draw[hrana] (B) -- node[right,font=\small] {$C_3\!:\,B{+}C\ge4$} (C);
+\draw[hrana] (C) -- node[below,font=\small] {$C_1\!:\,C{+}D=4$} (D);
+\node[font=\small] at (0,2.75) {$\{1\}$};
+\node[font=\small,align=center] at (4,2.75) {$\{1,2,3\}$\\$\to\{1,2\}$};
+\node[font=\small,align=center] at (4,-0.75) {$\{1,2,3\}$\\$\to\{2,3\}$};
+\node[font=\small,align=center] at (0,-0.75) {$\{1,2,3\}$\\$\to\{1,2\}$};
+\end{tikzpicture}
+\obrpopis{Síť podmínek úlohy: proměnné $A,B,C,D$, hrany jsou binární podmínky $C_2(A,B)$, $C_3(B,C)$, $C_1(C,D)$. U~každého uzlu je doména před AC-3 a~po něm. Prořezání se šíří od „pevné`` proměnné $A=1$: $C_2\Rightarrow B$, pak $C_3\Rightarrow C$, pak $C_1\Rightarrow D$.}
+\end{center}
+\end{priklad}
+
+\begin{priklad}[SZZ léto 2022 č.~9: N-královen jako prohledávání a CSP]
+\szzotazka{léto 2022}{9}{N-královen}\par
+\textbf{Zadání.}\par
+Problém N-královen (rozmístit $N$ královen na šachovnici $N\times N$ tak, aby se neohrožovaly -- žádné dvě na stejném sloupci, řádku nebo diagonále). (a)~Popište vhodnou abstrakci pro prohledávací algoritmus (stavy, přechodový model, cílovou podmínku). (b)~Vyberte vhodný informovaný či neinformovaný prohledávací algoritmus a~zdůvodněte. (c)~Ukažte, jak by se problém modeloval a~řešil jako CSP.
+
+\medskip
+\textbf{Řešení.}
+
+\textbf{(a) Abstrakce pro prohledávání.} Stav $=$ částečné rozmístění královen, např.\ jedna v~každém z~prvních $k$ sloupců tak, že se vzájemně neohrožují. Počáteční stav $=$ prázdná šachovnice. Přechodový model $=$ přidání královny do dalšího ($k{+}1.$) sloupce na řádek, kde neohrožuje žádnou již položenou královnu. Cílová podmínka $=$ rozmístěno $N$ královen (všechny sloupce zaplněny). Tím, že na každý sloupec přijde právě jedna královna, se prohledávací strom drasticky zúží (místo $N^2$ políček volíme jen řádek v~jednom sloupci).
+
+\textbf{(b) Volba algoritmu.} Neinformované prohledávání do hloubky (DFS) s~navracením (backtracking): řešení leží v~hloubce $N$, strom je konečný a~DFS je paměťově nenáročné. Informované metody ($A^*$, heuristiky) se obvykle nevyplatí, protože jde o~splnění podmínek (constraint satisfaction), ne o~hledání nejkratší cesty -- všechna řešení jsou ve stejné hloubce a~cena cesty zde nehraje roli.
+
+\textbf{(c) Model jako CSP.} Proměnné $Q_1,\dots,Q_N$ (po jedné na sloupec), doména $D_i=\{1,\dots,N\}$ (řádek královny v~$i$-tém sloupci). Sloupcová podmínka je už zakódovaná do volby proměnných. Pro všechna $i<j$:
+\[ Q_i\neq Q_j\quad(\text{různé řádky}),\qquad |Q_i-Q_j|\neq|i-j|\quad(\text{ne na společné diagonále}). \]
+Řeší se backtrackingem se šířením podmínek (forward checking / AC-3) a~heuristikou výběru proměnné MRV. Jde o~tentýž rozklad „právě jedna na sloupec`` jako v~příkladu \emph{N~dam jako CSP} výše.
+\end{priklad}
+
+\noindent Originální zadání těchto otázek (a~případné oficiální náčrty řešení) jsou ve složce \texttt{priklady/}.

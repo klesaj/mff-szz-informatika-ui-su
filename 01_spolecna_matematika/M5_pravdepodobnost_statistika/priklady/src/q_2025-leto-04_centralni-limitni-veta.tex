@@ -1,0 +1,68 @@
+% Zdroj: PDF priklady-leto-2025.pdf, fyzická str. 4-5. Značka: společné okruhy. Zařazeno: M5.
+\section{Centrální limitní věta}
+\szzotazka{léto 2025}{4}{Centrální limitní věta}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Napište znění Centrální limitní věty.
+  \item Předpokládejme, že program jeden vstup zpracovává náhodnou dobu se střední hodnotou
+    $100$~ms a směrodatnou odchylkou $20$~ms. Použijte Centrální limitní větu pro odhad
+    pravděpodobnosti, že zpracování sto vstupů bude trvat více než $10.3$~s. Napište přesnou
+    formuli pomocí $\Phi$ a také vyčíslete pomocí tabulky níže.
+  \item Vysvětlete, jaké jsme udělali předpoklady (záleží na tom, jaké je rozdělení doby běhu
+    programu?) a jak jsou realistické.
+\end{enumerate}
+
+\begin{center}
+\begin{tabular}{c|ccccccccccc}
+\toprule
+$x$ & $-2.5$ & $-2.0$ & $-1.5$ & $-1.0$ & $-0.5$ & $0.0$ & $0.5$ & $1.0$ & $1.5$ & $2.0$ & $2.5$ \\
+\midrule
+$\Phi(x)$ & 0.01 & 0.02 & 0.07 & 0.16 & 0.31 & 0.5 & 0.69 & 0.84 & 0.93 & 0.98 & 0.99 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Znění věty: Nechť $X_1, X_2, \dots$ jsou stejně rozdělené n.n.v.\ se střední hodnotou
+    $\mu$ a rozptylem $\sigma^2$. Označme
+    \[
+      Y_n = \frac{(X_1 + \cdots + X_n) - n\mu}{\sqrt{n}\cdot\sigma}.
+    \]
+    Pak
+    \[
+      Y_n \xrightarrow{\,d\,} N(0,1).
+    \]
+    Neboli, pokud $F_n$ je distribuční funkce $Y_n$, tak
+    \[
+      \lim_{n\to\infty} F_n(x) = \Phi(x) \quad \text{pro každé } x \in \mathbb{R}.
+    \]
+    Říkáme, že posloupnost $Y_n$ konverguje k $N(0,1)$ \textit{v distribuci}.
+
+  \item Označme $X_i$ dobu běhu pro $i$-tý vstup. To, že $X_1 + \cdots + X_{100} > 10.3$ je
+    ekvivalentní tomu, že
+    \[
+      Y_{100} > \frac{10.3 - 100\cdot 0.1}{\sqrt{100}\cdot 0.02} = 1.5.
+    \]
+    Podle CLV je $P(Y_{100} < 1.5) \approx \Phi(1.5)$. Proto hledaná pravděpodobnost je
+    přibližně $1 - \Phi(1.5) \approx 1 - 0.93 = 0.07$, neboli zhruba $7\,\%$.
+
+  \item CLV nepředpokládá nic speciálního o rozdělení jednotlivých $X_i$ (pokud jsou veličiny
+    stejně rozdělené s konečnou střední hodnotou a rozptylem). Předpokládáme ale nezávislost --
+    to může být problém; pokud je například počítač přetížen, bude na všech vstupech pomalejší.
+    Také nahrazujeme limitou hodnotu pro $n = 100$, to ale typicky při aplikaci CLV není problém.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):}
+\begin{itemize}
+  \item \emph{Přesná formule.} Jednotky sjednotíme na sekundy: $\mu=0.1$, $\sigma=0.02$, $n=100$. Pro $S_n=X_1+\dots+X_n$ je
+    \[
+      P(S_{100}>10.3)=P\Bigl(Y_{100}>\tfrac{10.3-n\mu}{\sqrt n\,\sigma}\Bigr)\approx 1-\Phi\Bigl(\frac{10.3-100\cdot 0.1}{\sqrt{100}\cdot 0.02}\Bigr)=1-\Phi(1.5).
+    \]
+    Přesnější hodnota $\Phi(1.5)\approx 0.9332$ dává $\approx 0.067$; tabulka v zadání zaokrouhluje na $0.07$.
+  \item \emph{Záleží na rozdělení doby běhu?} V limitě ne: CLV platí pro libovolné rozdělení s konečnou střední hodnotou a nenulovým konečným rozptylem, stačí znát $\mu$ a $\sigma$. Pro konečné $n=100$ ale tvar rozdělení ovlivňuje, jak přesná aproximace je; u silně zešikmeného rozdělení (např.\ občasné velmi dlouhé běhy) bývá chyba v chvostu, na který se tu ptáme, větší.
+  \item \emph{Stejné rozdělení.} Kromě nezávislosti předpokládáme, že všechny vstupy mají stejné rozdělení doby zpracování. To je rozumné, pokud vstupy nejsou systematicky různě náročné (např.\ různě velké).
+\end{itemize}

@@ -1,0 +1,85 @@
+% Zdroj: PDF priklady-podzim-2024.pdf, fyzická str. 24-25. Značka: specializace UI-SU. Zařazeno: S3.
+\section{Rozhodovací strom}
+\szzotazka{podzim 2024}{31}{Rozhodovací strom}
+
+\noindent\textbf{Zadání.}\par
+Máme data se třemi atributy $A$, $B$ a $C$ a cílovou třídou $Y$ uvedená v tabulkách níže.
+
+\begin{enumerate}
+  \item Na trénovacích datech uvedených v tabulce popište algoritmus tvoření rozhodovacího stromu
+    a strom postavte (plný, bez omezení na počet dat v listech a při dělení).
+  \item Pro atribut vybraný do kořene popište výpočet kritéria, na základě kterého jste daný atribut
+    vybrali. (Potřebujete-li logaritmy, stačí přibližně, některé aproximace jsou v tabulce.)
+    \begin{center}
+    \begin{tabular}{lcccccc}
+    \toprule
+    $x$ & $1/5$ & $1/3$ & $2/5$ & $3/5$ & $2/3$ & $4/5$ \\
+    $\approx \log_2(x)$ & $-2{,}32$ & $-1{,}58$ & $-1{,}32$ & $-0{,}74$ & $-0{,}58$ & $-0{,}32$ \\
+    \bottomrule
+    \end{tabular}
+    \end{center}
+  \item Dále popište některou standardní metodu prořezávání. Pokud metoda využívá validační data,
+    použijte validační data v tabulce.
+\end{enumerate}
+
+\begin{center}
+\begin{minipage}{0.45\linewidth}
+\centering
+Trénovací data:\par\medskip
+\begin{tabular}{ccccc}
+\toprule
+ & $A$ & $B$ & $C$ & $Y$ \\
+\midrule
+0 & 1 & 2 & 6 & n \\
+1 & 1 & 2 & 6 & n \\
+2 & 3 & 2 & 8 & y \\
+3 & 3 & 4 & 6 & y \\
+4 & 3 & 4 & 8 & y \\
+5 & 3 & 4 & 8 & n \\
+6 & 3 & 4 & 8 & n \\
+7 & 3 & 4 & 6 & y \\
+\bottomrule
+\end{tabular}
+\end{minipage}\hfill
+\begin{minipage}{0.45\linewidth}
+\centering
+Validační data:\par\medskip
+\begin{tabular}{ccccc}
+\toprule
+ & $A$ & $B$ & $C$ & $Y$ \\
+\midrule
+8  & 1 & 2 & 8 & n \\
+9  & 3 & 4 & 6 & y \\
+10 & 3 & 4 & 6 & y \\
+11 & 3 & 4 & 8 & y \\
+\bottomrule
+\end{tabular}
+\end{minipage}
+\end{center}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+Pro výběr atributu se užívá entropie nebo gini index. Entropie pro dvouhodnotovou pravděpodobnost je
+definovaná
+\[
+  H(a,b) = -\frac{a}{a+b}\log_2\!\Big(\frac{a}{a+b}\Big) - \frac{b}{a+b}\log_2\!\Big(\frac{b}{a+b}\Big)
+\]
+např.
+\[
+  H(2/6,\, 4/6) = -\tfrac{1}{3}\log_2\!\big(\tfrac{1}{3}\big) - \tfrac{2}{3}\log_2\!\big(\tfrac{2}{3}\big)
+  \approx \frac{-1{,}58}{3} - \frac{2\cdot(-0{,}58)}{3} = \frac{2{,}74}{3} \approx 0{,}91.
+\]
+Entropický zisk je rozdíl entropie před dělením a vážené entropie po dělení; entropický zisk dělení
+dle $A$ v kořeni je:
+\[
+  H(4,4) - \frac{2}{8}\cdot 0 - \frac{6}{8}H(2,4) \approx 1 - \frac{6}{8}\cdot 0{,}91 \approx 0{,}32.
+\]
+Postavený strom vyjde stejný na základě entropie i gini, viz obrázek. Většinou je atribut k dělení zřejmý,
+např. dělení podle $B$ v kořeni by vedlo k $[2,1]$, $[2,3]$, což má nižší entropický zisk kvůli nenulové
+entropii v obou listech a více špatně klasifikovaných příkladů.
+
+\medskip
+Prořezávání na základě validačních dat vyhodnotí, že je vhodné nahradit pravý uzel $C$ listem, protože
+sníží validační chybu. Alternativou může být použití cost complexity pruning.
+
+\begin{center}\includegraphics[width=\linewidth]{rozhodovaci-strom-entropie-gini.png}\end{center}

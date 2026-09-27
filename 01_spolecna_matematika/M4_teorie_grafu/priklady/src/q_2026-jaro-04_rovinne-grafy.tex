@@ -1,0 +1,29 @@
+% Zdroj: PDF priklady-jaro-2026.pdf, fyzická str. 3--4. Značka: společné okruhy. Zařazeno: M4.
+\section{Rovinné grafy}
+\szzotazka{jaro 2026}{4}{Rovinné grafy}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Uveďte Eulerovu formuli pro rovinné grafy (o počtu vrcholů, hran a stěn).
+  \item Uvažujme vrcholově 2-souvislý rovinný graf, který má rovinné nakreslení, jehož každá vnitřní stěna je trojúhelník (je ohraničena kružnicí $C_3$), vnější stěna může, ale nemusí být ohraničená $C_3$. Jaký je minimální a maximální počet hran takového grafu, pokud víme, že má $n \geq 3$ vrcholů? Odpověď přiměřeně zdůvodněte.
+  \item Rozhodněte, pro která $n \in \mathbb{N}$ existuje rovinný graf s $2n$ vrcholy takový, že $n$ z nich má stupeň 3 a zbývajících $n$ má stupeň 4. Odpověď přiměřeně zdůvodněte.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Je-li $G = (V, E)$ souvislý rovinný graf a $s$ počet stěn nějakého jeho rovinného nakreslení, pak $|V| - |E| + s = 2$.
+  \item Z 2-souvislosti plyne, že každá stěna je ohraničena kružnicí a každá hrana leží na hranici 2 různých stěn. Je-li vnější stěna ohraničena kružnicí $C_k$ ($3 \leq k \leq n$), máme $2|E| = 3(s - 1) + k$. Použitím Eulerovy formule dostáváme $|E| = 3n - 3 - k$.
+
+    Maxima se nabývá v případě, že i vnější stěna je ohraničena $C_3$ a to $3n - 6$ hran. Minima pak pro vnějškově rovinný graf, který je vnitřně triangulovaný. Ten má $2n - 3$ hran.
+  \item Protože graf obsahuje vrchol stupně 4, musí mít alespoň 5 vrcholů a $n \geq 3$. Z principu sudosti plyne, že má $\frac{3n + 4n}{2}$ hran a tedy $n$ musí být sudé.
+
+    Dokázat, že pro všechna sudá $n \geq 4$ takový graf existuje lze konstrukcí. Rovinnost nepřidává žádné další omezení, jen je třeba ji zohlednit při konstukci. Pozor, konstrukce musí být dostatečně obecná, ne jen pro několik menších případů $n$.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):}
+\begin{itemize}
+  \item \emph{K bodu 2.} Obě meze se nabývají: pro $k=3$ triangulace (např.\ $K_4$ pro $n=4$), pro $k=n$ třeba \uv{vějíř} -- kružnice $v_1v_2\dots v_n$ doplněná o hrany $v_1v_3,\dots,v_1v_{n-1}$, tj.\ triangulovaný mnohoúhelník s~$n+(n-3)=2n-3$ hranami. Hodnota $k\leq n$ platí, protože vnější kružnice nemůže mít víc vrcholů, než má graf.
+  \item \emph{K bodu 3, obecná konstrukce.} Pro sudé $n\geq 4$ vezmeme hranol nad $C_n$: kružnice $a_0a_1\dots a_{n-1}$ a $b_0b_1\dots b_{n-1}$ a hrany $a_ib_i$. Je rovinný (vnější kružnice $a_i$, vnitřní $b_i$), má $2n$ vrcholů a je 3-regulární; jeho boční stěny jsou čtyřúhelníky $a_ia_{i+1}b_{i+1}b_i$ (indexy modulo $n$). Pro $i=0,2,\dots,n-2$ přidáme do stěny $i$ diagonálu $a_ib_{i+1}$. Tyto stěny jsou po dvou vrcholově disjunktní, takže přesně $n$ konců diagonál má stupeň 4 a zbylých $n$ vrcholů stupeň 3. Diagonály vedou uvnitř svých stěn, rovinnost se zachová. (Ověřeno programem pro sudá $n\leq 20$: rovinnost i stupně.)
+\end{itemize}

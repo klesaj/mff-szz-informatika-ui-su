@@ -1,0 +1,1176 @@
+% !TeX program = lualatex
+\documentclass[11pt,a4paper]{article}
+\usepackage{szzmaterial}
+\usetikzlibrary{calc,positioning,arrows.meta,shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{fillbetween,groupplots}
+\setlist[enumerate]{nosep,leftmargin=2.1em}
+\setlist[itemize]{nosep,leftmargin=1.8em}
+
+\DeclareMathOperator{\Var}{var}
+\DeclareMathOperator{\Cov}{cov}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+
+\newcommand{\playlist}{https://www.youtube.com/playlist?list=PLiAulSm0XXgvCGe63mrAkda9UQ9478YQv}
+
+\szztitul{Pravděpodobnost a statistika}{M5}{NDMI002 (Diskrétní matematika), NMAI059 (Pravděpodobnost a statistika 1)}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\bigskip
+
+\section*{Úvod}
+\addcontentsline{toc}{section}{Úvod}
+
+Tento materiál pokrývá okruh \textbf{M5 -- Pravděpodobnost a statistika} (předmět NMAI059 \emph{Pravděpodobnost a statistika 1}, kombinatorické základy z NDMI002 \emph{Diskrétní matematika}). Výklad stojí na \emph{skriptech R.~Šámala} k NMAI059 (verze LS 2024/25) a doplňkově na \emph{řešených cvičeních K.~Krále, M.~Mareše a R.~Šámala} (NMAI059, 2021), odkud čerpáme typové úlohy a tahákovou formu. Značení a hloubka odpovídají kurzu pro informatiky.
+
+Věty uvádíme \emph{se zněním}, doplněné intuicí; krátké důkazy, které pomáhají pochopení, jsou označené jako \emph{nepovinné}. Centrální limitní větu uvádíme bez důkazu (znění a aplikace), zákon velkých čísel se zněním a krátkým odvozením z~Čebyševovy nerovnosti. Do výkladu jsou zařazeny obě řešené reálné otázky SZZ k~okruhu (léto 2023: linearita střední hodnoty, léto 2025: centrální limitní věta); pohromadě jsou i v~samostatném dokumentu \emph{Příklady otázek}. Použité zdroje jsou uvedeny na konci.
+
+\medskip
+\noindent\textbf{Značení.} Pravděpodobnostní prostor je trojice $(\Omega,\mathcal{F},P)$, kde $\Omega$ je množina \emph{elementárních jevů}, $\mathcal{F}\subseteq 2^{\Omega}$ je \emph{prostor jevů} ($\sigma$-algebra) a $P\colon\mathcal{F}\to[0,1]$ je \emph{pravděpodobnost}. Jevy značíme $A,B,C\in\mathcal{F}$, doplněk jevu $A^c=\Omega\setminus A$. Náhodné veličiny značíme $X,Y,Z$ (písmenem $X(\omega)$, ale skoro vždy píšeme jen $X$). Distribuční funkce: $F_X(x)=P(X\le x)$. Diskrétní \emph{pravděpodobnostní funkce} (PMF): $p_X(k)=P(X=k)$. Spojitá \emph{hustota} (PDF): $f_X(x)$. Střední hodnota: $E(X)$, rozptyl: $\Var(X)$, směrodatná odchylka: $\sigma(X)=\sqrt{\Var(X)}$, kovariance: $\Cov(X,Y)$. Standardní rozdělení: $X\sim\mathrm{Bern}(p)$, $\mathrm{Bin}(n,p)$, $\mathrm{Geom}(p)$, $\mathrm{Pois}(\lambda)$, $\mathrm{Exp}(\lambda)$, $N(\mu,\sigma^2)$. Symbolem $\Phi$ rozumíme distribuční funkci standardního normálního rozdělení $N(0,1)$.
+
+\video{\playlist}{Playlist \emph{Essence of probability} (neoficiální výběr videí kanálu 3Blue1Brown; série dává vizuální intuici k~pravděpodobnosti; na konkrétní díly odkazujeme u~jednotlivých témat níže).}
+
+% ============================================================
+\section{Pravděpodobnostní prostor, jevy, podmíněná pravděpodobnost, Bayes}
+
+Začneme od modelu náhodnosti -- pravděpodobnostního prostoru -- a od základních pravidel pro počítání s~$P$. Pak zavedeme \emph{podmíněnou pravděpodobnost}, \emph{nezávislost} a \emph{Bayesův vzorec}, který umí \uv{obrátit} podmiňování.
+
+\subsection{Pravděpodobnostní prostor}
+
+\begin{definice}[Pravděpodobnostní prostor]
+\emph{Pravděpodobnostní prostor} je trojice $(\Omega,\mathcal{F},P)$, kde:
+\begin{enumerate}[label=(\arabic*)]
+  \item $\Omega\ne\emptyset$ je libovolná množina, prvky se nazývají \emph{elementární jevy} (\emph{výsledky}).
+  \item $\mathcal{F}\subseteq 2^{\Omega}$ je \emph{prostor jevů} ($\sigma$-algebra): obsahuje $\emptyset$ a~$\Omega$, je uzavřený na doplněk a na spočetná sjednocení.
+  \item $P\colon\mathcal{F}\to[0,1]$ je \emph{pravděpodobnost}: $P(\Omega)=1$ a pro každou posloupnost po dvou disjunktních jevů $A_1,A_2,\dots$ platí $P\big(\bigcup_i A_i\big)=\sum_i P(A_i)$ (\emph{spočetná aditivita}).
+\end{enumerate}
+\end{definice}
+
+\begin{intuice}
+Množina $\Omega$ popisuje, \uv{co se může stát}: pro hod kostkou $\Omega=\{1,\dots,6\}$, pro hod šipkou na terč $\Omega$ jednotkový kruh v rovině, pro nekonečnou posloupnost hodů mincí $\Omega=\{0,1\}^{\N}$. Prostor jevů říká, \uv{čemu umíme přiřadit pravděpodobnost}: pro konečné nebo spočetné $\Omega$ obvykle $\mathcal{F}=2^{\Omega}$ (všechny podmnožiny). Pro $\Omega=\R$ se musíme omezit na \emph{borelovskou $\sigma$-algebru} -- ne každé podmnožině $\R$ dovedeme přiřadit délku konzistentně. Spočetná aditivita je hlavní axiom: dovoluje počítat s~nekonečnými posloupnostmi jevů (např.\ sečíst $P(X=k)$ přes všechna $k\in\N$ u~geometrického rozdělení nebo přejít k~limitě v~$\lim_{x\to\infty}F_X(x)=1$), což by samotná \emph{konečná} aditivita nezaručila.
+\end{intuice}
+
+\begin{poznamka}
+\textbf{Klasický a geometrický prostor.} Když je $|\Omega|<\infty$ a všechny výsledky jsou \emph{stejně pravděpodobné} (\uv{symetrické}), říkáme prostoru \emph{klasický} a $P(A)=|A|/|\Omega|$. Když $\Omega\subseteq\R^d$ má konečnou kladnou míru (délku, obsah, objem) a pravděpodobnost je úměrná míře, mluvíme o \emph{geometrickém} prostoru a $P(A)=\mathrm{m}(A)/\mathrm{m}(\Omega)$.
+\end{poznamka}
+
+\subsection{Pravidla pro počítání s pravděpodobností}
+
+Z axiomů snadno odvodíme základní pravidla, která neustále používáme:
+
+\begin{veta}[Základní pravidla]
+V pravděpodobnostním prostoru $(\Omega,\mathcal{F},P)$ pro libovolné $A,B\in\mathcal{F}$ platí:
+\begin{enumerate}[label=(\arabic*)]
+  \item $P(\emptyset)=0$ a $P(A^c)=1-P(A)$.
+  \item Monotonie: $A\subseteq B\Rightarrow P(A)\le P(B)$.
+  \item Sjednocení dvou: $P(A\cup B)=P(A)+P(B)-P(A\cap B)$.
+  \item Subaditivita (Booleova nerovnost): $P\big(\bigcup_i A_i\big)\le\sum_i P(A_i)$.
+\end{enumerate}
+\end{veta}
+
+\begin{proof}[Důkaz \textnormal{(nepovinný -- vše plyne z disjunktní aditivity).}]\leavevmode
+\begin{enumerate}[label=(\arabic*)]
+  \item $P(\emptyset)=0$: ze spočetné aditivity pro $\emptyset=\emptyset\cup\emptyset\cup\dots$ je $P(\emptyset)=\sum_{i=1}^\infty P(\emptyset)$, což je konečné jen pokud $P(\emptyset)=0$. Dále $\Omega=A\cup A^c$ je disjunktní rozklad, takže $1=P(\Omega)=P(A)+P(A^c)$.
+  \item Pro $A\subseteq B$ rozkládáme $B=A\cup(B\setminus A)$ disjunktně, takže $P(B)=P(A)+P(B\setminus A)\ge P(A)$.
+  \item Rozkládáme $A\cup B=(A\setminus B)\cup(A\cap B)\cup(B\setminus A)$ disjunktně; sečtením $P(A)+P(B)$ přes tentýž rozklad dostaneme $P(A\cup B)+P(A\cap B)$.
+  \item \emph{Zdisjunktnění}: pro $B_i=A_i\setminus\bigcup_{j<i}A_j$ je $\bigcup_i A_i=\bigsqcup_i B_i$ a $P(B_i)\le P(A_i)$ (monotonie); spočetnou aditivitou pak $P(\bigcup_i A_i)=\sum_i P(B_i)\le\sum_i P(A_i)$.
+\end{enumerate}
+\end{proof}
+
+\begin{veta}[Princip inkluze a exkluze]
+Pro jevy $A_1,\dots,A_n\in\mathcal{F}$
+\[
+P\Bigl(\bigcup_{i=1}^n A_i\Bigr)=\sum_{\emptyset\ne S\subseteq[n]}(-1)^{|S|+1}P\Bigl(\bigcap_{i\in S} A_i\Bigr).
+\]
+\end{veta}
+
+\begin{intuice}
+Pro $n=2$ je to pravidlo $(3)$ výše. Obecný tvar přidává $\pm$ korekce na vícenásobná překrytí -- analogie inkluze-exkluze pro velikosti množin (viz okruh M3). Detailní rozbor v M3.
+\end{intuice}
+
+\subsection{Podmíněná pravděpodobnost a nezávislost}
+
+Když pozorujeme nějakou informaci $B$ (\uv{vím, že nastalo $B$}), zúžíme prostor na~$B$ a přeškálujeme pravděpodobnosti tak, aby v něm znovu daly~$1$.
+
+\begin{definice}[Podmíněná pravděpodobnost]
+Pro jevy $A,B\in\mathcal{F}$ s~$P(B)>0$ definujeme
+\[
+P(A\mid B)=\frac{P(A\cap B)}{P(B)}.
+\]
+\end{definice}
+
+\begin{poznamka}
+Funkce $A\mapsto P(A\mid B)$ je opět pravděpodobnost na $(\Omega,\mathcal{F})$. Pro $P(B)=0$ se podmíněná pravděpodobnost touto definicí nezavádí.
+\end{poznamka}
+
+\begin{center}
+\begin{tikzpicture}[scale=0.7,>=Stealth]
+  % výběrový prostor Omega
+  \draw[thick,rounded corners=2pt] (-3.4,-2.0) rectangle (3.4,2.0);
+  \node[anchor=north east] at (3.3,1.9) {$\Omega$};
+  % průnik A cap B nejprve vyplníme
+  \begin{scope}
+    \clip (-0.6,0) circle (1.7);
+    \fill[orange!45] (0.6,0) circle (1.7);
+  \end{scope}
+  % kruhy A a B
+  \draw[thick,fill=blue!18,fill opacity=0.45] (-0.6,0) circle (1.7);
+  \draw[thick,fill=red!18,fill opacity=0.45] (0.6,0) circle (1.7);
+  % popisky kruhů
+  \node[blue!60!black] at (-1.75,1.2) {$A$};
+  \node[red!60!black] at (1.75,1.2) {$B$};
+  \node at (0,-0.05) {\small $A\cap B$};
+\end{tikzpicture}
+\obrpopis{Podmínění jevem $B$ \uv{zúží} výběrový prostor na~$B$ (jen červený kruh).
+$P(A\mid B)$ je podíl plochy průniku $A\cap B$ vůči ploše celého~$B$, tj.\
+jaká část~$B$ leží zároveň v~$A$.}
+\end{center}
+
+\begin{definice}[Nezávislost jevů]
+Jevy $A,B$ jsou \emph{nezávislé}, pokud $P(A\cap B)=P(A)\,P(B)$. Pro $P(B)>0$ to je ekvivalentní s $P(A\mid B)=P(A)$. Konečná kolekce jevů $A_1,\dots,A_n$ je \emph{(navzájem) nezávislá}, pokud pro \emph{každou} podmnožinu $S\subseteq[n]$ platí $P\big(\bigcap_{i\in S} A_i\big)=\prod_{i\in S} P(A_i)$.
+\end{definice}
+
+\begin{intuice}
+Pozor: \emph{po dvojicích nezávislé} $\ne$ \emph{navzájem nezávislé}. Klasický protipříklad: dva hody férovou mincí; $A=$~\uv{v~prvním hodu padl orel}, $B=$~\uv{ve druhém hodu padl orel}, $C=$~\uv{padly různé strany}. Každý z~jevů má pravděpodobnost $1/2$ a každý průnik dvou z~nich $1/4$, takže po dvojicích jsou nezávislé, ale $P(A\cap B\cap C)=0\ne 1/8=P(A)P(B)P(C)$.
+\end{intuice}
+
+\subsection{Bayesův vzorec a věta o úplné pravděpodobnosti}
+
+Často chceme \uv{obrátit} podmiňování: známe $P(\text{příznak}\mid \text{příčina})$ a hledáme $P(\text{příčina}\mid \text{příznak})$. To je Bayes.
+
+\video{https://www.youtube.com/watch?v=HZGCoVF3YvM}{3Blue1Brown, díl \emph{Bayes theorem, the geometry of changing beliefs} (geometrický pohled na Bayese přes plochy jevů; chytře vysvětluje i lékařský test).}
+
+\begin{veta}[Věta o úplné pravděpodobnosti]
+Nechť jevy $B_1,\dots,B_n$ tvoří \emph{rozklad} $\Omega$ (po dvou disjunktní, $\bigcup_i B_i=\Omega$, všechny s~$P(B_i)>0$). Pak pro libovolný jev $A$
+\[
+P(A)=\sum_{i=1}^{n} P(A\mid B_i)\,P(B_i).
+\]
+\end{veta}
+
+\begin{veta}[Bayesův vzorec]
+Za stejných předpokladů a~pro $A$ s~$P(A)>0$ platí pro každé $j$
+\[
+P(B_j\mid A)=\frac{P(A\mid B_j)\,P(B_j)}{\sum_{i=1}^{n} P(A\mid B_i)\,P(B_i)}=\frac{P(A\mid B_j)\,P(B_j)}{P(A)}.
+\]
+\end{veta}
+
+\begin{intuice}
+Čitatel: \uv{příznak a hypotéza $B_j$ nastaly současně}, $P(A\cap B_j)=P(A\mid B_j)P(B_j)$. Jmenovatel: \uv{příznak nastal vůbec}, rozložený přes všechny hypotézy. \emph{Apriorní} pravděpodobnost $P(B_j)$ se přenásobí \emph{věrohodností} $P(A\mid B_j)$ a normuje $P(A)$ -- dostaneme \emph{aposteriorní} pravděpodobnost $P(B_j\mid A)$.
+\end{intuice}
+
+\begin{priklad}[Test nemoci]
+\textbf{Zadání.} V populaci má nemoc prevalenci $P(N)=1\,\%$. Test má senzitivitu $P(\text{poz}\mid N)=0{,}99$ a falešnou pozitivitu $P(\text{poz}\mid N^c)=0{,}05$. Jaká je pravděpodobnost, že pacient s~pozitivním výsledkem opravdu nemocí trpí?
+
+\textbf{Řešení.} Bayes:
+\[
+P(N\mid \text{poz})=\frac{P(\text{poz}\mid N)P(N)}{P(\text{poz}\mid N)P(N)+P(\text{poz}\mid N^c)P(N^c)}=\frac{0{,}99\cdot 0{,}01}{0{,}99\cdot 0{,}01+0{,}05\cdot 0{,}99}=\frac{0{,}0099}{0{,}0594}\approx \boxed{0{,}167}.
+\]
+Tedy jen $\approx 16{,}7\,\%$ pozitivně testovaných je skutečně nemocných -- nízká priora \uv{zdědí} většinu pozitivních výsledků z falešné pozitivity.
+\begin{center}
+\begin{tikzpicture}[
+  scale=1.0,
+  level distance=20mm,
+  every node/.style={font=\small},
+  edge from parent/.style={draw,-Stealth},
+  level 1/.style={sibling distance=58mm},
+  level 2/.style={sibling distance=26mm},
+  product/.style={font=\scriptsize,text=black!65},
+]
+\node[draw,rounded corners,fill=black!4,inner sep=4pt] (root) {populace}
+  child {node[draw,rounded corners,fill=red!12,inner sep=3pt] {nemoc $N$}
+    child {node[draw,rounded corners,fill=red!18,inner sep=3pt,label={[product]below:$0{,}0099$}] {poz}
+           edge from parent node[left=2pt] {\scriptsize $0{,}99$}}
+    child {node[draw,rounded corners,fill=red!4,inner sep=3pt,label={[product]below:$0{,}0001$}] {neg}
+           edge from parent node[right=2pt] {\scriptsize $0{,}01$}}
+    edge from parent node[left=2pt] {\scriptsize $0{,}01$}
+  }
+  child {node[draw,rounded corners,fill=green!10,inner sep=3pt] {zdravý $N^c$}
+    child {node[draw,rounded corners,fill=red!6,inner sep=3pt,label={[product]below:$0{,}0495$}] {poz}
+           edge from parent node[left=2pt] {\scriptsize $0{,}05$}}
+    child {node[draw,rounded corners,fill=green!12,inner sep=3pt,label={[product]below:$0{,}9405$}] {neg}
+           edge from parent node[right=2pt] {\scriptsize $0{,}95$}}
+    edge from parent node[right=2pt] {\scriptsize $0{,}99$}
+  };
+\end{tikzpicture}
+\obrpopis{Bayesův strom pro test nemoci. První úroveň: \emph{priorní} pravděpodobnosti $P(N)=0{,}01$ vs.\ $P(N^c)=0{,}99$. Druhá úroveň: \emph{podmíněné} $P(\text{poz}\mid N)=0{,}99$, $P(\text{poz}\mid N^c)=0{,}05$. Hodnoty u listů jsou součiny podél cesty, tj.\ $P(N\cap\text{poz})=0{,}0099$ a $P(N^c\cap\text{poz})=0{,}0495$. Sečtením přes \uv{poz} listy: $P(\text{poz})=0{,}0594$. Bayes: $P(N\mid\text{poz})=0{,}0099/0{,}0594\approx 0{,}167$.}
+\end{center}
+\end{priklad}
+
+\video{https://www.youtube.com/watch?v=lG4VkPoG3ko}{3Blue1Brown, díl \emph{The medical test paradox, and redesigning Bayes' rule} (proč i~velmi přesný test dává při nízké prevalenci hodně falešně pozitivních -- přesně efekt z~příkladu výše; zavádí i~tvar Bayese přes \emph{šance}).}
+
+% ============================================================
+\section{Náhodné veličiny, střední hodnota, rozptyl, nerovnosti}
+
+Náhodná veličina je číselná informace odvozená z náhodného experimentu -- formálně funkce $X\colon\Omega\to\R$. Rozdělení n.v.\ popisujeme buď \emph{distribuční funkcí} (univerzálně), nebo \emph{pravděpodobnostní funkcí} (diskrétní případ), nebo \emph{hustotou} (spojitý případ).
+
+\subsection{Náhodné veličiny a distribuční funkce}
+
+\begin{definice}[Náhodná veličina, distribuční funkce]
+\emph{Náhodná veličina} (n.v.) na prostoru $(\Omega,\mathcal{F},P)$ je zobrazení $X\colon\Omega\to\R$ takové, že pro každé $x\in\R$ je $\{\omega\in\Omega:X(\omega)\le x\}\in\mathcal{F}$. \emph{Distribuční funkce} je $F_X(x)=P(X\le x)$.
+\end{definice}
+
+\begin{veta}[Vlastnosti distribuční funkce]
+$F_X$ je neklesající, zprava spojitá, $\lim_{x\to-\infty}F_X(x)=0$, $\lim_{x\to+\infty}F_X(x)=1$. Navíc $P(a<X\le b)=F_X(b)-F_X(a)$ pro $a<b$.
+\end{veta}
+
+\begin{definice}[Diskrétní a spojitá n.v.]
+N.v.\ $X$ je \emph{diskrétní}, pokud nabývá nejvýše spočetně mnoha hodnot $x_1,x_2,\dots$ N.v.\ $X$ je \emph{spojitá}, pokud existuje nezáporná \emph{hustota} $f_X$ taková, že $F_X(x)=\int_{-\infty}^{x} f_X(t)\,\mathrm{d}t$ pro všechna $x$. \emph{Pravděpodobnostní funkce} diskrétní n.v.\ je $p_X(k)=P(X=k)$.
+\end{definice}
+
+\video{https://www.youtube.com/watch?v=ZA4JkHKZM50}{3Blue1Brown, díl \emph{Why ``probability of 0'' does not mean ``impossible''} (proč u~spojité veličiny $P(X=x)=0$ a~přesto má hustota smysl).}
+
+\begin{intuice}
+$F_X$ je univerzální popis -- funguje stejně pro diskrétní i spojitý případ. Pro diskrétní je $F_X$ \emph{schodovitá}: skoky v bodech $x_k$ o výšku $p_X(x_k)$. Pro spojitý je $F_X$ hladká a~$F_X'(x)=f_X(x)$ skoro všude. Hustota \emph{není} pravděpodobnost: $f_X(x)$ může být $>1$; pravděpodobnost je až $\int_a^b f_X(x)\,\mathrm{d}x=P(a\le X\le b)$.
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[width=0.45\linewidth,height=4.6cm,
+  xlabel={$k$},ylabel={$p_X(k)$},
+  xmin=-0.5,xmax=10.5,ymin=0,ymax=0.28,
+  xtick={0,2,4,6,8,10},
+  ybar,bar width=4pt,enlarge x limits=0.05,
+  title={\small PMF $\mathrm{Bin}(10,\,0{,}4)$},
+  every axis plot/.append style={fill=blue!50,draw=blue!70!black},
+]
+\addplot table[x=k,y=pmf] {src/fig/bin_pmf.dat};
+\end{axis}
+\end{tikzpicture}\hfill
+\begin{tikzpicture}
+\begin{axis}[width=0.45\linewidth,height=4.6cm,
+  xlabel={$x$},ylabel={$F_X(x)$},
+  xmin=-0.5,xmax=10.5,ymin=0,ymax=1.05,
+  xtick={0,2,4,6,8,10},
+  ytick={0,0.2,0.4,0.6,0.8,1.0},
+  title={\small CDF $\mathrm{Bin}(10,\,0{,}4)$},
+  const plot mark right,
+]
+\addplot[blue!70!black,thick] table[x=k,y=cdf] {src/fig/bin_cdf.dat};
+\end{axis}
+\end{tikzpicture}
+\obrpopis{Diskrétní rozdělení $\mathrm{Bin}(10,\,0{,}4)$. \textbf{Vlevo:} PMF $p_X(k)=\binom{10}{k}0{,}4^k\,0{,}6^{10-k}$, vrchol u~$k=4=np$ (hodnota $\approx 0{,}251$). \textbf{Vpravo:} CDF je schodovitá; v každém celočíselném bodě skok o~výšku $p_X(k)$, mezi nimi konstantní. $F_X(10)=1$.}
+\end{center}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[width=0.45\linewidth,height=4.6cm,
+  xlabel={$x$},ylabel={$f_X(x)$},
+  xmin=-3.5,xmax=3.5,ymin=0,ymax=0.45,
+  xtick={-3,-2,-1,0,1,2,3},
+  title={\small Hustota $N(0,1)$},
+  samples=120,domain=-3.5:3.5,
+]
+\addplot[blue!70!black,thick] {1/sqrt(2*pi)*exp(-x^2/2)};
+\addplot[name path=A,draw=none,domain=-1:1,samples=80] {1/sqrt(2*pi)*exp(-x^2/2)};
+\addplot[name path=B,draw=none,domain=-1:1] {0};
+\addplot[blue!15] fill between[of=A and B];
+\end{axis}
+\end{tikzpicture}\hfill
+\begin{tikzpicture}
+\begin{axis}[width=0.45\linewidth,height=4.6cm,
+  xlabel={$x$},ylabel={$F_X(x)=\Phi(x)$},
+  xmin=-3.5,xmax=3.5,ymin=0,ymax=1.05,
+  xtick={-3,-2,-1,0,1,2,3},
+  ytick={0,0.2,0.4,0.6,0.8,1.0},
+  title={\small CDF $N(0,1)$},
+  samples=120,domain=-3.5:3.5,
+]
+\addplot[blue!70!black,thick] table[x=x,y=phi] {src/fig/phi_cdf.dat};
+\addplot[dashed,gray] coordinates {(-3.5,0.5) (0,0.5)};
+\addplot[dashed,gray] coordinates {(0,0) (0,0.5)};
+\end{axis}
+\end{tikzpicture}
+\obrpopis{Standardní normální rozdělení $N(0,1)$. \textbf{Vlevo:} hustota $\varphi(x)=\tfrac{1}{\sqrt{2\pi}}e^{-x^2/2}$; modře vybarvená oblast $[-1,1]$ má míru $\Phi(1)-\Phi(-1)\approx 0{,}683$ (pravidlo $1\sigma$). \textbf{Vpravo:} CDF $\Phi$ je hladká S-křivka, $\Phi(0)=1/2$ (čárkované).}
+\end{center}
+
+\subsection{Střední hodnota a její vlastnosti}
+
+\begin{definice}[Střední hodnota]
+Pro diskrétní n.v.\ $X$ s~hodnotami $\{x_i\}$ definujeme
+\(
+E(X)=\sum_i x_i\, p_X(x_i),
+\)
+existuje-li suma absolutně. Pro spojitou n.v.\ s~hustotou $f_X$
+\(
+E(X)=\int_{-\infty}^{\infty} x\,f_X(x)\,\mathrm{d}x,
+\)
+existuje-li integrál absolutně. Obecně pro $g\colon\R\to\R$
+\(
+E(g(X))=\sum_i g(x_i)p_X(x_i)
+\)
+resp.\
+\(
+\int_{-\infty}^{\infty} g(x)f_X(x)\,\mathrm{d}x.
+\)
+\end{definice}
+
+\begin{veta}[Linearita střední hodnoty]
+Pro libovolné n.v.\ $X,Y$ (na témže prostoru), které mají střední hodnotu, a konstanty $a,b\in\R$ platí
+\[
+E(aX+bY)=a\,E(X)+b\,E(Y).
+\]
+Speciálně $E(X+Y)=E(X)+E(Y)$ \emph{bez ohledu na nezávislost} a~$E(c)=c$ pro konstantní n.v.
+\end{veta}
+
+\begin{intuice}
+Linearita je jeden z~\emph{nejsilnějších nástrojů} kombinatorické pravděpodobnosti: chceme-li $E(X)$ pro složitou veličinu, rozložíme ji na součet jednoduchých (často \emph{indikátorů} jevů, $I_A$) a sečteme střední hodnoty. Indikátor má $E(I_A)=P(A)$, takže \uv{počet úspěchů} = součet indikátorů a~$E(\text{počet úspěchů})=\sum P(\text{úspěch}_i)$.
+\end{intuice}
+
+\begin{definice}[Nezávislost náhodných veličin]
+N.v.\ $X,Y$ jsou \emph{nezávislé}, pokud jsou jevy $\{X\le x\}$ a~$\{Y\le y\}$ nezávislé pro všechna $x,y\in\R$, tj.\ $P(X\le x,\,Y\le y)=P(X\le x)\,P(Y\le y)$. Pro diskrétní n.v.\ je to ekvivalentní s~$P(X=x,\,Y=y)=P(X=x)\,P(Y=y)$ pro všechna $x,y$. Veličiny $X_1,\dots,X_n$ jsou nezávislé, pokud analogicky $P(X_1\le x_1,\dots,X_n\le x_n)=\prod_i P(X_i\le x_i)$ pro všechna $x_1,\dots,x_n$.
+\end{definice}
+
+\begin{veta}[Střední hodnota součinu nezávislých n.v.]
+Pro \emph{nezávislé} n.v.\ $X,Y$ s~konečnou střední hodnotou platí
+\[
+E(XY)=E(X)\,E(Y).
+\]
+Obecně pro nezávislé $X_1,\dots,X_n$ je $E(\prod_i X_i)=\prod_i E(X_i)$.
+\end{veta}
+
+\begin{poznamka}
+Bez předpokladu nezávislosti tvrzení obecně neplatí. Příklad: $X\in\{-1,+1\}$ stejně pravděpodobné, $Y=X$. Pak $E(X)=E(Y)=0$, ale $E(XY)=E(X^2)=1\ne 0$.
+\end{poznamka}
+
+\begin{veta}[Markovova nerovnost]
+Pro nezápornou n.v.\ $X\ge 0$ a~$a>0$
+\[
+P(X\ge a)\le \frac{E(X)}{a}.
+\]
+\end{veta}
+
+\begin{proof}[Důkaz \textnormal{(nepovinný -- jeden řádek).}]
+Z~$X\ge a\cdot I_{\{X\ge a\}}$ (na jevu $\{X\ge a\}$ je $X\ge a$, jinde $X\ge 0$) plyne $E(X)\ge a\,P(X\ge a)$.
+\end{proof}
+
+\begin{intuice}
+Markov dává \emph{velmi hrubý} chvostový odhad pomocí jediného čísla $E(X)$ -- bez znalosti rozptylu. Často nestačí (např.\ pro $a=2E(X)$ dostaneme jen \uv{nejvýše polovina}, což je málo), ale je univerzální. Když známe rozptyl, dostaneme silnější Čebyševovu nerovnost níže.
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[width=0.7\linewidth,height=4.6cm,
+  xlabel={$x$},ylabel={$f_X(x)$},
+  xmin=0,xmax=5,ymin=0,ymax=1.05,
+  xtick={0,1,2,3,4,5},
+  title={\small Markovova nerovnost: $P(X\ge a)\le E(X)/a$ pro $X\sim\mathrm{Exp}(1)$, $a=2$},
+  samples=120,domain=0:5,
+]
+\addplot[blue!70!black,thick] {exp(-x)};
+\addplot[name path=A,draw=none,domain=2:5] {exp(-x)};
+\addplot[name path=B,draw=none,domain=2:5] {0};
+\addplot[red!30] fill between[of=A and B];
+\draw[dashed,red!70!black] (axis cs:2,0) -- (axis cs:2,1);
+\node[red!70!black,anchor=south west] at (axis cs:2.05,0.6) {\small $a=2$};
+\node[anchor=west] at (axis cs:2.4,0.18) {\small $P(X\ge 2)=e^{-2}\approx 0{,}135$};
+\end{axis}
+\end{tikzpicture}
+\obrpopis{Markovova nerovnost pro $X\sim\mathrm{Exp}(1)$, $E(X)=1$, $a=2$. Markovův odhad: $P(X\ge 2)\le 1/2=0{,}5$. Skutečná hodnota: $P(X\ge 2)=\int_{2}^{\infty}e^{-x}\,\mathrm{d}x=e^{-2}\approx 0{,}135$ (vybarvená plocha). Markov tedy nadhodnocuje téměř $4\times$ -- ukazuje, že je velmi hrubý.}
+\end{center}
+
+\subsection{Rozptyl a kovariance}
+
+\begin{definice}[Rozptyl, směrodatná odchylka, kovariance]
+Pro n.v.\ $X$ s~konečnou $E(X)=\mu$ definujeme
+\[
+\Var(X)=E\bigl((X-\mu)^2\bigr)=E(X^2)-\mu^2,\qquad \sigma(X)=\sqrt{\Var(X)}.
+\]
+Pro dvojici n.v.\ $X,Y$
+\[
+\Cov(X,Y)=E\bigl((X-E(X))(Y-E(Y))\bigr)=E(XY)-E(X)E(Y).
+\]
+\end{definice}
+
+\begin{veta}[Vlastnosti rozptylu]
+\leavevmode
+\begin{enumerate}[label=(\arabic*)]
+  \item $\Var(aX+b)=a^2\,\Var(X)$ pro $a,b\in\R$ (posunutí neovlivní rozptyl, škálování čtvercově).
+  \item $\Var(X+Y)=\Var(X)+\Var(Y)+2\,\Cov(X,Y)$.
+  \item Obecně pro $X_1,\dots,X_n$
+  \(
+  \Var\bigl(\sum_i X_i\bigr)=\sum_i \Var(X_i)+2\sum_{i<j}\Cov(X_i,X_j).
+  \)
+  \item Pro \emph{nezávislé} n.v.\ je $\Cov(X_i,X_j)=0$, takže $\Var\bigl(\sum_i X_i\bigr)=\sum_i \Var(X_i)$.
+\end{enumerate}
+\end{veta}
+
+\begin{intuice}
+Bod (4) je nejčastěji používaný: pro průměr $\bar X_n=\tfrac1n\sum_i X_i$ nezávislých veličin se stejným rozptylem $\sigma^2$ máme $\Var(\bar X_n)=\sigma^2/n$. Rozptyl průměru tedy klesá jako $1/n$ a směrodatná odchylka jako $1/\sqrt{n}$. To je důvod, proč \uv{víc měření = lepší odhad} -- přesnost (směrodatná odchylka) se ale zlepšuje jen jako $1/\sqrt n$, ne jako $1/n$.
+\end{intuice}
+
+\begin{poznamka}
+$\Cov(X,Y)=0$ \emph{neimplikuje} nezávislost. Příklad: $X\sim N(0,1)$, $Y=X^2$. Pak $\Cov(X,Y)=E(X^3)-E(X)E(X^2)=0-0=0$, ale $X$ a~$Y$ jsou \emph{deterministicky závislé} ($Y$ je funkcí $X$).
+\end{poznamka}
+
+\noindent Z Markovovy nerovnosti aplikované na $(X-\mu)^2$ vyplyne přímo silnější chvostový odhad pomocí rozptylu. Čebyševovu nerovnost v požadavcích explicitně nenajdeme, ale tvoří \emph{jediný krok} v důkazu zákona velkých čísel (sekce 4), proto ji zavádíme.
+
+\begin{veta}[Čebyševova nerovnost]
+Pro n.v.\ $X$ s~konečnou střední hodnotou $\mu$ a~rozptylem $\sigma^2$ a~pro $k>0$
+\[
+P(|X-\mu|\ge k)\le\frac{\sigma^2}{k^2}.
+\]
+\end{veta}
+
+\begin{proof}[Důkaz \textnormal{(nepovinný -- aplikace Markovovy).}]
+$P(|X-\mu|\ge k)=P((X-\mu)^2\ge k^2)\le E((X-\mu)^2)/k^2=\sigma^2/k^2$.
+\end{proof}
+
+\noindent Linearitu střední hodnoty a práci s~indikátory procvičuje následující reálná otázka SZZ.
+
+\begin{priklad}[SZZ léto 2023 č.~4: Linearita střední hodnoty (hod kostkou ve skupině)] \szzotazka{léto 2023}{4}{Linearita střední hodnoty}\par
+
+\textbf{Zadání.}
+\begin{enumerate}[label=(\arabic*)]
+  \item Uveďte větu o linearitě střední hodnoty (nedokazujte).
+  \item Ve skupině $n$ lidí každý hodí férovou kostkou. Každá dvojice, která hodila stejné číslo, získá bod. $Y$ = bod jedné předem vybrané dvojice. Určete $E(Y)$.
+  \item $X$ = celkový počet bodů přes všechny dvojice. Určete $E(X)$.
+\end{enumerate}
+
+\textbf{Řešení.}
+
+\begin{enumerate}[label=(\arabic*)]
+  \item Pro libovolné n.v.\ $X_1,\dots,X_n$ na témže prostoru a konstanty $a_1,\dots,a_n,b\in\R$ platí $E\bigl(\sum_i a_i X_i+b\bigr)=\sum_i a_i E(X_i)+b$.
+  \item $Y\in\{0,1\}$ je indikátor jevu \uv{vybraná dvojice hodila stejné číslo}. Tento jev nastává s pravděpodobností $P(Y=1)=6/36=1/6$ (z 36 stejně pravděpodobných výsledků dvou hodů má $6$ shodu). Tedy $E(Y)=P(Y=1)=\boxed{1/6}$.
+  \item $X=\sum_{\{i,j\}}Y_{ij}$, kde součet je přes všech $\binom{n}{2}$ dvojic a~$Y_{ij}$ je indikátor shody dvojice $\{i,j\}$. Z bodu (2) máme $E(Y_{ij})=1/6$ pro každou dvojici (veličiny $Y_{ij}$ jsou sice po dvou nezávislé, ale jako celek ne: $Y_{12}=Y_{23}=1$ vynutí $Y_{13}=1$; linearita nezávislost nevyžaduje). Tedy
+  \[
+  E(X)=\sum_{\{i,j\}}E(Y_{ij})=\binom{n}{2}\cdot\frac{1}{6}=\boxed{\frac{n(n-1)}{12}}.
+  \]
+\end{enumerate}
+\end{priklad}
+
+% ============================================================
+\section{Konkrétní rozdělení}
+
+V tomto bloku zopakujeme šest standardních rozdělení: čtyři diskrétní (Bernoulliho, binomické, geometrické, Poissonovo) a~dvě spojitá (exponenciální, normální). U~každého uvedeme \emph{kdy ho použít}, \emph{PMF/hustotu}, \emph{střední hodnotu a rozptyl} a~klíčové vztahy.
+
+\subsection{Bernoulliho a binomické}
+
+\begin{definice}[$\mathrm{Bern}(p)$, $\mathrm{Bin}(n,p)$]
+$X\sim\mathrm{Bern}(p)$ pro $p\in[0,1]$ je indikátor úspěchu s $P(X=1)=p$, $P(X=0)=1-p$. $X\sim\mathrm{Bin}(n,p)$ pro $n\in\N$ je počet úspěchů v $n$ \emph{nezávislých} Bernoulliho pokusech, tedy $X=\sum_{i=1}^n X_i$, kde $X_i\stackrel{\text{iid}}{\sim}\mathrm{Bern}(p)$. PMF:
+\[
+P(X=k)=\binom{n}{k}p^k(1-p)^{n-k},\quad k=0,1,\dots,n.
+\]
+\end{definice}
+
+\begin{veta}[Střední hodnota a rozptyl]
+\[
+E(\mathrm{Bern}(p))=p,\qquad \Var(\mathrm{Bern}(p))=p(1-p),
+\]
+\[
+E(\mathrm{Bin}(n,p))=np,\qquad \Var(\mathrm{Bin}(n,p))=np(1-p).
+\]
+\end{veta}
+
+\begin{intuice}
+Vzorce \emph{stačí odvodit pro Bernoulli a~sčítat}: $E(X_i)=p$ (linearita), $\Var(X_i)=E(X_i^2)-p^2=p-p^2=p(1-p)$. Pro $\mathrm{Bin}(n,p)$ pak $E=n\cdot p$ (linearita) a~$\Var=n\cdot p(1-p)$ (nezávislost).
+\end{intuice}
+
+\video{https://www.youtube.com/watch?v=8idr1WZ1A7Q}{3Blue1Brown, díl \emph{Binomial distributions} (vizualizace $\binom{n}{k}p^k(1-p)^{n-k}$ a~tvaru rozdělení).}
+
+\subsection{Geometrické}
+
+\begin{definice}[$\mathrm{Geom}(p)$]
+$X\sim\mathrm{Geom}(p)$ pro $p\in(0,1]$ je počet \emph{nezávislých pokusů} potřebných k prvnímu úspěchu (počítáme i ten úspěšný). PMF:
+\[
+P(X=k)=(1-p)^{k-1}p,\quad k=1,2,3,\dots
+\]
+\end{definice}
+
+\begin{veta}[Střední hodnota a rozptyl geometrického]
+\[
+E(\mathrm{Geom}(p))=\frac{1}{p},\qquad \Var(\mathrm{Geom}(p))=\frac{1-p}{p^2}.
+\]
+\end{veta}
+
+\begin{intuice}
+Při pravděpodobnosti úspěchu $p$ se na první úspěch průměrně čeká $1/p$ pokusů. Pro $p=1/6$ (hod šestky) průměr $6$. Geometrické má \emph{paměťovou vlastnost} (memoryless): $P(X>m+k\mid X>m)=P(X>k)$ -- dosavadní neúspěšné pokusy \uv{nezvyšují šanci úspěchu příště}.
+\end{intuice}
+
+\begin{poznamka}
+Pozor na konvenci: někteří autoři definují $\mathrm{Geom}(p)$ jako \emph{počet neúspěchů před prvním úspěchem} (hodnoty $0,1,2,\dots$), což posune $E$ o~1 dolů. Šámalova skripta i my používáme \uv{počet pokusů včetně úspěšného}, tj.\ $E=1/p$.
+\end{poznamka}
+
+\subsection{Poissonovo}
+
+\begin{definice}[$\mathrm{Pois}(\lambda)$]
+$X\sim\mathrm{Pois}(\lambda)$ pro $\lambda>0$ je počet výskytů události v daném intervalu, kde \emph{parametr} $\lambda$ je průměrný (očekávaný) počet výskytů za tento interval. PMF
+\[
+P(X=k)=e^{-\lambda}\frac{\lambda^k}{k!},\quad k=0,1,2,\dots
+\]
+udává pravděpodobnost \emph{právě} $k$ výskytů; $k$ je tedy nezáporné celé číslo, na jehož pravděpodobnost se ptáme. Faktor $e^{-\lambda}$ je normalizační konstanta zajišťující $\sum_{k\ge0}P(X=k)=1$ (plyne z~$\sum_{k\ge0}\lambda^k/k!=e^{\lambda}$).
+\end{definice}
+
+\begin{veta}[Střední hodnota a rozptyl Poissonova]
+\[
+E(\mathrm{Pois}(\lambda))=\lambda,\qquad \Var(\mathrm{Pois}(\lambda))=\lambda.
+\]
+\end{veta}
+
+\begin{intuice}
+Poisson modeluje \uv{počet vzácných nezávislých událostí v daném intervalu}: počet zákazníků za hodinu, počet překlepů na stránce, počet emailů za den. Vzniká jako limita $\mathrm{Bin}(n,\lambda/n)$ pro $n\to\infty$ -- proto pro \uv{$n$ velké, $p$ malé, $np$ rozumné} aproximujeme $\mathrm{Bin}(n,p)$ Poissonem se~$\lambda=np$.
+\end{intuice}
+
+\subsection{Exponenciální}
+
+\begin{definice}[$\mathrm{Exp}(\lambda)$]
+$X\sim\mathrm{Exp}(\lambda)$ pro $\lambda>0$ má hustotu
+\[
+f_X(x)=\begin{cases}\lambda e^{-\lambda x} & x\ge 0\\ 0 & x<0\end{cases}
+\]
+a~CDF $F_X(x)=1-e^{-\lambda x}$ pro $x\ge 0$.
+\end{definice}
+
+\begin{veta}[Střední hodnota a rozptyl exponenciálního]
+\[
+E(\mathrm{Exp}(\lambda))=\frac{1}{\lambda},\qquad \Var(\mathrm{Exp}(\lambda))=\frac{1}{\lambda^2}.
+\]
+\end{veta}
+
+\begin{intuice}
+Exponenciální je \emph{spojitý protějšek geometrického}: doba čekání na první událost v~Poissonově procesu s~intenzitou $\lambda$. Také má \emph{paměťovou vlastnost}: $P(X>s+t\mid X>s)=P(X>t)$ -- mezi všemi spojitými rozděleními je tím \emph{charakterizováno}.
+\end{intuice}
+
+\subsection{Normální (Gaussovo)}
+
+\begin{definice}[$N(\mu,\sigma^2)$]
+$X\sim N(\mu,\sigma^2)$ pro $\mu\in\R$, $\sigma^2>0$ má hustotu
+\[
+f_X(x)=\frac{1}{\sqrt{2\pi}\,\sigma}\exp\!\Bigl(-\frac{(x-\mu)^2}{2\sigma^2}\Bigr),\quad x\in\R.
+\]
+Standardní normální je $N(0,1)$ s~hustotou $\varphi(x)=\tfrac{1}{\sqrt{2\pi}}e^{-x^2/2}$ a~CDF $\Phi(x)=\int_{-\infty}^{x}\varphi(t)\,\mathrm{d}t$.
+\end{definice}
+
+\begin{veta}[Střední hodnota, rozptyl a lineární transformace normálního]
+\[
+E(N(\mu,\sigma^2))=\mu,\qquad \Var(N(\mu,\sigma^2))=\sigma^2.
+\]
+Pokud $X\sim N(\mu,\sigma^2)$, pak pro $a,b\in\R$, $a\ne 0$
+\[
+aX+b\sim N(a\mu+b,\,a^2\sigma^2).
+\]
+Speciálně $Z=(X-\mu)/\sigma\sim N(0,1)$ -- \emph{standardizace}.
+\end{veta}
+
+\begin{intuice}
+Normální rozdělení je všudypřítomné kvůli \emph{centrální limitní větě} (níže) -- součty mnoha nezávislých veličin se mu blíží. Pravidla $1\sigma/2\sigma/3\sigma$: $P(|X-\mu|<\sigma)\approx 0{,}683$, $P(|X-\mu|<2\sigma)\approx 0{,}954$, $P(|X-\mu|<3\sigma)\approx 0{,}997$. Hodnoty $\Phi$ se nevyjadřují v uzavřené formě a~používá se \emph{tabulka} nebo numerický výpočet.
+\end{intuice}
+
+\video{https://www.youtube.com/watch?v=cy8r7WSuT1I}{3Blue1Brown, díl \emph{Why $\pi$ is in the normal distribution} (odkud se v~hustotě bere $\sqrt{2\pi}$ a~proč je tvar právě $e^{-x^2/2}$).}
+
+\begin{poznamka}
+\textbf{Souhrnná tabulka.}
+\medskip
+
+{\renewcommand{\arraystretch}{1.55}%
+\setlength{\tabcolsep}{12pt}%
+\noindent\begin{tabular}{l l l c c}
+\toprule
+\textbf{Rozdělení} & \textbf{nosič} & \textbf{PMF / hustota} & $E(X)$ & $\Var(X)$ \\
+\midrule
+$\mathrm{Bern}(p)$ & $\{0,1\}$ & $p^k(1-p)^{1-k}$ & $p$ & $p(1-p)$ \\
+$\mathrm{Bin}(n,p)$ & $\{0,\dots,n\}$ & $\binom{n}{k}p^k(1-p)^{n-k}$ & $np$ & $np(1-p)$ \\
+$\mathrm{Geom}(p)$ & $\{1,2,\dots\}$ & $(1-p)^{k-1}p$ & $1/p$ & $(1-p)/p^2$ \\
+$\mathrm{Pois}(\lambda)$ & $\{0,1,2,\dots\}$ & $e^{-\lambda}\lambda^k/k!$ & $\lambda$ & $\lambda$ \\
+$\mathrm{Exp}(\lambda)$ & $[0,\infty)$ & $\lambda e^{-\lambda x}$ & $1/\lambda$ & $1/\lambda^2$ \\
+$N(\mu,\sigma^2)$ & $\R$ & $\dfrac{1}{\sigma\sqrt{2\pi}}\,\exp\!\bigl(-\tfrac{1}{2}\bigl(\tfrac{x-\mu}{\sigma}\bigr)^{2}\bigr)$ & $\mu$ & $\sigma^2$ \\
+\bottomrule
+\end{tabular}\par}
+\end{poznamka}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[width=0.45\linewidth,height=4.0cm,
+  xlabel={$k$},ylabel={$p(k)$},
+  xmin=-0.5,xmax=15.5,ymin=0,ymax=0.42,
+  ybar,bar width=2.6pt,enlarge x limits=0.03,
+  title={\small $\mathrm{Geom}(0{,}3)$ (PMF)},
+  every axis plot/.append style={fill=orange!50,draw=orange!70!black},
+  samples at={1,2,...,15},
+]
+\addplot {0.3*(0.7)^(x-1)};
+\end{axis}
+\end{tikzpicture}\hfill
+\begin{tikzpicture}
+\begin{axis}[width=0.45\linewidth,height=4.0cm,
+  xlabel={$k$},ylabel={$p(k)$},
+  xmin=-0.5,xmax=15.5,ymin=0,ymax=0.25,
+  ybar,bar width=4pt,enlarge x limits=0.03,
+  title={\small $\mathrm{Pois}(3)$ (PMF)},
+  every axis plot/.append style={fill=green!55!black,draw=green!50!black},
+  samples at={0,1,...,15},
+]
+\addplot {exp(-3)*3^x/factorial(x)};
+\end{axis}
+\end{tikzpicture}\\[0.3em]
+\begin{tikzpicture}
+\begin{axis}[width=0.45\linewidth,height=4.0cm,
+  xlabel={$x$},ylabel={$f(x)$},
+  xmin=0,xmax=5,ymin=0,ymax=1.1,
+  title={\small $\mathrm{Exp}(1)$ (hustota)},
+  samples=120,domain=0:5,
+]
+\addplot[purple!70!black,thick] {exp(-x)};
+\end{axis}
+\end{tikzpicture}\hfill
+\begin{tikzpicture}
+\begin{axis}[width=0.45\linewidth,height=4.0cm,
+  xlabel={$x$},ylabel={$f(x)$},
+  xmin=-4,xmax=4,ymin=0,ymax=0.45,
+  title={\small $N(0,1)$ vs.\ $N(0,4)$ (hustota)},
+  samples=120,domain=-4:4,
+]
+\addplot[blue!70!black,thick] {1/sqrt(2*pi)*exp(-x^2/2)};
+\addplot[red!70!black,thick,dashed] {1/sqrt(8*pi)*exp(-x^2/8)};
+\legend{{$N(0,1)$},{$N(0,4)$}}
+\end{axis}
+\end{tikzpicture}
+\obrpopis{Katalog standardních rozdělení. \textbf{Vlevo nahoře:} $\mathrm{Geom}(0{,}3)$ -- exponenciálně klesající PMF, $E=1/0{,}3\approx 3{,}33$. \textbf{Vpravo nahoře:} $\mathrm{Pois}(3)$ -- vrchol u~$k=2,3$ (oba s~$p\approx 0{,}224$), $E=\Var=3$. \textbf{Vlevo dole:} $\mathrm{Exp}(1)$ -- spojité klesání, $E=1$. \textbf{Vpravo dole:} $N(0,1)$ vs.\ $N(0,4)$ -- širší rozdělení má větší rozptyl ($\sigma^2=4$ vs.\ $\sigma^2=1$); maximální výška $1/\sqrt{2\pi\sigma^2}$.}
+\end{center}
+
+% ============================================================
+\section{Limitní věty: zákon velkých čísel a centrální limitní věta}
+
+Dvě klíčové věty, které popisují chování průměru \uv{velkého počtu} nezávislých veličin. \emph{Zákon velkých čísel (ZVČ)} říká \emph{kam} průměr konverguje (k~$\mu$), \emph{centrální limitní věta (CLV)} říká \emph{jak rychle} (po normalizaci k~$N(0,1)$).
+
+\subsection{Zákon velkých čísel}
+
+\begin{veta}[Slabý zákon velkých čísel]
+Nechť $X_1,X_2,\dots$ jsou nezávislé stejně rozdělené n.v.\ (i.i.d.) s konečnou střední hodnotou $\mu$ a~rozptylem $\sigma^2$. Označme $\bar X_n=\tfrac{1}{n}\sum_{i=1}^n X_i$. Pak pro každé $\varepsilon>0$
+\[
+\lim_{n\to\infty} P\bigl(|\bar X_n-\mu|\ge\varepsilon\bigr)=0.
+\]
+\end{veta}
+
+\begin{proof}[Důkaz \textnormal{(nepovinný -- aplikace Čebyševovy).}]
+$E(\bar X_n)=\mu$ (linearita), $\Var(\bar X_n)=\sigma^2/n$ (nezávislost). Čebyšev: $P(|\bar X_n-\mu|\ge\varepsilon)\le\Var(\bar X_n)/\varepsilon^2=\sigma^2/(n\varepsilon^2)\to 0$.
+\end{proof}
+
+\begin{poznamka}
+\textbf{Konvergence v~pravděpodobnosti.} Posloupnost n.v.\ $Y_n$ \emph{konverguje v~pravděpodobnosti} k~$Y$ (píšeme $Y_n\xrightarrow{P}Y$), pokud pro každé $\varepsilon>0$ platí $P(|Y_n-Y|\ge\varepsilon)\to 0$. Slabý ZVČ tedy říká právě $\bar X_n\xrightarrow{P}\mu$. Tento režim konvergence (slabší než po~hodnotách) používáme dále v~definici konzistence odhadu.
+\end{poznamka}
+
+\begin{intuice}
+ZVČ formalizuje \uv{empirický průměr se ustálí na střední hodnotě}. Pokud házíme férovou mincí, podíl orlů (=empirický průměr indikátorů) se blíží k~$1/2$. Pozor: \emph{neříká}, že \emph{počet} orlů minus $n/2$ se zmenšuje; ten naopak (typicky) roste jako $\sqrt n$.
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{semilogxaxis}[width=0.85\linewidth,height=4.8cm,
+  xlabel={$n$ (počet hodů, log osa)},ylabel={$\bar X_n$ (podíl orlů)},
+  xmin=1,xmax=2000,ymin=0,ymax=1.05,
+  ytick={0,0.25,0.5,0.75,1.0},
+  title={\small Zákon velkých čísel: tři trajektorie $\bar X_n$ pro fair mince},
+  legend pos=north east,legend style={font=\scriptsize},
+]
+\addplot[blue!70!black,thick,mark=none] table[x=n,y=xbar] {src/fig/zvc_traj1.dat};
+\addlegendentry{běh 1}
+\addplot[red!70!black,thick,mark=none] table[x=n,y=xbar] {src/fig/zvc_traj2.dat};
+\addlegendentry{běh 2}
+\addplot[green!50!black,thick,mark=none] table[x=n,y=xbar] {src/fig/zvc_traj3.dat};
+\addlegendentry{běh 3}
+\draw[dashed,gray] (axis cs:1,0.5) -- (axis cs:2000,0.5);
+\node[anchor=west] at (axis cs:1000,0.55) {\small $\mu=0{,}5$};
+\end{semilogxaxis}
+\end{tikzpicture}
+\obrpopis{ZVČ ilustračně. Tři nezávislé simulace házení férovou mincí (\textcolor{blue!70!black}{běh 1}, \textcolor{red!70!black}{běh 2}, \textcolor{green!50!black}{běh 3}). Pro malé $n$ silně kolísají (např.\ při $n=10$ podíl orlů snadno $0{,}2$ nebo $0{,}8$), s rostoucím $n$ se všechny tři blíží k~$\mu=0{,}5$ (čárkovaná čára). Při $n=2000$: $\bar X=0{,}484,\,0{,}509,\,0{,}515$.}
+\end{center}
+
+\subsection{Centrální limitní věta}
+
+\begin{veta}[Centrální limitní věta, CLV]
+Nechť $X_1,X_2,\dots$ jsou i.i.d.\ n.v.\ s konečnou střední hodnotou $\mu$ a~rozptylem $\sigma^2>0$. Označme standardizovaný průměr
+\[
+Y_n=\frac{(X_1+\dots+X_n)-n\mu}{\sqrt{n}\,\sigma}=\frac{\bar X_n-\mu}{\sigma/\sqrt{n}}.
+\]
+Pak $Y_n$ konverguje \emph{v distribuci} k~$N(0,1)$, značeno $Y_n\xrightarrow{d} N(0,1)$: pro každé $x\in\R$
+\[
+\lim_{n\to\infty} P(Y_n\le x)=\Phi(x).
+\]
+\end{veta}
+
+\video{https://www.youtube.com/watch?v=zeJD6dqJ5lo}{3Blue1Brown, díl \emph{But what is the Central Limit Theorem?} (vizuálně proč se standardizované součty i.i.d.\ veličin blíží $N(0,1)$; Galtonova deska, role $\mu$ a~$\sigma$).}
+
+\video{https://www.youtube.com/watch?v=IaSGqQa5O-M}{3Blue1Brown, díl \emph{Convolutions -- why $X+Y$ in probability is a beautiful mess} (rozdělení součtu nezávislých veličin je \emph{konvoluce} jejich rozdělení; opakovaná konvoluce hladí libovolné rozdělení do zvonu -- mechanismus za CLV, viz panel $n=2$ níže).}
+
+\begin{poznamka}
+\textbf{Konvergence v distribuci} $Y_n\xrightarrow{d} Y$ znamená, že distribuční funkce $F_{Y_n}$ bodově konverguje k~$F_Y$ v~každém bodě, kde je $F_Y$ spojitá. Pro $Y\sim N(0,1)$ je $F_Y=\Phi$ spojitá všude, takže dostáváme bodovou konvergenci $\lim_n F_{Y_n}(x)=\Phi(x)$ ve všech $x\in\R$. Není to konvergence náhodných veličin po hodnotách -- konvergují jen jejich rozdělení.
+\end{poznamka}
+
+\begin{intuice}
+Klíčová vlastnost: \emph{rozdělení původních $X_i$ je libovolné} (jen s konečným rozptylem). Po sečtení a~standardizaci dostaneme univerzálně $N(0,1)$. To je důvod, proč je normální rozdělení tak časté: cokoliv vzniká součtem mnoha drobných nezávislých příspěvků (měřicí chyby, doba běhu, výška populace) má rozdělení blízké normálnímu. \emph{Rychlost} konvergence závisí na původním rozdělení -- pro symetrická a hladká stačí $n\approx 20{-}30$, pro silně vychýlená (např.\ exponenciální) typicky $n\approx 100$.
+\end{intuice}
+
+\begin{poznamka}
+\textbf{Aplikační forma.} Pokud sčítáme $S_n=X_1+\dots+X_n$, pak $S_n\approx N(n\mu,\,n\sigma^2)$ pro velká~$n$, neboli $P(S_n\le s)\approx \Phi\bigl((s-n\mu)/(\sqrt{n}\,\sigma)\bigr)$. Tohle je tvar, který používáme při výpočtech.
+\end{poznamka}
+
+\begin{center}
+\pgfplotsset{clvpanel/.style={width=0.45\linewidth,height=3.8cm,
+  xlabel={$z$},ymin=0,ymax=0.55,xmin=-3.5,xmax=3.5,
+  xtick={-3,-2,-1,0,1,2,3}}}
+\begin{tikzpicture}
+\begin{axis}[clvpanel,title={\small $n=1$}]
+\addplot+[ybar interval,fill=blue!35,draw=blue!60!black,mark=none] table[x=x,y=density] {src/fig/clv_hist_n1.dat};
+\addplot[red!70!black,thick,no marks,samples=100,domain=-3.5:3.5] {1/sqrt(2*pi)*exp(-x^2/2)};
+\end{axis}
+\end{tikzpicture}\hfill
+\begin{tikzpicture}
+\begin{axis}[clvpanel,title={\small $n=2$}]
+\addplot+[ybar interval,fill=blue!35,draw=blue!60!black,mark=none] table[x=x,y=density] {src/fig/clv_hist_n2.dat};
+\addplot[red!70!black,thick,no marks,samples=100,domain=-3.5:3.5] {1/sqrt(2*pi)*exp(-x^2/2)};
+\end{axis}
+\end{tikzpicture}\\[0.4em]
+\begin{tikzpicture}
+\begin{axis}[clvpanel,title={\small $n=10$}]
+\addplot+[ybar interval,fill=blue!35,draw=blue!60!black,mark=none] table[x=x,y=density] {src/fig/clv_hist_n10.dat};
+\addplot[red!70!black,thick,no marks,samples=100,domain=-3.5:3.5] {1/sqrt(2*pi)*exp(-x^2/2)};
+\end{axis}
+\end{tikzpicture}\hfill
+\begin{tikzpicture}
+\begin{axis}[clvpanel,title={\small $n=100$}]
+\addplot+[ybar interval,fill=blue!35,draw=blue!60!black,mark=none] table[x=x,y=density] {src/fig/clv_hist_n100.dat};
+\addplot[red!70!black,thick,no marks,samples=100,domain=-3.5:3.5] {1/sqrt(2*pi)*exp(-x^2/2)};
+\end{axis}
+\end{tikzpicture}
+\obrpopis{CLV ilustračně. Histogramy standardizovaného průměru $Y_n=\sqrt{n}(\bar X_n-1)$ pro $X_i\sim\mathrm{Exp}(1)$ ($\mu=\sigma=1$); $5\cdot 10^4$ simulací pro každé $n$. \textbf{$n=1$}: silně vychýlené (Exp). \textbf{$n=2$}: stále zešikmené. \textbf{$n=10$}: téměř symetrické, ale vrchol posunut. \textbf{$n=100$}: prakticky neodlišitelné od $N(0,1)$ ({\color{red!70!black}červená křivka} = teoretická hustota $\varphi$).}
+\end{center}
+
+\noindent Znění CLV a~její aplikaci procvičuje následující reálná otázka SZZ.
+
+\begin{priklad}[SZZ léto 2025 č.~4: Centrální limitní věta (doba běhu programu)] \szzotazka{léto 2025}{4}{Centrální limitní věta}\par
+
+\textbf{Zadání.}
+\begin{enumerate}[label=(\arabic*)]
+  \item Uveďte znění Centrální limitní věty.
+  \item Program zpracovává jeden vstup náhodnou dobou se střední hodnotou $100$~ms a~směrodatnou odchylkou $20$~ms. Odhadněte pomocí CLV pravděpodobnost, že $100$ vstupů zabere více než $10{,}3$~s. Použijte tabulku $\Phi$: $\Phi(1{,}5)\approx 0{,}93$.
+  \item Jaké předpoklady jsme udělali a~jak jsou realistické?
+\end{enumerate}
+
+\textbf{Řešení.}
+
+\begin{enumerate}[label=(\arabic*)]
+  \item (Viz znění výše.) $X_1,X_2,\dots$ i.i.d.\ s~$E(X_i)=\mu$ a~$\Var(X_i)=\sigma^2$; pak $Y_n=\bigl((X_1+\dots+X_n)-n\mu\bigr)/(\sqrt n\sigma)\xrightarrow{d} N(0,1)$, tedy $\lim_{n\to\infty}F_{Y_n}(x)=\Phi(x)$ pro každé $x$.
+  \item Označme $X_i$ dobu zpracování $i$-tého vstupu (v sekundách). $\mu=0{,}1$, $\sigma=0{,}02$, $n=100$. Hledáme
+  \[
+  P(S_{100}>10{,}3)=P\Bigl(Y_{100}>\frac{10{,}3-100\cdot 0{,}1}{\sqrt{100}\cdot 0{,}02}\Bigr)=P\Bigl(Y_{100}>\frac{0{,}3}{0{,}2}\Bigr)=P(Y_{100}>1{,}5).
+  \]
+  Podle CLV $P(Y_{100}\le 1{,}5)\approx \Phi(1{,}5)\approx 0{,}93$, takže
+  \[
+  P(S_{100}>10{,}3)\approx 1-\Phi(1{,}5)\approx 1-0{,}93=\boxed{0{,}07}\quad(\approx 7\,\%).
+  \]
+  \item \textbf{Předpoklady CLV:} (a) doby jsou \emph{nezávislé}; (b) jsou \emph{stejně rozdělené} s~konečnou $\mu$ a~$\sigma^2$. \emph{Konkrétní} tvar rozdělení nás \emph{nezajímá} -- to je síla CLV. \textbf{Realistické?} Nezávislost je často porušená: pokud je počítač přetížen, všechny vstupy se zpomalí společně. Stejné rozdělení je rozumné, pokud vstupy nemají systematicky různou náročnost. Náhrada limity konečným $n=100$ je u CLV obvykle bezpečná, pokud původní rozdělení není extrémně zešikmené.
+\end{enumerate}
+\end{priklad}
+
+% ============================================================
+\section{Bodové odhady}
+
+Předpokládáme \emph{model}: pozorování $X_1,\dots,X_n$ jsou i.i.d.\ z~rozdělení $F_\theta$, kde $\theta$ je neznámý \emph{parametr} (např.\ střední hodnota, rozptyl, parametr Bernoulliho). Z~dat chceme zrekonstruovat hodnotu~$\theta$, kterou \uv{nevidíme} přímo, jen skrze náhodná pozorování.
+
+\begin{definice}[Náhodný výběr, statistika, bodový odhad]
+\emph{Náhodný výběr} rozsahu~$n$ je $n$-tice i.i.d.\ veličin $X_1,\dots,X_n$ se~společným rozdělením $F_\theta$. \emph{Statistika} je libovolná (měřitelná) funkce výběru $T=T(X_1,\dots,X_n)$; jako funkce náhodných veličin je sama náhodnou veličinou. \emph{Bodový odhad} parametru~$\theta$ je statistika $\hat\theta_n=\hat\theta_n(X_1,\dots,X_n)$, jejíž hodnotu používáme jako odhad neznámého~$\theta$.
+\end{definice}
+
+\begin{intuice}
+Statistika smí záviset \emph{jen} na datech, ne na neznámém~$\theta$ -- jinak by ji nešlo z~pozorování spočítat. Dobrý bodový odhad je takový, který je \uv{co nejblíž} skutečné~$\theta$; co přesně \uv{blízko} znamená, upřesňují vlastnosti níže (nestrannost, konzistence, MSE).
+\end{intuice}
+
+\subsection{Vlastnosti odhadů}
+
+\begin{definice}[Nestrannost, konzistence, MSE]
+Nechť $\hat\theta_n$ je odhad parametru~$\theta$.
+\begin{enumerate}[label=(\arabic*)]
+  \item $\hat\theta_n$ je \emph{nestranný} (unbiased), pokud $E_\theta(\hat\theta_n)=\theta$ pro každé~$\theta$. \emph{Vychýlení} (bias) je $E_\theta(\hat\theta_n)-\theta$.
+  \item $\hat\theta_n$ je \emph{(slabě) konzistentní}, pokud $\hat\theta_n\xrightarrow{P}\theta$ pro $n\to\infty$, tj.\ $P(|\hat\theta_n-\theta|\ge\varepsilon)\to 0$ pro každé $\varepsilon>0$.
+  \item \emph{Střední kvadratická chyba} (MSE): $\mathrm{MSE}(\hat\theta_n)=E_\theta\bigl((\hat\theta_n-\theta)^2\bigr)=\Var_\theta(\hat\theta_n)+\bigl(\mathrm{bias}(\hat\theta_n)\bigr)^2$.
+\end{enumerate}
+\end{definice}
+
+\begin{intuice}
+Nestrannost říká \uv{v průměru přes opakované experimenty trefíme správně}. Konzistence: \uv{s rostoucím počtem dat se k~$\theta$ blížíme}. MSE: kompromis mezi vychýlením a~rozptylem; někdy se \emph{vyplatí} mít trochu vychýlený odhad, pokud má výrazně menší rozptyl (typický příklad: \emph{regularizace} v ML).
+\end{intuice}
+
+\begin{veta}[Výběrový průměr a~výběrový rozptyl]
+Pro i.i.d.\ vzorek $X_1,\dots,X_n$ z~rozdělení s~$\mu=E(X_i)$ a~$\sigma^2=\Var(X_i)$:
+\begin{enumerate}[label=(\arabic*)]
+  \item \emph{Výběrový průměr} $\bar X_n=\tfrac1n\sum_i X_i$ je nestranný odhad $\mu$: $E(\bar X_n)=\mu$. Je i konzistentní (ZVČ).
+  \item $\Var(\bar X_n)=\sigma^2/n$.
+  \item \emph{Výběrový rozptyl} $S_n^2=\tfrac{1}{n-1}\sum_i(X_i-\bar X_n)^2$ je nestranný odhad $\sigma^2$ (jmenovatel $n-1$, ne~$n$!).
+\end{enumerate}
+\end{veta}
+
+\begin{poznamka}
+Jmenovatel $n-1$ ve výběrovém rozptylu se nazývá \emph{Besselova korekce}. \uv{Naivní} verze s~jmenovatelem $n$ podhodnocuje $\sigma^2$, protože ve výpočtu nahrazujeme neznámé $\mu$ odhadem $\bar X_n$, což \uv{ubere stupeň volnosti}. $E\bigl(\tfrac1n\sum_i(X_i-\bar X_n)^2\bigr)=\tfrac{n-1}{n}\sigma^2$, kdežto $E(S_n^2)=\sigma^2$.
+\end{poznamka}
+
+\subsection{Metoda maximální věrohodnosti (MLE)}
+
+Požadavky jmenují \uv{alespoň jednu metodu pro tvorbu bodových odhadů}. Volíme \emph{metodu maximální věrohodnosti} (MLE), vedle metody momentů jednu ze dvou metod ve Šámalových skriptech a v~praxi nejpoužívanější. Princip: zvolíme $\hat\theta$ tak, aby \emph{maximalizovala} pravděpodobnost (resp.\ hustotu) pozorovaných dat při tomto~$\theta$.
+
+\begin{definice}[Věrohodnostní funkce, MLE]
+Pro i.i.d.\ vzorek $x_1,\dots,x_n$ a~parametrickou rodinu $\{f_\theta\}$ (PMF nebo hustota) definujeme \emph{věrohodnostní funkci}
+\[
+L(\theta;x_1,\dots,x_n)=\prod_{i=1}^n f_\theta(x_i).
+\]
+\emph{Odhad metodou maximální věrohodnosti} (MLE) je
+\[
+\hat\theta_{\mathrm{MLE}}=\arg\max_{\theta} L(\theta;x_1,\dots,x_n)=\arg\max_{\theta} \ell(\theta;x_1,\dots,x_n),
+\]
+kde $\ell=\log L=\sum_i\log f_\theta(x_i)$ je \emph{log-věrohodnost}.
+\end{definice}
+
+\begin{intuice}
+Logaritmování mění součin na součet -- snazší derivování. Maximalizujeme $\ell$ obvykle přes $\partial\ell/\partial\theta=0$ a~kontrolou znaménka druhé derivace. MLE má řadu hezkých teoretických vlastností: za rozumných podmínek je \emph{konzistentní}, \emph{asymptoticky nestranný} a~\emph{asymptoticky normální} (s rozptylem daným \uv{Fisherovou informací}).
+\end{intuice}
+
+\begin{priklad}[MLE pro Bernoulliho parametr]
+\textbf{Zadání.} Provedeme $n$ nezávislých Bernoulliho pokusů s~neznámou pravděpodobností úspěchu $p$ a pozorujeme $k$ úspěchů. Najděte~MLE pro~$p$.
+
+\textbf{Řešení.} Pozorování $x_1,\dots,x_n\in\{0,1\}$, $k=\sum_i x_i$. Věrohodnost
+\(
+L(p)=p^k(1-p)^{n-k}.
+\)
+Log-věrohodnost $\ell(p)=k\log p+(n-k)\log(1-p)$. Derivace:
+\[
+\frac{\mathrm{d}\ell}{\mathrm{d}p}=\frac{k}{p}-\frac{n-k}{1-p}=0\;\Longrightarrow\;k(1-p)=(n-k)p\;\Longrightarrow\;\boxed{\hat p_{\mathrm{MLE}}=\frac{k}{n}}.
+\]
+Pro $0<k<n$ je druhá derivace $-k/p^2-(n-k)/(1-p)^2<0$, takže jde o~maximum. (Pro $k=0$ je $L(p)=(1-p)^n$ klesající a maximum je v~$p=0$, pro $k=n$ je $L(p)=p^n$ rostoucí a maximum je v~$p=1$; vzorec $k/n$ tedy platí i tehdy.) MLE je výběrový průměr indikátorů, což je intuitivní: nejlepší odhad pravděpodobnosti úspěchu je relativní četnost úspěchů.
+\end{priklad}
+
+\begin{priklad}[MLE pro Poissonovo $\lambda$]
+\textbf{Zadání.} Pozorujeme $x_1,\dots,x_n\in\N_0$ z~$\mathrm{Pois}(\lambda)$. Najděte~MLE.
+
+\textbf{Řešení.} $L(\lambda)=\prod_i e^{-\lambda}\lambda^{x_i}/x_i!$, $\ell(\lambda)=-n\lambda+\bigl(\sum_i x_i\bigr)\log\lambda-\sum_i\log(x_i!)$. Derivace
+\(
+\partial\ell/\partial\lambda=-n+\bigl(\sum_i x_i\bigr)/\lambda=0,
+\)
+takže $\hat\lambda_{\mathrm{MLE}}=\bar x_n$ (druhá derivace $-\sum_i x_i/\lambda^2<0$, pokud $\sum_i x_i>0$). Opět výběrový průměr, protože $E_\lambda(X)=\lambda$. Obecně ale MLE průměrem být nemusí: např.\ pro rovnoměrné rozdělení na $[0,\theta]$ je $\hat\theta_{\mathrm{MLE}}=\max_i x_i$.
+\end{priklad}
+
+% ============================================================
+\section{Intervalové odhady}
+
+Bodový odhad dá jedno číslo a neříká, jak je spolehlivý. Intervalový odhad místo jednoho čísla dá náhodný interval $[\hat\theta_L,\hat\theta_U]$, který neznámé $\theta$ pokryje s~pravděpodobností (alespoň) $1-\alpha$. Požadavky chtějí metodu založenou na \emph{aproximaci normálním rozdělením} (pomocí CLV).
+
+\begin{definice}[Konfidenční interval]
+\emph{Konfidenční interval} (CI) pro parametr $\theta$ s~\emph{hladinou spolehlivosti} $1-\alpha\in(0,1)$ je dvojice statistik $\hat\theta_L<\hat\theta_U$ (závisí na $X_1,\dots,X_n$) taková, že pro každé $\theta$
+\[
+P_\theta\bigl(\hat\theta_L\le\theta\le\hat\theta_U\bigr)\ge 1-\alpha.
+\]
+\end{definice}
+
+\subsection{\texorpdfstring{CI pro střední hodnotu při známém~$\sigma$}{CI pro střední hodnotu při známém sigma}}
+
+Pro i.i.d.\ vzorek z~rozdělení s~rozptylem $\sigma^2$ máme z~CLV $\bar X_n\approx N(\mu,\sigma^2/n)$. Standardizací
+\(
+Z_n=(\bar X_n-\mu)\sqrt{n}/\sigma\approx N(0,1).
+\)
+Hledáme symetrický interval kolem $\mu$ s~pokrytím $1-\alpha$. Protože $N(0,1)$ je symetrické kolem nuly, rozdělíme \uv{nepokrytou} pravděpodobnost $\alpha$ rovnoměrně do obou ocasů po $\alpha/2$. Označme $z_{\alpha/2}$ kvantil $N(0,1)$ úrovně $1-\alpha/2$ (tj.\ $\Phi(z_{\alpha/2})=1-\alpha/2$); pak $P(|Z|\le z_{\alpha/2})=1-\alpha$ pro $Z\sim N(0,1)$. Aplikováno na náš $Z_n$:
+\[
+P(|Z_n|\le z_{\alpha/2})\approx 1-\alpha\;\Longleftrightarrow\;P\Bigl(\bar X_n-z_{\alpha/2}\frac{\sigma}{\sqrt n}\le\mu\le\bar X_n+z_{\alpha/2}\frac{\sigma}{\sqrt n}\Bigr)\approx 1-\alpha.
+\]
+
+\begin{veta}[CI pro střední hodnotu, $\sigma$ známé]
+Při i.i.d.\ vzorku s~konečným rozptylem $\sigma^2$ je
+\[
+\bar X_n\pm z_{\alpha/2}\,\frac{\sigma}{\sqrt n}
+\]
+přibližný $(1-\alpha)$-konfidenční interval pro $\mu$. Pro $\alpha=0{,}05$ je $z_{0{,}025}\approx 1{,}96$.
+\end{veta}
+
+\begin{intuice}
+Šířka CI $=2z_{\alpha/2}\sigma/\sqrt n$. \emph{Klesá jako $1/\sqrt n$}, tedy abychom zúžili interval $10\times$, potřebujeme $100\times$ víc dat. Závisí na \emph{spolehlivosti} $1-\alpha$ (vyšší spolehlivost $\to$ širší interval) a~na~$\sigma$ (vyšší šum $\to$ širší interval).
+\end{intuice}
+
+\begin{poznamka}
+\textbf{Interpretace 95\,\% CI.} \emph{Náhodný} je interval (jeho meze závisí na vzorku), \emph{pevné} je neznámé $\mu$. Význam \uv{95\,\%}: kdybychom experiment opakovali mnohokrát, $\approx 95\,\%$ takto vypočtených intervalů by obsahovalo skutečné~$\mu$. \emph{Nelze} říct \uv{s pravděpodobností 95\,\% leží $\mu$ v tomto konkrétním intervalu} -- po výpočtu už není nic náhodné.
+\end{poznamka}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[width=0.85\linewidth,height=5.4cm,
+  xlabel={hodnota},ylabel={číslo experimentu},
+  xmin=8.5,xmax=11.5,ymin=0,ymax=21,
+  ytick={1,5,10,15,20},
+  title={\small Konfidenční intervaly: 20 simulací z $N(10,4)$, $n=25$, 95\,\% CI},
+]
+\addplot[red!70!black,thick,dashed,no marks] coordinates {(10,0) (10,21)};
+\node[anchor=south] at (axis cs:10,20.2) {\scriptsize $\mu=10$};
+\addplot[only marks,mark=|,mark size=4pt,green!50!black,thick,error bars/.cd,x dir=both,x explicit] table[x=xbar,y=idx,x error plus expr=\thisrow{upper}-\thisrow{xbar},x error minus expr=\thisrow{xbar}-\thisrow{lower}] {src/fig/ci_intervals_in.dat};
+\addplot[only marks,mark=|,mark size=4pt,red!70!black,thick,error bars/.cd,x dir=both,x explicit] table[x=xbar,y=idx,x error plus expr=\thisrow{upper}-\thisrow{xbar},x error minus expr=\thisrow{xbar}-\thisrow{lower}] {src/fig/ci_intervals_out.dat};
+\end{axis}
+\end{tikzpicture}
+\obrpopis{20 nezávislých 95\,\% konfidenčních intervalů $\bar X_n\pm 1{,}96\cdot 2/\sqrt{25}=\bar X_n\pm 0{,}784$ ze vzorků o velikosti $n=25$ z~$N(\mu=10,\sigma^2=4)$. \textcolor{green!50!black}{Zelené} intervaly obsahují $\mu=10$, \textcolor{red!70!black}{červený} (č.~2) ho mine. Pokrytí $19/20=95\,\%$ tu náhodou přesně odpovídá teoretické hladině (v~jiném běhu simulace by mohlo vyjít např.\ $18/20$ nebo $20/20$). Šířka všech intervalů je stejná ($\sigma$ známé), liší se jen poloha středu $\bar X_n$.}
+\end{center}
+
+\subsection{CI pro Bernoulliho parametr}
+
+V praxi často chceme CI pro \emph{podíl} $p$ (preferenční volby, podíl chybných výrobků). Pro $X_i\sim\mathrm{Bern}(p)$ je $\bar X_n=k/n$ bodový odhad a~$\Var(X_i)=p(1-p)$. Z~CLV:
+\[
+\frac{k/n-p}{\sqrt{p(1-p)/n}}\approx N(0,1).
+\]
+Po nahrazení neznámého $p(1-p)$ odhadem $\hat p(1-\hat p)$ (Slutského věta) máme přibližný CI
+\[
+\hat p\pm z_{\alpha/2}\sqrt{\frac{\hat p(1-\hat p)}{n}}.
+\]
+
+\begin{poznamka}
+Tato aproximace funguje dobře, pokud $n\hat p\ge 5$ a~$n(1-\hat p)\ge 5$ (cca \uv{aspoň 5 úspěchů a~5 neúspěchů}). Pro malé vzorky existují přesnější metody (Wilson, Clopper-Pearson), které nejsou v rozsahu okruhu.
+\end{poznamka}
+
+% ============================================================
+\section{Testování hypotéz}
+
+Místo odhadu konkrétní hodnoty zde rozhodujeme \emph{ano/ne} otázku: data podporují, nebo zamítají, nějakou hypotézu? Klasický příklad: \uv{je tato mince férová?}, \uv{je nový lék účinnější než placebo?}
+
+\subsection{Základní rámec}
+
+\begin{definice}[Nulová a~alternativní hypotéza, testová statistika]
+\leavevmode
+\begin{itemize}
+  \item \emph{Nulová hypotéza} $H_0$: \uv{defaultní, konzervativní} tvrzení o parametru (\uv{nic nového se neděje}). Např.\ $H_0\colon p=1/2$ pro férovou minci.
+  \item \emph{Alternativní hypotéza} $H_1$: tvrzení, které platí, pokud zamítneme $H_0$.
+  \item \emph{Testová statistika} $T=T(X_1,\dots,X_n)$: funkce dat, jejíž rozdělení \emph{za platnosti $H_0$} známe.
+  \item \emph{Kritický obor} $W$: množina hodnot $T$, pro které $H_0$ \emph{zamítáme}.
+\end{itemize}
+\end{definice}
+
+\begin{definice}[Chyby 1. a 2. druhu, hladina významnosti]
+\leavevmode
+\begin{itemize}
+  \item \emph{Chyba 1. druhu} (\uv{falešné zamítnutí}): zamítneme $H_0$, ačkoliv ve skutečnosti platí. Její pravděpodobnost značíme $\alpha=P(T\in W\mid H_0)$ a~nazýváme \emph{hladina významnosti} (signifikance).
+  \item \emph{Chyba 2. druhu} (\uv{falešné přijetí}): nezamítneme $H_0$, ačkoliv ve skutečnosti neplatí (platí $H_1$). Její pravděpodobnost značíme $\beta=P(T\notin W\mid H_1)$.
+  \item \emph{Síla testu} (power): $1-\beta=P(T\in W\mid H_1)$ -- pravděpodobnost správného zamítnutí.
+\end{itemize}
+\end{definice}
+
+\begin{intuice}
+$\alpha$ si \emph{volíme} (typicky $\alpha=0{,}05$ nebo $0{,}01$) a~podle ní stanovíme kritický obor. $\beta$ \emph{vyplyne} z volby $\alpha$, velikosti vzorku $n$ a skutečné polohy v~$H_1$. \emph{Vztah}: při fixním~$n$ se snížením $\alpha$ \emph{zvyšuje} $\beta$ (užší kritický obor $\to$ méně falešných zamítnutí, ale i méně skutečných objevů). Jediný způsob, jak snížit \emph{obojí} současně, je zvětšit vzorek.
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[width=0.85\linewidth,height=5.0cm,
+  xlabel={$T$ (testová statistika)},ylabel={hustota},
+  xmin=-4,xmax=7,ymin=0,ymax=0.5,
+  xtick={-3,-2,-1,0,1.645,3,4,5,6},xticklabels={$-3$,$-2$,$-1$,$0$,$c$,$3$,$4$,$5$,$6$},
+  title={\small Chyby 1. a 2. druhu: $H_0\!:T\sim N(0,1)$, $H_1\!:T\sim N(3,1)$},
+  samples=160,
+]
+\addplot[blue!70!black,thick,domain=-4:7] {1/sqrt(2*pi)*exp(-x^2/2)};
+\addplot[red!70!black,thick,dashed,domain=-4:7] {1/sqrt(2*pi)*exp(-(x-3)^2/2)};
+\addplot[name path=A1,draw=none,domain=1.645:5] {1/sqrt(2*pi)*exp(-x^2/2)};
+\addplot[name path=B1,draw=none,domain=1.645:5] {0};
+\addplot[red!40] fill between[of=A1 and B1];
+\addplot[name path=A2,draw=none,domain=-2:1.645] {1/sqrt(2*pi)*exp(-(x-3)^2/2)};
+\addplot[name path=B2,draw=none,domain=-2:1.645] {0};
+\addplot[blue!25] fill between[of=A2 and B2];
+\draw[dashed,gray] (axis cs:1.645,0) -- (axis cs:1.645,0.45);
+\node[blue!70!black,anchor=south] at (axis cs:0,0.42) {\small $H_0$};
+\node[red!70!black,anchor=south] at (axis cs:3,0.42) {\small $H_1$};
+\node[red!70!black,anchor=west] at (axis cs:2.0,0.06) {\small $\alpha$};
+\node[blue!70!black,anchor=east] at (axis cs:1.55,0.08) {\small $\beta$};
+\end{axis}
+\end{tikzpicture}
+\obrpopis{Chyby 1.\ a 2.\ druhu pro jednostranný test. $H_0\colon T\sim N(0,1)$ (\textcolor{blue!70!black}{modrý zvonec}), $H_1\colon T\sim N(3,1)$ (\textcolor{red!70!black}{červený, posunutý}). Kritická hodnota $c=z_{0{,}05}\approx 1{,}645$ (čárkovaná čára), kritický obor $W=[c,\infty)$. \textcolor{red!40}{Červená oblast} pod $H_0$ vpravo od~$c$ má míru $\alpha=0{,}05$ (\emph{chyba 1.~druhu}). \textcolor{blue!25}{Modrá oblast} pod $H_1$ vlevo od~$c$ má míru $\beta=\Phi(c-3)=\Phi(-1{,}355)\approx 0{,}088$ (\emph{chyba 2.~druhu}). Síla testu $1-\beta\approx 0{,}912$.}
+\end{center}
+
+\subsection{p-hodnota}
+
+\begin{definice}[p-hodnota]
+\emph{p-hodnota} pozorování $t^{\mathrm{obs}}=T(x_1,\dots,x_n)$ je pravděpodobnost (za~$H_0$), že bychom dostali výsledek \emph{minimálně tak extrémní} jako pozorovaný. Pro jednostranný test ve směru velkých hodnot: $p=P(T\ge t^{\mathrm{obs}}\mid H_0)$.
+\end{definice}
+
+\begin{intuice}
+Rozhodovací pravidlo: $p\le\alpha\Rightarrow$ zamítáme~$H_0$. Stejné jako porovnání $t^{\mathrm{obs}}\in W$, ale p-hodnota dává navíc \emph{kvantitativní} informaci -- \uv{jak silně} data $H_0$ porušují. \emph{Časté nedorozumění:} p-hodnota \emph{není} pravděpodobnost, že $H_0$ platí. Je to pravděpodobnost dat alespoň tak extrémních jako pozorovaná, za předpokladu, že $H_0$ platí.
+\end{intuice}
+
+\subsection{Příklad: test férovosti mince}
+
+\begin{priklad}[Test férovosti]
+\textbf{Zadání.} Hodili jsme mincí $n=100$krát a~padlo $65$ orlů. Je mince férová ($p=1/2$) na hladině $\alpha=0{,}05$?
+
+\textbf{Řešení.} $H_0\colon p=1/2$, $H_1\colon p\ne 1/2$ (oboustranný test).
+
+\textbf{Testová statistika.} Označme $K$ počet orlů ve~$n=100$ hodech. Za~$H_0$ je $K\sim\mathrm{Bin}(100,1/2)$ s~$E(K)=np_0=50$ a~$\Var(K)=np_0(1-p_0)=25$. Standardizace přes CLV dává
+\[
+T=\frac{K-np_0}{\sqrt{np_0(1-p_0)}}=\frac{65-50}{\sqrt{25}}=3,\qquad T\approx N(0,1)\ \text{za}\ H_0.
+\]
+
+\textbf{Kritický obor.} Pro oboustranný test $W=\{|T|\ge z_{\alpha/2}\}=\{|T|\ge 1{,}96\}$. Pozorujeme $|T|=3\in W$, takže $H_0$ \textbf{zamítáme}.
+
+\textbf{p-hodnota.} $p=P(|N(0,1)|\ge 3)=2(1-\Phi(3))\approx 2\cdot 0{,}00135=0{,}0027$. To je \emph{výrazně} menší než $0{,}05$, takže silné zamítnutí.
+
+\textbf{Závěr.} Na hladině $\alpha=0{,}05$ (i $0{,}01$) data nepodporují hypotézu férové mince.
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    width=11cm, height=5.4cm,
+    axis lines=middle,
+    xlabel={$t$}, ylabel={$\varphi(t)$},
+    xtick={-1.96,0,1.96,3}, xticklabels={$-1{,}96$,$0$,$1{,}96$,$3$},
+    ytick=\empty,
+    samples=200, domain=-4:4,
+    xmin=-4.3, xmax=4.3, ymin=0, ymax=0.47,
+    enlargelimits=false, clip=false,
+    every axis x label/.style={at={(current axis.right of origin)},anchor=west},
+    every axis y label/.style={at={(current axis.above origin)},anchor=south west},
+]
+  % levý ocas (t <= -1.96)
+  \addplot[draw=none, fill=red!55, fill opacity=0.3, domain=-4:-1.96]
+    {1/sqrt(2*pi)*exp(-x^2/2)} \closedcycle;
+  % pravý ocas (t >= 1.96)
+  \addplot[draw=none, fill=red!55, fill opacity=0.3, domain=1.96:4]
+    {1/sqrt(2*pi)*exp(-x^2/2)} \closedcycle;
+  % hustota N(0,1)
+  \addplot[blue!70!black, thick, domain=-4:4] {1/sqrt(2*pi)*exp(-x^2/2)};
+  % pozorovaná hodnota statistiky T = 3 (K=65, T=(65-50)/5=3)
+  \addplot[black, thick, dashed] coordinates {(3,0) (3,0.44)};
+  \node[anchor=south] at (axis cs:3,0.44) {\small $T=3$};
+  % popisky kritického oboru
+  \node[red!60!black, anchor=north] at (axis cs:-2.8,0.1) {\small $\alpha/2$};
+  \node[red!60!black, anchor=north] at (axis cs:2.6,0.1) {\small $\alpha/2$};
+\end{axis}
+\end{tikzpicture}
+\obrpopis{Kritický obor oboustranného testu při~$\alpha=0{,}05$ jsou oba ocasy
+za~$\pm 1{,}96$ (vybarvené, dohromady míra~$0{,}05$). Pozorovaná hodnota $T=3$
+leží daleko v~pravém ocasu ($3>1{,}96$), takže $H_0$ (férová mince) na~hladině~$5\,\%$
+\emph{zamítáme}.}
+\end{center}
+\end{priklad}
+
+\begin{poznamka}
+\textbf{Obecný z-test pro střední hodnotu.} Test férovosti je speciální případ. Pro i.i.d.\ výběr se známým rozptylem $\sigma^2$ a~$H_0\colon\mu=\mu_0$ použijeme statistiku $T=(\bar X_n-\mu_0)\sqrt n/\sigma$, která je za~$H_0$ podle CLV přibližně $N(0,1)$. Oboustranný kritický obor je $\{|T|\ge z_{\alpha/2}\}$, jednostranný (proti $H_1\colon\mu>\mu_0$) $\{T\ge z_{\alpha}\}$. Test je tedy \uv{obrácený} konfidenční interval: $H_0$ na hladině $\alpha$ zamítneme oboustranně právě tehdy, když $\mu_0$ neleží uvnitř $(1-\alpha)$-CI $\bar X_n\pm z_{\alpha/2}\sigma/\sqrt n$.
+\end{poznamka}
+
+\subsection{Test dobré shody (chí-kvadrát) -- nad rámec požadavků}
+
+\begin{poznamka}
+Následující věta je \emph{nad rámec požadavků} okruhu (testování hypotéz vyžaduje jen základní rámec, chyby a hladinu). Uvádíme ji jako konkrétní příklad testu z~přednášky NMAI059; statistické testy včetně chí-kvadrát testu dále rozvíjí okruh Strojové učení.
+\end{poznamka}
+
+\begin{veta}[Chí-kvadrát test dobré shody]
+Mějme rozdělení do $K$ kategorií s~teoretickými pravděpodobnostmi $p_1,\dots,p_K$ za~$H_0$ ($\sum p_i=1$). Pozorovali jsme četnosti $N_1,\dots,N_K$ z~$n=\sum N_i$ pokusů. Statistika
+\[
+\chi^2=\sum_{i=1}^K\frac{(N_i-np_i)^2}{np_i}
+\]
+má za~$H_0$ pro velká~$n$ rozdělení $\chi^2_{K-1}$ (chí-kvadrát s~$K-1$ stupni volnosti). Zamítáme $H_0$, pokud $\chi^2\ge\chi^2_{K-1,1-\alpha}$ (kvantil úrovně $1-\alpha$). Aproximace se obvykle považuje za dostatečnou, když všechny očekávané četnosti $np_i\ge 5$.
+\end{veta}
+
+\begin{intuice}
+Každý člen $(N_i-np_i)^2/(np_i)$ srovnává pozorovanou a očekávanou četnost v kategorii $i$. Velký rozdíl v některé kategorii vyrobí velký příspěvek. Stupně volnosti jsou $K-1$ (ne $K$), protože jeden vztah $\sum N_i=n$ ubírá stupeň volnosti.
+\end{intuice}
+
+% ============================================================
+\section*{Shrnutí}
+\addcontentsline{toc}{section}{Shrnutí}
+
+\begin{poznamka}
+\textbf{Klíčové vlastnosti a vzorce (přehled k~SZZ).} Telegrafický výčet klíčových definic, vět a vzorců okruhu M5. Obě reálné SZZ otázky (léto 2023: linearita $E$; léto 2025: CLV + aplikace) jsou v~bloku Střední hodnota a Limitní věty.
+
+\smallskip
+\emph{Pravděpodobnostní prostor a základní pravidla.}
+\begin{itemize}
+  \item Trojice $(\Omega,\mathcal{F},P)$: $\Omega$ -- elementární jevy, $\mathcal{F}$ -- $\sigma$-algebra jevů, $P\colon\mathcal{F}\to[0,1]$ -- pravděpodobnost se~\textbf{spočetnou aditivitou} ($P(\bigcup A_i)=\sum P(A_i)$ pro disjunktní $A_i$) a~$P(\Omega)=1$.
+  \item Klasický prostor: $P(A)=|A|/|\Omega|$ (symetrický, konečný $\Omega$); geometrický: $P(A)=\mathrm{m}(A)/\mathrm{m}(\Omega)$.
+  \item Odvozená pravidla: $P(\emptyset)=0$; $P(A^c)=1-P(A)$; monotonie $A\subseteq B\Rightarrow P(A)\le P(B)$; $P(A\cup B)=P(A)+P(B)-P(A\cap B)$; subaditivita $P(\bigcup A_i)\le\sum P(A_i)$.
+  \item \textbf{Inkluze-exkluze:} $P(\bigcup_{i=1}^n A_i)=\sum_{S\ne\emptyset}(-1)^{|S|+1}P(\bigcap_{i\in S}A_i)$.
+\end{itemize}
+
+\smallskip
+\emph{Podmíněná pravděpodobnost, nezávislost, Bayes.}
+\begin{itemize}
+  \item $P(A\mid B)=P(A\cap B)/P(B)$ pro $P(B)>0$; multiplikační pravidlo $P(A\cap B)=P(A\mid B)P(B)$.
+  \item \textbf{Nezávislost:} $A,B$ nezávislé $\iff P(A\cap B)=P(A)P(B)$ ($\iff P(A\mid B)=P(A)$ pro $P(B)>0$). Kolekce $A_1,\dots,A_n$ navzájem nezávislá $\iff$ \emph{každá} podmnožina splňuje podmínku součinu -- po dvojicích nestačí!
+  \item \textbf{Věta o úplné pravděpodobnosti:} rozklad $B_1,\dots,B_n$ prostoru $\Omega$: $P(A)=\sum_i P(A\mid B_i)P(B_i)$.
+  \item \textbf{Bayesův vzorec:} $P(B_j\mid A)=P(A\mid B_j)P(B_j)\big/\sum_i P(A\mid B_i)P(B_i)$ -- \uv{obrátí} podmiňování (apriorní $\times$ věrohodnost, normalizováno).
+\end{itemize}
+
+\smallskip
+\emph{Náhodné veličiny a jejich popis.}
+\begin{itemize}
+  \item N.v.\ $X\colon\Omega\to\R$; \textbf{distribuční funkce} $F_X(x)=P(X\le x)$: neklesající, zprava spojitá, $F_X(-\infty)=0$, $F_X(+\infty)=1$; $P(a<X\le b)=F_X(b)-F_X(a)$.
+  \item \textbf{Diskrétní:} PMF $p_X(k)=P(X=k)$; $F_X$ je schodovitá, $\sum_k p_X(k)=1$.
+  \item \textbf{Spojitá:} hustota $f_X\ge 0$ s~$F_X(x)=\int_{-\infty}^{x}f_X(t)\,\mathrm{d}t$; $P(a\le X\le b)=\int_a^b f_X$; $f_X$ \emph{není} pravděpodobnost (může být $>1$).
+\end{itemize}
+
+\smallskip
+\emph{Střední hodnota a rozptyl.}
+\begin{itemize}
+  \item $E(X)=\sum_k k\,p_X(k)$ (diskrétní) resp.\ $\int x f_X(x)\,\mathrm{d}x$ (spojitá), existuje-li absolutně.
+  \item \textbf{Linearita střední hodnoty} (SZZ léto~2023): $E\bigl(\sum_i a_i X_i+b\bigr)=\sum_i a_i E(X_i)+b$ -- \emph{bez ohledu na nezávislost}. Indikátor: $E(I_A)=P(A)$, takže počítání přes indikátory funguje i~pro závislé n.v.
+  \item \textbf{Nezávislost n.v.:} $P(X\le x,Y\le y)=P(X\le x)P(Y\le y)$ pro všechna $x,y$ (diskrétní: $P(X=x,Y=y)=P(X=x)P(Y=y)$).
+  \item \textbf{Střední hodnota součinu nezávislých:} $E(XY)=E(X)E(Y)$ (bez nezávislosti obecně neplatí; z~$E(XY)=E(X)E(Y)$ naopak nezávislost neplyne).
+  \item \textbf{Markovova nerovnost} (pro $X\ge 0$, $a>0$): $P(X\ge a)\le E(X)/a$.
+  \item \textbf{Rozptyl:} $\Var(X)=E\bigl((X-\mu)^2\bigr)=E(X^2)-E(X)^2$; $\sigma(X)=\sqrt{\Var(X)}$; $\Var(aX+b)=a^2\Var(X)$.
+  \item \textbf{Rozptyl součtu:} $\Var(X+Y)=\Var(X)+\Var(Y)+2\Cov(X,Y)$; pro nezávislé $\Cov=0$, takže $\Var(\sum_i X_i)=\sum_i\Var(X_i)$ a~$\Var(\bar X_n)=\sigma^2/n$. Pozor: $\Cov=0\not\Rightarrow$ nezávislost.
+  \item \textbf{Čebyševova nerovnost:} $P(|X-\mu|\ge k)\le\sigma^2/k^2$ (z Markova na $(X-\mu)^2$).
+\end{itemize}
+
+\smallskip
+\emph{Konkrétní rozdělení ($E$ a $\Var$).}
+\begin{itemize}
+  \item $\mathrm{Bern}(p)$: $\{0,1\}$, PMF $p^k(1-p)^{1-k}$; $E=p$, $\Var=p(1-p)$.
+  \item $\mathrm{Bin}(n,p)$: počet úspěchů v~$n$ nezávislých Bernoulli pokusech, PMF $\binom{n}{k}p^k(1-p)^{n-k}$; $E=np$, $\Var=np(1-p)$. Aproximace Poissonem pro $n$ velké, $p$ malé, $\lambda=np$ rozumné.
+  \item $\mathrm{Geom}(p)$: počet pokusů do~prvního úspěchu (vč.\ úspěšného), PMF $(1-p)^{k-1}p$; $E=1/p$, $\Var=(1-p)/p^2$. Paměťová vlastnost: $P(X>m+k\mid X>m)=P(X>k)$.
+  \item $\mathrm{Pois}(\lambda)$: počet vzácných událostí, PMF $e^{-\lambda}\lambda^k/k!$; $E=\lambda$, $\Var=\lambda$.
+  \item $\mathrm{Exp}(\lambda)$: hustota $\lambda e^{-\lambda x}$ ($x\ge 0$), CDF $1-e^{-\lambda x}$; $E=1/\lambda$, $\Var=1/\lambda^2$. Paměťová vlastnost (spojitý protějšek Geom).
+  \item $N(\mu,\sigma^2)$: hustota $\frac{1}{\sigma\sqrt{2\pi}}\exp\!\bigl(-\tfrac{(x-\mu)^2}{2\sigma^2}\bigr)$; $E=\mu$, $\Var=\sigma^2$. Standardizace: $(X-\mu)/\sigma\sim N(0,1)$; CDF $\Phi$ (tabulkovaná). Lineární transformace: $aX+b\sim N(a\mu+b,a^2\sigma^2)$. Pravidla $1\sigma/2\sigma/3\sigma$: $68\,\%$/$95\,\%$/$99{,}7\,\%$.
+\end{itemize}
+
+\smallskip
+\emph{Limitní věty.}
+\begin{itemize}
+  \item \textbf{Zákon velkých čísel (ZVČ):} $X_1,X_2,\dots$ i.i.d.\ s~$E(X_i)=\mu$, $\Var(X_i)=\sigma^2$ $\Rightarrow$ $\bar X_n\xrightarrow{P}\mu$, tj.\ $P(|\bar X_n-\mu|\ge\varepsilon)\to 0$ pro každé $\varepsilon>0$. Důkaz: Čebyšev + $\Var(\bar X_n)=\sigma^2/n\to 0$.
+  \item \textbf{Centrální limitní věta (CLV)} (SZZ léto~2025): $X_1,X_2,\dots$ i.i.d.\ s~$\mu,\sigma^2>0$ $\Rightarrow$ $Y_n=\frac{S_n-n\mu}{\sqrt{n}\,\sigma}\xrightarrow{d}N(0,1)$, tj.\ $\lim_{n\to\infty}P(Y_n\le x)=\Phi(x)$ pro všechna $x$. \emph{Rozdělení $X_i$ je libovolné!}
+  \item \textbf{Aplikační forma CLV:} $S_n=X_1+\dots+X_n\approx N(n\mu,n\sigma^2)$, tedy $P(S_n\le s)\approx\Phi\bigl((s-n\mu)/(\sqrt{n}\sigma)\bigr)$. Předpoklady: nezávislost + stejné rozdělení + konečné $\mu,\sigma^2$. Konkrétní tvar rozdělení nezáleží.
+\end{itemize}
+
+\smallskip
+\emph{Bodové odhady.}
+\begin{itemize}
+  \item \textbf{Nestrannost:} $E(\hat\theta_n)=\theta$; \textbf{konzistence:} $\hat\theta_n\xrightarrow{P}\theta$; \textbf{MSE} $=\Var(\hat\theta_n)+\mathrm{bias}^2$.
+  \item \textbf{Výběrový průměr} $\bar X_n$: nestranný + konzistentní odhad $\mu$ (ze ZVČ), $\Var(\bar X_n)=\sigma^2/n$.
+  \item \textbf{Výběrový rozptyl} $S_n^2=\tfrac{1}{n-1}\sum(X_i-\bar X_n)^2$: nestranný odhad $\sigma^2$ (Besselova korekce -- jmenovatel $n-1$, ne $n$!).
+  \item \textbf{MLE:} $\hat\theta=\arg\max_\theta\,\ell(\theta)$, kde $\ell(\theta)=\sum_{i=1}^n\log f_\theta(x_i)$ (log-věrohodnost). Pro $\mathrm{Bern}(p)$: $\hat p=k/n$; pro $\mathrm{Pois}(\lambda)$: $\hat\lambda=\bar x_n$. MLE je (za podmínek regularity) konzistentní a asymptoticky normální.
+\end{itemize}
+
+\smallskip
+\emph{Intervalové odhady (z CLV).}
+\begin{itemize}
+  \item \textbf{CI pro $\mu$ ($\sigma$ znám):} $\bar X_n\pm z_{\alpha/2}\,\sigma/\sqrt{n}$, kde $\Phi(z_{\alpha/2})=1-\alpha/2$; pro $\alpha=0{,}05$: $z_{0{,}025}\approx 1{,}96$.
+  \item \textbf{CI pro Bernoulliho podíl:} $\hat p\pm z_{\alpha/2}\sqrt{\hat p(1-\hat p)/n}$ (funguje pro $n\hat p\ge 5$, $n(1-\hat p)\ge 5$).
+  \item Šířka CI $\propto 1/\sqrt{n}$ (pro $10\times$ užší CI potřeba $100\times$ víc dat); vyšší spolehlivost $1-\alpha\uparrow\Rightarrow$ širší interval.
+  \item Interpretace: \emph{interval} je náhodný; $1-\alpha$ je podíl intervalů přes opakované experimenty, které $\theta$ obsahují -- ne pravděpodobnost pro konkrétní interval.
+\end{itemize}
+
+\smallskip
+\emph{Testování hypotéz.}
+\begin{itemize}
+  \item \textbf{Rámec:} $H_0$ (nulová, konzervativní) vs.\ $H_1$ (alternativní); testová statistika $T$ se~\emph{daným} rozdělením za~$H_0$; kritický obor $W$ -- množina hodnot $T$, pro které $H_0$ zamítáme.
+  \item \textbf{Chyba 1. druhu} (falešné zamítnutí): $\alpha=P(T\in W\mid H_0)$ -- \emph{hladina významnosti}; typicky $\alpha=0{,}05$ nebo $0{,}01$.
+  \item \textbf{Chyba 2. druhu} (falešné přijetí): $\beta=P(T\notin W\mid H_1)$; \textbf{síla testu} $1-\beta$. Snížení $\alpha$ (při fixním $n$) zvyšuje $\beta$ -- lze snížit obojí jen zvětšením $n$.
+  \item \textbf{p-hodnota:} $p=P(T\ge t^{\mathrm{obs}}\mid H_0)$ (jednostranný); zamítáme $H_0$ při $p\le\alpha$. p-hodnota \emph{není} pravděpodobnost, že $H_0$ platí.
+  \item \textbf{Postup z-testu pro střední hodnotu:} statistika $T=((\bar X_n-\mu_0)\sqrt{n})/\sigma$, za $H_0$ je $T\approx N(0,1)$; kritický obor oboustranný $\{|T|\ge z_{\alpha/2}\}$.
+  \item Chí-kvadrát test dobré shody (nad rámec): $\chi^2=\sum(N_i-np_i)^2/(np_i)\sim\chi^2_{K-1}$ za $H_0$.
+\end{itemize}
+\end{poznamka}
+
+\section*{Zdroje}
+\addcontentsline{toc}{section}{Zdroje}
+
+{\raggedright
+\begin{itemize}
+  \item R.~Šámal: \emph{NMAI059 Pravděpodobnost a statistika~1}, skripta k~přednášce, MFF UK, verze 14.~6.~2025 (primární zdroj výkladu: pravděpodobnostní prostor, náhodné veličiny, rozdělení, limitní věty, odhady a testování hypotéz).\\ \url{https://iuuk.mff.cuni.cz/~samal/vyuka/2425/PSt1/skripta.pdf}
+  \item K.~Král, M.~Mareš, R.~Šámal: \emph{Řešená cvičení: NMAI059 Pravděpodobnost a statistika~1}, MFF UK, 2021 (sbírka řešených úloh ke cvičením; typové úlohy).
+  \item Videa odkazovaná v~textu: 3Blue1Brown, \emph{Bayes theorem, the geometry of changing beliefs}; \emph{The medical test paradox, and redesigning Bayes' rule}; \emph{Binomial distributions} a \emph{Why ``probability of 0'' does not mean ``impossible''} (série \emph{Probabilities of probabilities}); \emph{Why $\pi$ is in the normal distribution}; \emph{But what is the Central Limit Theorem?}; \emph{Convolutions: Why X+Y in probability is a beautiful mess} (YouTube, odkazy u~příslušných témat).
+  \item MFF UK: požadavky ke státní závěrečné zkoušce (Informatika, Bc.) a zadání otázek z~minulých termínů.\\ \url{https://www.mff.cuni.cz/cs/studenti/bakalarske-studium/statni-zaverecne-zkousky/bakalarske-statni-zkousky-studijniho-programu-informatika}
+\end{itemize}
+\par}
+
+\end{document}

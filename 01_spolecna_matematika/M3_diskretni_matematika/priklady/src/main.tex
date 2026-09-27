@@ -1,0 +1,35 @@
+% !TeX program = lualatex
+% Agregátor reálných otázek SZZ pro okruh M3. Jednotlivé otázky jsou v souborech q_*.tex.
+% Sestavení: ./build.sh 01_spolecna_matematika/M3_diskretni_matematika/priklady   (nebo cd .../priklady && latexmk)
+\documentclass[11pt,a4paper]{article}
+\usepackage{szzpriklady}
+% Build běží z adresáře priklady/ (CWD), obrázky jsou v src/fig/.
+\graphicspath{{src/fig/}{fig/}}
+
+\title{Příklady otázek -- Diskrétní matematika\\[0.3em]\large Reálné otázky ze SZZ 2022--2026 (M3)}
+\author{Jakub Klesa}
+\date{Pokryté předměty: NDMI002 (Diskrétní matematika), NDMI011 (Kombinatorika a grafy 1)}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\bigskip
+
+\begin{poznamka}
+Tento dokument obsahuje reálné otázky z minulých termínů SZZ (2022--2026) zařazené do
+okruhu M3. U otázek s obrázkem je grafika oříznutá z originálního PDF (viz odkaz na
+zdroj). Text, číselná data a tabulky jsou přepsané věrně.
+Zadání i oficiální náčrty řešení pocházejí ze sad zveřejněných na webu MFF UK:\par
+{\raggedright\url{https://www.mff.cuni.cz/cs/studenti/bakalarske-studium/statni-zaverecne-zkousky/bakalarske-statni-zkousky-studijniho-programu-informatika}\par}
+Náčrty označené jako doplněné jsou vlastní, oficiální sada je k~dané otázce neobsahuje.
+\end{poznamka}
+\bigskip
+
+% === Otázky (chronologicky). Doplň \input řádky a soubory q_*.tex do src/. ===
+% Příklad: \input{q_2024-leto-28_bayesovske-site}
+% ZACATEK-OTAZEK
+\input{src/q_2022-leto-04_zobrazeni}
+\input{src/q_2025-podzim-04_binarni-relace}
+% KONEC-OTAZEK
+
+\end{document}

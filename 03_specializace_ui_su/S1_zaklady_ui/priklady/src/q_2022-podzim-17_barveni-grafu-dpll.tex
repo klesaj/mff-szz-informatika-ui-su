@@ -1,0 +1,37 @@
+% Zdroj: PDF priklady-podzim-2022.pdf, fyzická str. 7. Značka: specializace UI-SU. Zařazeno: S1 (barvení grafu jako SAT / DPLL).
+\section{Barvení grafu, DPLL}
+\szzotazka{podzim 2022}{17}{Barvení grafu, DPLL}
+
+\noindent\textbf{Zadání.}\par
+Nechť $G = (V, E)$ je neorientovaný graf s $N$ vrcholy ($|V| = N$).
+\begin{enumerate}[nosep]
+  \item Definujte pojem konjunktivní normální forma (CNF) formule ve výrokové logice.
+  \item Navrhněte formuli ve výrokové logice, která je splnitelná, právě když je graf $G$ obarvitelný $k$ barvami. Formuli popište obecně v CNF pro libovolný graf $G$ a libovolné $k > 0$.
+  \item Napište formuli pro úplný graf se třemi vrcholy a pro $k = 3$. Na této formuli demonstrujte použití algoritmu DPLL.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}[nosep]
+  \item Formule je v \emph{konjunktivní normální formě (CNF)}, je-li to konjunkce klauzulí, kde každá klauzule je disjunkce literálů a literál je výroková proměnná nebo její negace.
+  \item Zavedeme výrokové proměnné $x_{v,c}$ pro $v \in V$ a $c \in \{1, \dots, k\}$ s významem ,,vrchol $v$ má barvu $c$``. Klauzule:
+  \begin{itemize}[nosep]
+    \item Každý vrchol má alespoň jednu barvu: pro každý vrchol $v$ klauzule $(x_{v,1} \vee \cdots \vee x_{v,k})$.
+    \item Sousedé nemají stejnou barvu: pro každou hranu $\{u, v\} \in E$ a každou barvu $c$ klauzule $(\neg x_{u,c} \vee \neg x_{v,c})$.
+  \end{itemize}
+  Formule je konjunkcí všech těchto klauzulí, takže je v CNF. Lze volitelně přidat i podmínku ,,nejvýše jedna barva na vrchol`` (pro každý vrchol $v$ a dvojici barev $c \neq c'$ klauzuli $\neg x_{v,c} \vee \neg x_{v,c'}$), ale pro ekvivalenci splnitelnost~$=$~obarvitelnost tyto klauzule nejsou nutné: pokud vrchol dostane více barev, stačí jednu z nich ponechat.
+  \item Úplný graf $K_3$ má vrcholy $1, 2, 3$ a hrany $\{1,2\}, \{1,3\}, \{2,3\}$; pro $k = 3$ máme proměnné $x_{v,c}$ s $v, c \in \{1, 2, 3\}$ (celkem $9$ proměnných). Pokrývací klauzule:
+  \[
+    (x_{1,1} \vee x_{1,2} \vee x_{1,3}), \quad (x_{2,1} \vee x_{2,2} \vee x_{2,3}), \quad (x_{3,1} \vee x_{3,2} \vee x_{3,3}).
+  \]
+  Klauzule různosti pro každou hranu a barvu, např. pro hranu $\{1,2\}$:
+  \[
+    (\neg x_{1,1} \vee \neg x_{2,1}), \quad (\neg x_{1,2} \vee \neg x_{2,2}), \quad (\neg x_{1,3} \vee \neg x_{2,3}),
+  \]
+  obdobně pro hrany $\{1,3\}$ a $\{2,3\}$. Formule je splnitelná, neboť $K_3$ je $3$-obarvitelný (např.\ barvy $1, 2, 3$ vrcholům $1, 2, 3$).
+
+  \textbf{Běh DPLL.} Rozhodneme $x_{1,1} = \text{true}$. Jednotkovou propagací přes klauzule různosti hran $\{1,2\}$ a $\{1,3\}$ s barvou~$1$ (klauzule $\neg x_{1,1} \vee \neg x_{2,1}$ a $\neg x_{1,1} \vee \neg x_{3,1}$ se stanou jednotkovými) vynutíme $x_{2,1} = \text{false}$ a $x_{3,1} = \text{false}$. Rozhodneme $x_{2,2} = \text{true}$; jednotková propagace vynutí $x_{1,2} = \text{false}$ (už splněno) a $x_{3,2} = \text{false}$. Vrcholu~$3$ pak v jeho pokrývací klauzuli po eliminaci $x_{3,1}$ a $x_{3,2}$ zbývá jediný literál $x_{3,3}$ (jednotková klauzule), takže $x_{3,3} = \text{true}$. Splňující ohodnocení: $x_{1,1}, x_{2,2}, x_{3,3} = \text{true}$, ostatní $\text{false}$, což odpovídá obarvení vrcholů $1, 2, 3$ barvami $1, 2, 3$. Roli zde hraje hlavně jednotková klauzule (vynucené dosazení); backtracking není při tomto pořadí rozhodnutí potřeba, protože každé rozhodnutí vede ke konzistentnímu rozšíření.
+\end{enumerate}
+
+\medskip
+\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu.)}

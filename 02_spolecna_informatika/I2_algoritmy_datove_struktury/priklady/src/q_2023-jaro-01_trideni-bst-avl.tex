@@ -1,0 +1,45 @@
+% Zdroj: PDF priklady-jaro-2023.pdf, fyzická str. 1. Značka: neznačená starší sada (jaro 2023). Zařazeno: I2.
+\section{Třídění}
+\szzotazka{jaro 2023}{1}{Třídění (BST/AVL, složitost)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+\item Popište, jak pomocí binárního vyhledávacího stromu setřídit (uspořádat vzestupně)
+  posloupnost $x_1, \dots, x_n$ navzájem různých prvků.
+\item Co se změní, pokud se prvky mohou opakovat?
+\item Co z toho plyne pro minimální možnou složitost operací s vyhledávacím stromem?
+  Předpokládejme přitom, že klíče ve stromu je možné pouze porovnávat.
+\item Jakou bude mít váš algoritmus z bodu 1 časovou složitost, pokud jako strom použijeme
+  AVL strom a prvky posloupnosti budou řetězce délky $L$?
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textbf{1)} Prvky $x_1,\dots,x_n$ postupně vložíme do zprvu prázdného binárního
+vyhledávacího stromu a~pak strom projdeme \emph{in-order} (levý podstrom, vrchol, pravý
+podstrom). Z~uspořádací vlastnosti plyne, že in-order průchod vypíše klíče vzestupně.
+Vložení stojí $O(h)$, průchod $\Theta(n)$. S~nevyvažovaným stromem může vzniknout liána
+(např.\ pro už setříděný vstup) a~čas je až $\Theta(n^2)$; s~vyvažovaným stromem (AVL)
+je $h=\Theta(\log n)$ a~celé třídění trvá $\Theta(n\log n)$.
+
+\textbf{2)} Uspořádací vlastnost s~ostrými nerovnostmi ($<$ vlevo, $>$ vpravo) stejné
+klíče nepřipouští. Možnosti: ve vrcholu držet \emph{počet výskytů} klíče a~při průchodu
+ho vypsat tolikrát; nebo povolit rovnost na jedné straně ($\le$); nebo klíče
+zjednoznačnit dvojicí $(x_i, i)$ porovnávanou lexikograficky (třídění je pak navíc
+stabilní). Složitost se nemění.
+
+\textbf{3)} Třídění stromem je $n$ operací \textsc{Insert} a~jeden in-order průchod za
+$O(n)$, který nic neporovnává. Porovnávací třídění ale potřebuje v~nejhorším případě
+$\Omega(n\log n)$ porovnání (rozhodovací strom má aspoň $n!$ listů, jeho hloubka je
+aspoň $\log_3 n! = \Omega(n\log n)$). Kdyby šlo $n$ vložení provést v~čase
+$o(n\log n)$, porušili bychom tento dolní odhad. Operace \textsc{Insert} proto
+v~porovnávacím modelu nemůže mít (ani amortizovaně) složitost $o(\log n)$;
+logaritmická složitost operací AVL stromu je asymptoticky optimální.
+
+\textbf{4)} Porovnání dvou řetězců délky $L$ stojí $O(L)$ (znak po znaku). Vložení
+do AVL stromu udělá $O(\log n)$ porovnání, tedy $O(L\log n)$, a~$n$ vložení
+$O(nL\log n)$. In-order průchod vypíše $n$ řetězců celkové délky $nL$ za $O(nL)$.
+Celkem $O(nL\log n)$.
+
+\medskip
+\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu.)}

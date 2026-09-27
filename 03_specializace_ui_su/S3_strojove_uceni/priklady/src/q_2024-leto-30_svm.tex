@@ -1,0 +1,31 @@
+% Zdroj: PDF priklady-leto-2024.pdf, fyzická str. 24 (zadání), obrázek str. 25. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S3.
+\section{Metoda podpůrných vektorů (SVM)}
+\szzotazka{léto 2024}{30}{Metoda podpůrných vektorů (SVM)}
+
+\noindent\textbf{Zadání.}\par
+Uvažujme data se dvěmi příznaky, která chceme klasifikovat do dvou tříd. Data pro třídu A jsou
+na pozicích $(1,1)$, $(2,2)$ a $(2,0)$, data pro třídu B jsou na pozicích $(0,0)$, $(1,0)$ a $(0,1)$.
+Data jsou také zobrazena na obrázku níže. Třída A je označena jako křížek ($\times$), třída B jako
+kolečko ($\bullet$).
+
+\begin{center}\includegraphics[width=0.6\linewidth]{svm.png}\end{center}
+
+\begin{enumerate}
+  \item Popište, jak fungují a jak se trénují lineární support vector machines (metoda podpůrných
+    vektorů) v případě, že předpokládáme, že data jsou lineárně separabilní.
+  \item Na základě dat výše zakreslete přibližnou rozhodovací hranici linárního SVM, která odděluje
+    tyto dvě třídy. Nemusíte nic počítat.
+  \item Aniž byste cokoliv počítali, vysvětlete, jak přidání nového bodu $(3,3)$ do třídy A ovlivní
+    rozhodovací hranici lineárního SVM.
+  \item Vylepšilo by na datech uvedených výše použití RBF jádra klasifikaci? Zakreslete nějaký
+    dataset, kde by RBF jádra pomohla.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, separátor ověřen řešičem SVM (\texttt{sklearn}).)}\par
+\begin{enumerate}[nosep]
+  \item Lineární SVM hledá oddělující přímku (obecně nadrovinu) s~\emph{maximálním marginem} -- největším odstupem od nejbližších bodů obou tříd. Řeší úlohu kvadratického programování $\min\tfrac12\|\mathbf{w}\|^2$ za podmínek $t_i(\mathbf{w}^\top \mathbf{x}_i+b)\ge 1$. Hranici určují \emph{podpůrné vektory} (body s~nenulovým multiplikátorem); ty leží přesně na okraji marginu, obráceně to platit nemusí.
+  \item Nejbližší body třídy A leží na přímce $x_1+x_2=2$ ($(1,1)$ a~$(2,0)$), nejbližší body třídy B na $x_1+x_2=1$ ($(1,0)$ a~$(0,1)$). Maximálně marginová hranice je rovnoběžka uprostřed, $x_1+x_2=1{,}5$: bod $(1,1)$ má od úsečky $(1,0)$--$(0,1)$ (leží v~konvexním obalu třídy B) vzdálenost $1/\sqrt2$, takže žádná oddělující přímka nemá větší margin než polovinu, a~tato přímka ho dosahuje (kanonicky $\mathbf{w}=(2,2)$, $b=-3$, margin $1/(2\sqrt2)\approx0{,}354$). Podpůrné vektory (s~nenulovým multiplikátorem) vrací řešič $(1,1)$ ze třídy A a~$(1,0),(0,1)$ ze třídy B; bod $(2,0)$ leží na marginu také.
+  \item Bod $(3,3)$ leží daleko od hranice na správné straně, není tedy podpůrným vektorem -- rozhodovací hranice se \emph{nezmění}.
+  \item Data jsou už lineárně separabilní, takže RBF jádro klasifikaci nezlepší (spíš by hrozilo přeučení). RBF pomáhá u~\emph{nelineárně} oddělitelných dat -- např. jedna třída tvoří shluk uvnitř a~druhá prstenec kolem něj (soustředné kružnice).
+\end{enumerate}

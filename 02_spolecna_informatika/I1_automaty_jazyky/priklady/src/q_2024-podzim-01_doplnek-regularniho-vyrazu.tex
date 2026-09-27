@@ -1,0 +1,47 @@
+% Zdroj: PDF priklady-podzim-2024.pdf, fyzická str. 1-2. Značka: společné okruhy. Zařazeno: I1.
+% Obrázky: 3 stavové diagramy oříznuty z PDF (NFA A + DFA B ze str. 1, doplňkový DFA C ze str. 2).
+\section{Doplněk regulárního výrazu}
+\szzotazka{podzim 2024}{1}{Doplněk regulárního výrazu (NFA/DFA, podmnožinová konstrukce, doplněk)}
+
+\noindent\textbf{Zadání.}\par
+Mějme následující regulární výraz nad abecedou $\Sigma = \{a, b\}$:
+\[ R = ((a+b)(a+b))^* ab. \]
+Označme jako $L$ regulární jazyk popsaný výrazem $R$.
+\begin{enumerate}
+\item Sestrojte (co nejmenší) \textit{nedeterministický} konečný automat $A$
+  rozpoznávající jazyk $L$.
+\item Pomocí podmnožinové konstrukce převeďte automat $A$ na \textit{deterministický}
+  konečný automat $B$.
+\item Z~automatu $B$ sestrojte \textit{deterministický} konečný automat $C$
+  rozpoznávající \textit{doplněk} jazyka $L$.
+\end{enumerate}
+Sestrojené automaty $A$, $B$ a~$C$ znázorněte pomocí stavových diagramů.
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+\item Nejmenší NFA má 4 stavy: $A = (\{q_0, q_1, q_2, q_F\}, \{a, b\}, \delta_A, q_0,
+  \{q_F\})$, kde $\delta_A$ popíšeme stavovým diagramem:
+  \begin{center}\includegraphics[width=0.75\linewidth]{doplnek-nfa-a.png}\end{center}
+
+\emergencystretch=1.5em
+\item Výsledkem podmnožinové konstrukce je následující DFA: $B = (\{\{q_0\},\allowbreak \{q_1\},\allowbreak
+  \{q_1, q_2\},\allowbreak \{q_0, q_F\}\},\allowbreak \{a, b\},\allowbreak \delta_B, q_0, \{\{q_0, q_F\}\})$, kde
+  $\delta_B$ popíšeme stavovým diagramem:
+  \begin{center}\includegraphics[width=0.8\linewidth]{doplnek-dfa-b.png}\end{center}
+
+\item Stačí zaměnit přijímající a~nepřijímající stavy:
+  \begin{center}\includegraphics[width=0.8\linewidth]{doplnek-dfa-c.png}\end{center}
+  (Všimněte si, že přechodová funkce automatu $B$ je totální, proto není třeba
+  přidávat FAIL stav.)
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} $L$ tvoří
+slova sudé délky končící na $ab$. Stav $q_0$ znamená „přečten sudý počet znaků``,
+$q_1$ „lichý počet``, z~$q_0$ lze na $a$ nedeterministicky zahájit závěrečné $ab$
+(přes $q_2$ do $q_F$). Méně než 4 stavy NFA mít nemůže: pro dvojice slov
+$(x_i, y_i) \in \{(\varepsilon, ab), (a, b), (ab, \varepsilon), (b, aab)\}$ je vždy
+$x_i y_i \in L$, ale pro $i \neq j$ do $L$ nepatří $x_i y_j$ nebo $x_j y_i$. Stavy, ve
+kterých jsou přijímající výpočty slov $x_i y_i$ po přečtení $x_i$, proto musí být
+navzájem různé.

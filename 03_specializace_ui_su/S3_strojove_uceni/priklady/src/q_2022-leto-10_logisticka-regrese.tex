@@ -1,0 +1,22 @@
+% Zdroj: PDF priklady-leto-2022-one.pdf (sešit S1, PGVVH+UI), fyzická str. 3. Značka: specializační otázka UI. Zařazeno: S3.
+\section{Logistická regrese}
+\szzotazka{léto 2022}{10}{Logistická regrese}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Napište funkci, kterou predikuje model logistické regrese.
+  \item Jakých hodnot tato funkce nabývá a jaká je jejich interpretace?
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení.)}\par
+\begin{enumerate}
+  \item Model nejprve spočítá lineární kombinaci vstupních příznaků
+    $z = \mathbf{w}^{\mathrm T}\mathbf{x} + b$ a na ni aplikuje logistickou (sigmoidní)
+    funkci $\sigma(z) = \dfrac{1}{1+e^{-z}}$. Predikuje tedy
+    \[ \hat y = \sigma\!\big(\mathbf{w}^{\mathrm T}\mathbf{x} + b\big) = \frac{1}{1+e^{-(\mathbf{w}^{\mathrm T}\mathbf{x}+b)}}. \]
+  \item Hodnoty leží v intervalu $(0,1)$ a interpretují se jako pravděpodobnost
+    příslušnosti k pozitivní třídě, $P(y{=}1 \mid \mathbf{x})$. Vlastní klasifikaci získáme
+    prahováním (typicky práh $0{,}5$: je-li $\hat y \ge 0{,}5$, predikujeme třídu $1$, jinak $0$).
+\end{enumerate}
+

@@ -1,0 +1,36 @@
+% Zdroj: PDF priklady-podzim-2022.pdf, fyzická str. 7-8. Značka: specializace UI-SU. Zařazeno: S3. Číselné výsledky ověřeny numericky.
+\section{Přeučení a regularizace}
+\szzotazka{podzim 2022}{18}{Přeučení a regularizace}
+
+\noindent\textbf{Zadání.}\par
+Předpokládejme, že chceme trénovat lineární model pro regresi.
+
+\begin{enumerate}
+  \item Definujte střední čtvercovou chybu (MSE). Definujte upravenou chybovou funkci používanou při L2 regularizaci.
+  \item Mějme dva lineární modely $M_1$, $M_2$ pro data se čtyřmi atributy:
+    \[
+      M_1(x) = x_1 - 2x_2 + 4x_3 - x_4 + 3, \qquad
+      M_2(x) = x_2 - 5x_3 + x_4 - 1.
+    \]
+    Oba modely mají pro daná data stejnou MSE. Který má menší hodnotu upravené chybové funkce pro L2 regularizaci?
+  \item Popište alespoň jeden další způsob pro zlepšení generalizačních schopností modelů strojového učení.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, výpočet ověřen numericky.)}\par
+\begin{enumerate}[nosep]
+  \item Střední čtvercová chyba je
+    \[
+      \mathrm{MSE} = \frac{1}{n}\sum_{i=1}^{n} (y_i - \hat{y}_i)^2,
+    \]
+    kde $\hat{y}_i$ je predikce modelu pro $i$-tý vstup a~$y_i$ skutečná hodnota. Při L2 regularizaci se k~chybě přidá penalizace za velikost vah:
+    \[
+      \mathrm{MSE} + \lambda \sum_{j} w_j^2, \qquad \lambda > 0,
+    \]
+    kde $w_j$ jsou váhy modelu a~$\lambda$ je síla regularizace. Absolutní člen (bias / intercept) se obvykle \emph{ne}regularizuje.
+  \item Regularizační člen závisí jen na vahách (bez biasu). Pro $M_1$ jsou váhy $(1,-2,4,-1)$, takže $\sum w_j^2 = 1+4+16+1 = 22$. Pro $M_2$ jsou váhy $(0,1,-5,1)$, takže $\sum w_j^2 = 0+1+25+1 = 27$. Při stejné MSE má proto \emph{menší} regularizovanou chybu model $\boldsymbol{M_1}$ ($22 < 27$).
+
+    Poznámka: kdyby se regularizoval i~absolutní člen, vyšlo by $M_1$: $22 + 3^2 = 31$ a~$M_2$: $27 + (-1)^2 = 28$, a~vyhrál by $M_2$. Právě proto je podstatné, že se bias neregularizuje.
+  \item Generalizaci lze zlepšit například získáním více trénovacích dat, výběrem či redukcí příznaků (méně parametrů), předčasným zastavením (early stopping), dropoutem u~neuronových sítí, kombinováním modelů (ensembling) nebo jinou regularizací (L1). Vhodné hyperparametry (např.\ $\lambda$) se volí křížovou validací.
+\end{enumerate}
+

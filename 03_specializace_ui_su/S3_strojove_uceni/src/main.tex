@@ -1,0 +1,96 @@
+% !TeX program = lualatex
+\documentclass[11pt,a4paper]{article}
+\usepackage{szzmaterial}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc,fit,backgrounds,shapes.geometric,shapes.misc,matrix,decorations.pathreplacing,patterns,intersections,angles,quotes}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{fillbetween}
+\setlist[enumerate]{nosep,leftmargin=2.1em}
+\setlist[itemize]{nosep,leftmargin=1.8em}
+
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Cov}{Cov}
+\DeclareMathOperator{\sign}{sign}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\tr}{tr}
+
+% --- Box pro algoritmy (pseudokód). Lokální doplněk preambule okruhu (jako v S1). ---
+\newtcolorbox{algo}[1][]{enhanced,breakable,colback=teal!4,colframe=teal!55!black,
+  boxrule=0.6pt,arc=2pt,left=6pt,right=8pt,top=3pt,bottom=4pt,
+  fonttitle=\bfseries,coltitle=white,colbacktitle=teal!55!black,
+  title={\faCogs\enspace Algoritmus \textemdash\ #1}}
+% Komentář v pseudokódu
+\newcommand{\cmt}[1]{\hfill{\footnotesize\itshape\textcolor{black!55}{$\triangleright$ #1}}}
+
+% --- Společná barevná konvence v obrázcích S3 ---
+% Třída / shluk 1 = modrá, 2 = červená, 3 = zelená. Centroid = hvězda. Podpůrný vektor = zakroužkovaný.
+\tikzset{
+  osa/.style={->,>=Stealth,black!55},
+  cls1/.style={circle,draw=blue!60!black,fill=blue!35,thick,inner sep=0pt,minimum size=4.5pt},
+  cls2/.style={rectangle,draw=red!65!black,fill=red!45,thick,inner sep=0pt,minimum size=4.5pt},
+  cls3/.style={diamond,draw=green!45!black,fill=green!45,thick,inner sep=0pt,minimum size=5pt},
+  centroid/.style={star,star points=5,draw=black,thick,fill=yellow!85!orange,inner sep=0pt,minimum size=9pt},
+  podpora/.style={circle,draw=black,thick,inner sep=0pt,minimum size=8pt},
+  hranice/.style={very thick,black!75},
+  margin/.style={dashed,black!55,thick},
+  treenode/.style={draw,thick,rounded corners=2pt,fill=blue!8,font=\small,minimum height=6mm,inner sep=3pt},
+  treeleaf/.style={draw,thick,fill=green!12,font=\small,minimum height=6mm,inner sep=3pt},
+  vetev/.style={->,>=Stealth,thick},
+  popis/.style={font=\scriptsize,fill=white,inner sep=1pt},
+}
+
+\szztitul{Strojové učení}{S3}{NAIL121 (Seminář dobývání znalostí), NPFL054 (Úvod do SU v R), NPFL129 (Úvod do SU v Pythonu), NPGR035 (SU v počítačovém vidění)}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\bigskip
+
+% ============================================================
+\section*{Úvod}
+\addcontentsline{toc}{section}{Úvod}
+
+Tento materiál pokrývá okruh \textbf{S3 -- Strojové učení}, druhý ze dvou okruhů specializace UI-SU. Výklad stojí především na kurzu \textbf{NPFL129 \emph{Úvod do strojového učení v~Pythonu}} (Milan Straka, výuka Jindřich Libovický; ÚFAL MFF, zdrojový repozitář \url{https://github.com/ufal/npfl129}). Téma \emph{metody podpůrných vektorů} (SVM) čerpá z~ročníku, kdy bylo v~osnově NPFL129 (jádrové funkce a~SVM, přednášky 6--7), \emph{statistické testy} (t-test, $\chi^2$) navazují na okruh \textbf{M5} (Pravděpodobnost a~statistika). Strojové učení je probíráno i~v~úvodním kurzu UI (okruh \textbf{S1}, sekce \emph{Strojové učení}) na úrovni „základní principy``; \emph{tento} okruh jde do hloubky a~na S1 jen navazuje (kde stačí přehled, odkazujeme tam).
+
+\medskip
+\noindent\textbf{Role důkazů.} Požadavky okruhu jmenují pojmy, modely, algoritmy a~metody evaluace, ne formální důkazy. Těžiště je v~definici pojmu, v~popisu a~aplikaci algoritmu na konkrétních datech (matice záměn a~metriky, stavba rozhodovacího stromu podle informačního zisku, iterace $k$-means, krok gradientního sestupu, odhad koeficientů regrese, statistický test) a~ve zdůvodnění. Výzvy „odvoďte`` a~„ukažte`` se v~zařazených otázkách týkají \emph{výpočtu}: derivace ztrátové funkce logistické regrese (sekce~\ref{sec:logisticka}) a~explicitního řešení nejmenších čtverců (sekce~\ref{sec:linreg}). Věty a~vlastnosti (např.\ konvergence $k$-means, optimum nejmenších čtverců) proto uvádíme se zněním, intuicí a~krátkým \emph{odvozením} tam, kde pomáhá pochopení.
+
+Do výkladu je zařazeno všech $35$ reálných otázek SZZ k~okruhu z~let 2022--2026 jako řešené příklady; jejich originální zadání (a~grafy oříznuté z~PDF) jsou i~v~samostatném dokumentu \emph{Příklady otázek}. Použité zdroje jsou uvedeny na konci.
+
+\medskip
+\noindent\textbf{Značení.} \emph{Vstup} (vektor příznaků) je $\mathbf{x}\in\mathbb{R}^D$, jednotlivé příznaky $x_1,\dots,x_D$. \emph{Trénovací množina} má $N$ příkladů; \emph{matice dat} $\mathbf{X}\in\mathbb{R}^{N\times D}$ má příklad $\mathbf{x}_i$ na $i$-tém řádku. \emph{Cíl} (target) je $t$ -- reálné číslo u~regrese ($t\in\mathbb{R}$), třída u~klasifikace ($t\in\{0,1,\dots,K-1\}$, případně $t\in\{0,1\}$ binárně); vektor cílů $\mathbf{t}\in\mathbb{R}^N$. \emph{Predikci} modelu značíme $y(\mathbf{x})$ nebo $\hat{t}$. \emph{Váhy} lineárního modelu jsou $\mathbf{w}\in\mathbb{R}^D$, \emph{bias} $b$ (ve statistickém značení regrese koeficienty $\beta_0,\beta_1,\dots$); skalární součin $\mathbf{w}^{\!\top}\mathbf{x}=\sum_i w_i x_i$. \emph{Rychlost učení} (krok) je $\alpha$, \emph{regularizační síla} $\lambda$ (nebo $C$ u~SVM). $\sigma(z)=1/(1+e^{-z})$ je \emph{logistická} (sigmoidní) funkce. Logaritmus $\log$ bez základu v~entropii je $\log_2$ (entropie v~bitech). $\mathbb{E}$ je střední hodnota, $\Var$ rozptyl, $\|\cdot\|$ eukleidovská ($L^2$) norma.
+
+% ============================================================
+\input{s1_uceni_evaluace}
+\input{s2_preuceni_regularizace}
+\input{s3_knn}
+\input{s4_linearni_regrese}
+\input{s5_logisticka_regrese}
+\input{s6_rozhodovaci_stromy}
+\input{s7_svm}
+\input{s8_kombinace_modelu}
+\input{s9_statisticke_testy}
+\input{s10_uceni_bez_ucitele}
+
+% ============================================================
+\section*{Shrnutí}
+\addcontentsline{toc}{section}{Shrnutí}
+\input{s99_shrnuti}
+
+% ============================================================
+\section*{Zdroje}
+\addcontentsline{toc}{section}{Zdroje}
+
+{\raggedright
+\begin{itemize}
+  \item M.~Straka, J.~Libovický: slidy přednášek předmětu NPFL129 \emph{Úvod do strojového učení v~Pythonu} (Introduction to Machine Learning with Python), ÚFAL MFF UK, ročník 2024/25 (primární zdroj výkladu; téma SVM z~ročníku 2022/23, kdy bylo součástí osnovy).\\ \url{https://ufal.mff.cuni.cz/courses/npfl129}
+  \item M.~Straka a~kol.: zdrojový repozitář kurzu NPFL129 (Markdown zdroj slidů a~generátory obrázků, včetně archivních ročníků).\\ \url{https://github.com/ufal/npfl129}
+  \item R.~Šámal: \emph{NMAI059 Pravděpodobnost a statistika~1}, skripta k~přednášce, MFF UK, verze 14.~6.~2025 (rámec testování hypotéz, t-test a~$\chi^2$ test; podrobně v~okruhu M5).\\ \url{https://iuuk.mff.cuni.cz/~samal/vyuka/2425/PSt1/skripta.pdf}
+  \item MFF UK: požadavky ke státní závěrečné zkoušce (Informatika, Bc.) a~zadání otázek z~minulých termínů.\\ \url{https://www.mff.cuni.cz/cs/studenti/bakalarske-studium/statni-zaverecne-zkousky/bakalarske-statni-zkousky-studijniho-programu-informatika}
+\end{itemize}
+\par}
+
+\end{document}

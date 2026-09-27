@@ -1,0 +1,26 @@
+% Zdroj: PDF priklady-jaro-2023.pdf, fyzická str. 4. Značka: otázka studijního zaměření (neznačená starší sada). Zařazeno: S3.
+\section{Evaluace binárního klasifikátoru}
+\szzotazka{jaro 2023}{7}{Evaluace binárního klasifikátoru}
+
+\noindent\textbf{Zadání.}\par
+Předpokládejme, že binární klasifikátor vykazuje sensitivitu $0.8$ a specificitu $0.9$.
+Při jeho testování bylo použito $10000$ příkladů, z nichž $500$ bylo pozitivních.
+
+\medskip
+\noindent\textit{Poznámka:} Sensitivita bývá též nazývána \emph{recall} nebo \emph{true positive rate}
+a specificita se někdy nazývá též \emph{selectivity} neboli \emph{true negative rate}.
+
+\begin{enumerate}
+  \item Na základě uvedených údajů spočítejte celou matici konfuze.
+  \item Uvažujme nahodile zvolený testovací příklad, který je predikován jako pozitivní.
+    Určete pravděpodobnost, že tento příklad je skutečně pozitivní.
+  \item Jaká je přesnost (\emph{accuracy}) daného klasifikátoru?
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, výpočet ověřen numericky.)}\par
+\begin{enumerate}[nosep]
+  \item Pozitivních je $500$, negativních $9500$. Sensitivita (recall) $=\mathrm{TP}/500=0{,}8\Rightarrow \mathrm{TP}=400$, $\mathrm{FN}=100$; specificita $=\mathrm{TN}/9500=0{,}9\Rightarrow \mathrm{TN}=8550$, $\mathrm{FP}=950$.
+  \item Hledaná pravděpodobnost je \emph{precision}: $\dfrac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}=\dfrac{400}{1350}\approx 0{,}296$.
+  \item $\mathrm{accuracy}=\dfrac{\mathrm{TP}+\mathrm{TN}}{10000}=\dfrac{8950}{10000}=0{,}895$.
+\end{enumerate}

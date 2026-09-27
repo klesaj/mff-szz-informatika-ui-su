@@ -1,0 +1,59 @@
+% Zdroj: PDF priklady-podzim-2025.pdf, fyzická str. 24-25. Značka: specializace UI-SU. Zařazeno: S3.
+\section{Lineární regrese, L2 regularizace}
+\szzotazka{podzim 2025}{30}{Lineární regrese, L2 regularizace}
+
+\noindent\textbf{Zadání.}\par
+Mějme data s nezávislou proměnnou $x$ a predikovanou proměnnou $y$ zadaná v tabulce níže. Budeme
+pro ně hledat lineární model bez regularizace a s L2 regularizací.
+
+\begin{center}
+\begin{tabular}{c|c}
+\toprule
+$x$ & $y$ \\
+\midrule
+$-1$ & 1 \\
+0 & 3 \\
+1 & 2 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{enumerate}
+  \item Popište lineární model a metodu nejmenších čtverců. Jakým způsobem se odhadují koeficienty modelu?
+  \item Uvažujte model bez regularizace (OLS). Vypočítejte koeficienty modelu pro data zadaná
+    v tabulce a do grafu zaneste predikované hodnoty pro $x \in \langle -1, 1 \rangle$.
+  \item Popište optimalizovanou funkci s $L2$ regularizací. Jak se změní koeficienty při odhadu
+    modelu s L2 regularizací? Stačí určit směr změny koeficientů u $x$ oproti OLS a přibližně
+    zanést do grafu predikované hodnoty pro $x \in \langle -1, 1 \rangle$.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Lineární model s jednou nezávislou proměnnou odhaduje dva parametry $\beta_0, \beta_1$
+    modelu $f(x) = \beta_0 + \beta_1 \cdot x$, minimalizujeme funkci
+    $\sum_{i=1,2,3} (f(x_i) - y_i)^2$. Pro odhad parametrů k tabulce přidáme sloupec jedniček
+    a řešíme $\beta = (X^T X)^{-1} X^T y$.
+  \item Díky jediné nezávislé proměnné a centrovaným datům lze i snadněji, zde uvádíme obecné řešení:
+    \begin{align*}
+      \beta &= (X^T X)^{-1} X^T y \\
+            &= \left( \begin{bmatrix} 1,1,1 \\ -1,0,1 \end{bmatrix} \cdot
+               \begin{bmatrix} 1,-1 \\ 1,0 \\ 1,1 \end{bmatrix} \right)^{-1} \cdot
+               \begin{bmatrix} 1,1,1 \\ -1,0,1 \end{bmatrix} \cdot
+               \begin{bmatrix} 1 \\ 3 \\ 2 \end{bmatrix}
+             = \left( \begin{bmatrix} 3,0 \\ 0,2 \end{bmatrix} \right)^{-1} \cdot
+               \begin{bmatrix} 6 \\ 1 \end{bmatrix}
+             = \begin{bmatrix} \frac{6}{3} \\ \frac{1}{2} \end{bmatrix}
+             = \begin{bmatrix} 2 \\ \frac{1}{2} \end{bmatrix}.
+    \end{align*}
+  \item S L2 regularizací přidáváme do cílové funkce součet kvadrátů $\beta_j$ bez $\beta_0$, tj.
+    minimalizujeme $\sum_{i=1,2,3} (f(x_i) - y_i)^2 + \alpha \beta_1^2$, $\alpha > 0$. Koeficient
+    $\beta_1$ bude menší než v předchozím případě, ale zachová si znaménko. Intercept $\beta_0$
+    není penalizován, v tomto případě se nezmění, obecně se změnit může. (V grafu je R2 regularizace
+    nazvaná Ridge.)
+\end{enumerate}
+
+\begin{center}\includegraphics[width=0.75\linewidth]{linearni-regrese-l2.png}\end{center}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Pro tato data lze $L^2$ řešení spočítat přesně: penalizace $\alpha\beta_1^2$ přičte $\alpha$ jen k~prvku matice $X^TX$ u~$\beta_1$, takže soustava je $\begin{psmallmatrix}3&0\\0&2+\alpha\end{psmallmatrix}\beta=\begin{psmallmatrix}6\\1\end{psmallmatrix}$ a~vyjde $\beta_0=2$, $\beta_1=\frac{1}{2+\alpha}<\frac12$. Intercept se nemění, protože data jsou centrovaná ($\bar x=0$, matice $X^TX$ je diagonální). Přímka se tedy zploští kolem bodu $(0,2)$. Označení „R2`` v~poslední větě náčrtu je zřejmě překlep za $L2$.

@@ -1,0 +1,1221 @@
+% !TeX program = lualatex
+\documentclass[11pt,a4paper]{article}
+\usepackage{szzmaterial}
+\usetikzlibrary{calc,positioning,arrows.meta}
+\setlist[enumerate]{nosep,leftmargin=2.1em}
+\setlist[itemize]{nosep,leftmargin=1.8em}
+
+\szztitul{Teorie grafů}{M4}{NDMI002 (Diskrétní matematika), NDMI011 (Kombinatorika a grafy 1)}
+
+% \deg už definováno v LaTeXu; používáme přímo \deg
+\DeclareMathOperator{\dist}{dist}
+\newcommand{\chrom}{\chi}
+\newcommand{\klik}{\omega}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\bigskip
+
+\section*{Úvod}
+\addcontentsline{toc}{section}{Úvod}
+
+Tento materiál pokrývá okruh \textbf{M4 -- Teorie grafů} (předměty NDMI002 \emph{Diskrétní matematika} a NDMI011 \emph{Kombinatorika a grafy 1}). Výklad jádra okruhu (základní pojmy, stromy, rovinné nakreslení, barevnost, orientované grafy) stojí na zápiscích T.~Slámy z přednášky doc.~Martina Mareše (NDMI002) a na učebnici J.~Matouška a J.~Nešetřila \emph{Kapitoly z diskrétní matematiky} (anglické vydání \emph{Invitation to Discrete Mathematics}), kterou jako literaturu k~oběma předmětům doporučují jejich přednášející. Pro míru souvislosti, Mengerovu větu a toky v sítích vycházíme ze skript T.~Vally a J.~Matouška \emph{Kombinatorika a grafy I} (NDMI011). Značení a hloubka odpovídají kurzu pro informatiky.
+
+U \emph{Eulerovy formule} ($n-m+s=2$) a navazující \emph{horní meze na počet hran rovinného grafu} ($m\le 3n-6$) požadavky okruhu výslovně uvádějí důkaz, proto je strukturovaně provedeme. Ostatní důkazy v textu jsou krátké, nepovinné a označené jako takové. Existenci maximálního toku uvádíme \emph{bez důkazu} (jak je v požadavcích) a Mengerovu větu se zněním a s principem důkazu (převod na toky, pojmy v sekci~8). Do výkladu je zařazeno všech pět reálných otázek SZZ k~okruhu z let 2023--2026; pohromadě jsou i v samostatném dokumentu \emph{Příklady otázek}. Použité zdroje jsou uvedeny na konci.
+
+\medskip
+\noindent\textbf{Značení.} Graf píšeme $G=(V,E)$, kde $V$ je konečná neprázdná \emph{množina vrcholů} a $E\subseteq\binom{V}{2}$ \emph{množina hran} (neorientované, bez násobnosti a smyček, není-li řečeno jinak). Hrana mezi $u,v$ je $\{u,v\}$ nebo zkráceně $uv$; pak říkáme, že $u$ a $v$ jsou \emph{sousední}. Počet vrcholů značíme $n=|V|$, počet hran $m=|E|$. Stupeň vrcholu je $\deg_G(v)$, vzdálenost $\dist_G(u,v)$ (případně bez indexu, je-li $G$ jasné). Barevnost grafu je $\chrom(G)$, klikovost $\klik(G)$. Pro orientovaný graf používáme šipky $(u,v)$ pro hranu z $u$ do $v$. Symbolem $[n]$ míníme $\{1,2,\dots,n\}$.
+
+% ============================================================
+\section{Základní pojmy, izomorfismus, stupeň vrcholu}
+
+Začínáme od definice grafu a hned se podíváme na základní rodiny (úplný, bipartitní, cesta, kružnice). Pak zavedeme stupeň a uvidíme \emph{princip sudosti} -- první netriviální tvrzení teorie grafů, na které se v dalších kapitolách často odkazujeme.
+
+\video{https://www.youtube.com/watch?v=LFKZLXVO-Dg}{Reducible, \emph{Introduction to Graph Theory: A Computer Science Perspective} (vizuální úvod: základní pojmy, typy grafů a~motivace, proč teorii grafů studovat).}
+
+\begin{definice}[Graf]
+\emph{Graf} je dvojice $G=(V,E)$, kde $V$ je konečná neprázdná množina (\emph{vrcholy}) a $E\subseteq\binom{V}{2}$ množina (\emph{hran}); každá hrana je tedy dvouprvková podmnožina $V$. Pro hranu $e=\{u,v\}$ říkáme, že $u$ a $v$ jsou \emph{sousední} (zapisujeme $u\sim v$) a že $u,v$ leží na hraně $e$.
+\end{definice}
+
+\begin{poznamka}
+Jde o tzv.\ \emph{jednoduchý neorientovaný graf}: žádné smyčky ani vícenásobné hrany. \emph{Orientovaný graf} (uspořádané dvojice vrcholů místo neuspořádaných) zavedeme samostatně v sekci~7. \emph{Multigrafy} (s násobnými hranami a smyčkami) v tomto materiálu nepoužíváme.
+\end{poznamka}
+
+\subsection{Základní rodiny grafů}
+
+Čtyři rodiny, které poznáme na první pohled a používáme jako stavební kameny i jako testovací příklady:
+
+\begin{definice}[Úplný, úplný bipartitní, cesta, kružnice]\leavevmode
+\begin{enumerate}[label=(\arabic*)]
+  \item \emph{Úplný graf} $K_n$ má $V=[n]$ a $E=\binom{[n]}{2}$, tj.\ \emph{všechny} možné hrany.
+  \item \emph{Úplný bipartitní graf} $K_{m,n}$ má $V=A\cup B$, kde $|A|=m$, $|B|=n$ a $A\cap B=\emptyset$, a hrany jsou všechny dvojice $\{a,b\}$ s $a\in A$, $b\in B$.
+  \item \emph{Cesta} $P_n$ délky $n$ má vrcholy $v_0,v_1,\dots,v_n$ ($n+1$ vrcholů) a hrany $\{v_i,v_{i+1}\}$ pro $0\le i<n$.
+  \item \emph{Kružnice} $C_n$ ($n\ge 3$) má vrcholy $v_0,\dots,v_{n-1}$ a hrany $\{v_i,v_{(i+1)\bmod n}\}$.
+\end{enumerate}
+\end{definice}
+
+\begin{poznamka}
+Někteří autoři značí $P_n$ \uv{cestu s $n$ vrcholy} (tj.\ $n-1$ hran). My držíme značení Matouška a Nešetřila \uv{cesta délky $n$} = $n$ hran (tedy $n+1$ vrcholů). Při výpočtech vždy uvedeme, kolik má cesta vrcholů a hran, aby nedošlo k záměně.
+\end{poznamka}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.14,every node/.style={circle,fill=black,inner sep=1.6pt}]
+% K_5
+\begin{scope}[shift={(0,0)}]
+  \foreach \i in {0,...,4} {
+    \node (a\i) at ({90+72*\i}:1) {};
+  }
+  \foreach \i in {0,...,4} {
+    \foreach \j in {0,...,4} {
+      \ifnum\i<\j \draw (a\i) -- (a\j); \fi
+    }
+  }
+  \node[draw=none,fill=none,below=10pt] at (0,-1) {\small $K_5$};
+\end{scope}
+% K_{3,3}
+\begin{scope}[shift={(3.6,0)}]
+  \foreach \i in {0,1,2} {
+    \node (u\i) at (\i*0.9,1) {};
+    \node (v\i) at (\i*0.9,-1) {};
+  }
+  \foreach \i in {0,1,2} {
+    \foreach \j in {0,1,2} {
+      \draw (u\i) -- (v\j);
+    }
+  }
+  \node[draw=none,fill=none,below=10pt] at (0.9,-1) {\small $K_{3,3}$};
+\end{scope}
+% C_6
+\begin{scope}[shift={(7.5,0)}]
+  \foreach \i in {0,...,5} {
+    \node (c\i) at ({90+60*\i}:1) {};
+  }
+  \foreach \i in {0,...,5} {
+    \pgfmathtruncatemacro{\j}{mod(\i+1,6)}
+    \draw (c\i) -- (c\j);
+  }
+  \node[draw=none,fill=none,below=10pt] at (0,-1) {\small $C_6$};
+\end{scope}
+% P_5
+\begin{scope}[shift={(10.4,0)}]
+  \foreach \i in {0,...,5} {
+    \node (p\i) at (\i*0.5,0) {};
+  }
+  \foreach \i in {0,...,4} {
+    \pgfmathtruncatemacro{\j}{\i+1}
+    \draw (p\i) -- (p\j);
+  }
+  \node[draw=none,fill=none,below=18pt] at (1.25,0) {\small $P_5$};
+\end{scope}
+\end{tikzpicture}
+\end{center}
+
+\subsection{Podgraf, izomorfismus, doplněk}
+
+\begin{definice}[Podgraf, indukovaný podgraf]
+Graf $H$ je \emph{podgraf} grafu $G$, značíme $H\subseteq G$, pokud $V(H)\subseteq V(G)$ a $E(H)\subseteq E(G)$. Pokud navíc $E(H)=E(G)\cap\binom{V(H)}{2}$ (tj.\ máme \emph{všechny} hrany $G$ mezi vrcholy $V(H)$), je $H$ \emph{indukovaný} podgraf grafu $G$, značíme $H=G[V(H)]$.
+\end{definice}
+
+\begin{intuice}
+Podgraf vznikne odebíráním vrcholů \emph{a/nebo} hran; indukovaný podgraf vznikne odebíráním \emph{jen} vrcholů (a s nimi automaticky všech hran, které do nich vedou). Indukovaný podgraf je tedy striktnější -- nedovolí \uv{prořezat} hrany uvnitř už ponechané množiny vrcholů.
+\end{intuice}
+
+\begin{definice}[Izomorfismus grafů]
+Grafy $G$ a $H$ jsou \emph{izomorfní}, značíme $G\cong H$, pokud existuje bijekce $f\colon V(G)\to V(H)$ taková, že pro každé $u,v\in V(G)$ platí
+\[ \{u,v\}\in E(G)\iff\{f(u),f(v)\}\in E(H). \]
+\end{definice}
+
+\begin{intuice}
+Izomorfismus = \uv{přejmenování vrcholů}. Dva grafy jsou izomorfní, právě když mají \emph{tutéž strukturu sousedství}, jen jejich vrcholy se možná jmenují jinak. Hledat izomorfismus mezi konkrétními grafy je obecně výpočetně nelehké, ale rychle se vylučuje porovnáváním invariantů (počet vrcholů, počet hran, posloupnost stupňů, počet trojúhelníků, \dots).
+\end{intuice}
+
+\begin{priklad}[Vyloučení izomorfismu invariantem]
+\textbf{Zadání.} Jsou grafy $G_1=C_4$ (4-cyklus) a $G_2=K_{1,3}$ (hvězda se 3 listy) izomorfní?
+
+\textbf{Řešení.} Oba mají 4 vrcholy, ale $C_4$ má 4 hrany, kdežto $K_{1,3}$ jen 3. Počet hran je invariant a hned vylučuje izomorfismus: $4\ne 3$, tedy $G_1\not\cong G_2$. (Pro doplnění: posloupnost stupňů $C_4$ je $(2,2,2,2)$, posloupnost stupňů $K_{1,3}$ je $(3,1,1,1)$, ta také rozhoduje.)
+\end{priklad}
+
+\begin{definice}[Doplněk grafu]
+\emph{Doplněk} grafu $G=(V,E)$ je graf $\overline{G}=(V,\binom{V}{2}\setminus E)$ na stejných vrcholech, kde hranami jsou \emph{právě ty} dvojice vrcholů, které v $G$ hranou nejsou.
+\end{definice}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.08,every node/.style={circle,fill=black,inner sep=1.6pt}]
+% G = P_4 on 4 vertices
+\begin{scope}
+  \node (g1) at (0,0) {};
+  \node (g2) at (1,0) {};
+  \node (g3) at (2,0) {};
+  \node (g4) at (3,0) {};
+  \draw (g1)--(g2)--(g3)--(g4);
+  \node[draw=none,fill=none,below=10pt] at (1.5,0) {\small $G$ (cesta $P_3$)};
+\end{scope}
+% Gbar
+\begin{scope}[shift={(6,0)}]
+  \node (h1) at (0,0) {};
+  \node (h2) at (1,0) {};
+  \node (h3) at (2,0) {};
+  \node (h4) at (3,0) {};
+  \draw (h1) to[bend left=40] (h3);
+  \draw (h1) to[bend left=50] (h4);
+  \draw (h2) to[bend right=40] (h4);
+  \node[draw=none,fill=none,below=10pt] at (1.5,0) {\small $\overline{G}$};
+\end{scope}
+\end{tikzpicture}
+\end{center}
+
+\begin{poznamka}
+Doplněk $\overline{K_n}$ je \emph{diskrétní graf} (žádné hrany), $\overline{P_n}$ má $\binom{n+1}{2}-n$ hran. Pojem se hodí, když chceme nějaké tvrzení vyslovit pro \uv{řídké} grafy přes \uv{husté} a obráceně.
+\end{poznamka}
+
+\subsection{Bipartitní graf}
+
+\begin{definice}[Bipartitní graf]
+Graf $G=(V,E)$ je \emph{bipartitní}, pokud existuje rozklad $V=A\cup B$ ($A\cap B=\emptyset$) takový, že každá hrana má jeden konec v $A$ a druhý v $B$. Dvojici $(A,B)$ říkáme \emph{bipartice}. (V této konvenci je i graf bez hran bipartitní -- konzistentní s pozdější ekvivalencí \uv{$\chrom(G)\le 2\iff G$ bipartitní}.)
+\end{definice}
+
+\begin{intuice}
+Bipartitní grafy modelují vztahy mezi dvěma různými typy objektů: studenti vs.\ semináře, zaměstnanci vs.\ směny, lidé vs.\ vlastnosti. Úplný bipartitní graf $K_{m,n}$ je \uv{vše s vším mezi $A$ a $B$}, obecný bipartitní graf je jeho libovolný podgraf.
+\end{intuice}
+
+\begin{veta}[Charakterizace bipartitnosti]
+Graf $G$ je bipartitní, právě když neobsahuje lichou kružnici (tedy $\forall k\ge 1:\ C_{2k+1}\not\subseteq G$).
+\end{veta}
+
+\begin{intuice}
+\uv{Pokud} bipartitní s biparticí $(A,B)$: každá hrana mění stranu, kružnice tedy musí mít sudou délku. \uv{Pokud} bez liché kružnice: v každé souvislé komponentě zvolíme libovolný vrchol $r$ za kořen a obarvíme každý vrchol $v$ barvou podle parity vzdálenosti $\dist(r,v)$. Kdyby nějaká hrana $G$ spojovala dva vrcholy stejné barvy (stejné parity), vznikla by lichá kružnice -- spor. (Tento argument formálně zopakujeme v sekci~5 o barevnosti, kde tvrzení přepíšeme jako \uv{$\chrom(G)\le 2$}.)
+\end{intuice}
+
+\subsection{Stupeň vrcholu, princip sudosti}
+
+\begin{definice}[Okolí a stupeň vrcholu]
+Pro $v\in V(G)$ je \emph{okolí} $N_G(v)=\{u\in V(G):\{u,v\}\in E(G)\}$ množina jeho sousedů a \emph{stupeň} $\deg_G(v)=|N_G(v)|$. Pokud mají všechny vrcholy stupeň $k$, je graf $k$-\emph{regulární}.
+\end{definice}
+
+\begin{veta}[Princip sudosti / \uv{handshake lemma}]
+Pro každý graf $G=(V,E)$ platí
+\[ \sum_{v\in V}\deg(v)=2|E|. \]
+Zejména je počet vrcholů lichého stupně sudý.
+\end{veta}
+
+\begin{proof}[Důkaz \textnormal{(nepovinný -- dvojí počítání).}]
+Spočítáme dvěma způsoby velikost množiny $K$ všech dvojic $(v,e)\in V\times E$ takových, že $v\in e$. Jednak je každá hrana $e$ uspořádanou dvojicí počítána dvakrát (jednou za každý ze svých dvou konců), takže $|K|=2|E|$. Jednak každý vrchol $v$ přispívá tolikrát, kolik je jeho stupeň, takže $|K|=\sum_v\deg(v)$. Druhá část (sudý počet lichých stupňů) plyne okamžitě: levá strana je sudá, tedy součet \uv{lichých} sčítanců musí být sudý, a to znamená, že lichých sčítanců je sudý počet.
+\end{proof}
+
+\begin{intuice}
+Princip sudosti = \uv{sečteme-li, kolikrát si kdo na večírku podal ruku, vyjde sudé číslo} (každé podání rukou počítáme dvakrát, u každého účastníka jednou). Nejjednodušší, ale velmi mocný nástroj: rychle ukáže, že např.\ graf s~posloupností stupňů $(1,3,3,3,3)$ neexistuje -- součet je $13$, lichý.
+\end{intuice}
+
+\begin{priklad}[Aplikace principu sudosti]
+\textbf{Zadání.} Existuje 3-regulární graf na 7 vrcholech?
+
+\textbf{Řešení.} Kdyby existoval, byl by součet stupňů $7\cdot 3=21$, ale podle principu sudosti musí být součet stupňů sudý. Spor. Takový graf tedy \emph{neexistuje}. (Obecně: $k$-regulární graf na $n$ vrcholech vyžaduje $kn$ sudé, jinak nelze.)
+\end{priklad}
+
+% ============================================================
+\section{Souvislost, komponenty, vzdálenost}
+
+\begin{definice}[Sled, cesta, kružnice v grafu]
+\emph{Sled} (z $u$ do $v$) v grafu $G$ je posloupnost $v_0,e_1,v_1,e_2,\dots,e_k,v_k$ s $v_0=u$, $v_k=v$, $v_i\in V$, $e_i\in E$, $e_i=\{v_{i-1},v_i\}$. \emph{Cesta} je sled, ve kterém se neopakují vrcholy (a tedy ani hrany). \emph{Kružnice} (uzavřená cesta) je sled, kde $v_0=v_k$ a jinak se vrcholy ani hrany neopakují, navíc s $k\ge 3$.
+\end{definice}
+
+\begin{poznamka}
+Pokud existuje sled z $u$ do $v$, existuje i \emph{cesta} z $u$ do $v$: stačí vzít nejkratší ze všech sledů z $u$ do $v$ -- ten už se nemůže nikde opakovat (jinak by ho šlo zkrátit).
+\end{poznamka}
+
+\begin{definice}[Souvislost a komponenty]
+Graf $G$ je \emph{souvislý}, pokud pro každé dva vrcholy $u,v\in V(G)$ existuje cesta z $u$ do $v$. \emph{Komponenta souvislosti} grafu $G$ je maximální (vzhledem k inkluzi) souvislý podgraf $G$.
+\end{definice}
+
+\begin{intuice}
+Relace \uv{$u$ je dosažitelný z $v$} je ekvivalence na $V(G)$ (reflexivita: cesta délky 0; symetrie: graf je neorientovaný, cestu obrátíme; tranzitivita: cesty $u\to v$ a $v\to w$ se napojí a případně zkrátí na cestu $u\to w$). Třídy této ekvivalence jsou přesně \emph{vrcholové množiny komponent souvislosti}. Souvislý graf má jednu komponentu.
+\end{intuice}
+
+\begin{definice}[Vzdálenost v grafu]
+V souvislém grafu $G$ je \emph{vzdálenost} vrcholů $u,v$ definována jako délka nejkratší cesty z $u$ do $v$ a značíme $\dist_G(u,v)$. Není-li $G$ souvislý a $u,v$ jsou v různých komponentách, klademe $\dist_G(u,v)=\infty$.
+\end{definice}
+
+\begin{poznamka}
+Vzdálenost je metrika -- splňuje:
+\begin{enumerate}[label=(\arabic*)]
+  \item $\dist(u,v)\ge 0$;
+  \item $\dist(u,v)=0\iff u=v$;
+  \item $\dist(u,v)=\dist(v,u)$;
+  \item $\dist(u,v)\le\dist(u,w)+\dist(w,v)$ (trojúhelníková nerovnost -- spojení dvou cest dá sled, ten zkrátíme na cestu, která rozhodně není delší).
+\end{enumerate}
+\end{poznamka}
+
+\begin{priklad}[Souvislost a vzdálenost v krychli $Q_3$]
+\textbf{Zadání.}
+Krychle $Q_3$ má za vrcholy všechny trojice $\{0,1\}^3$ (osm vrcholů $000,001,\dots,111$) a hrany spojují dvojice lišící se přesně v jedné souřadnici.
+\begin{enumerate}[label=(\arabic*)]
+  \item Kolik má $Q_3$ komponent souvislosti?
+  \item Jaká je vzdálenost vrcholů $000$ a $111$?
+\end{enumerate}
+
+\textbf{Řešení.}
+\begin{enumerate}[label=(\arabic*)]
+  \item Mezi libovolnými dvěma vrcholy se lze dostat cestou, která bit po bitu mění jeden bit na druhý (z $abc$ do $a'b'c'$: pokud $a\ne a'$, změň $a$, pokud $b\ne b'$, změň $b$, atd.) -- to je posloupnost vrcholů, kde dva sousední se liší v jednom bitu, tedy cesta. $Q_3$ má \emph{1 komponentu} (je souvislý).
+  \item Vzdálenost = délka nejkratší cesty = počet bitů, ve kterých se vrcholy liší. Mezi $000$ a $111$ se liší 3 bity, $\dist(000,111)=\boxed{3}$. (Obecně $\dist(u,v)$ v $Q_d$ = Hammingova vzdálenost $u$ a $v$.)
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.6,
+    every node/.style={circle,fill=black,inner sep=1.6pt},
+    lab/.style={font=\scriptsize}]
+  % přední čtverec
+  \coordinate (v000) at (0,0);
+  \coordinate (v100) at (1.6,0);
+  \coordinate (v110) at (1.6,1.6);
+  \coordinate (v010) at (0,1.6);
+  % zadní čtverec (posun +(0.9,0.7))
+  \coordinate (v001) at (0.9,0.7);
+  \coordinate (v101) at (2.5,0.7);
+  \coordinate (v111) at (2.5,2.3);
+  \coordinate (v011) at (0.9,2.3);
+  % 12 hran (lišící se v 1 bitu)
+  \draw (v000)--(v100) (v100)--(v110) (v110)--(v010) (v010)--(v000); % přední
+  \draw (v001)--(v101) (v101)--(v111) (v111)--(v011) (v011)--(v001); % zadní
+  \draw (v000)--(v001) (v100)--(v101) (v110)--(v111) (v010)--(v011); % spojnice
+  % zvýrazněná nejkratší cesta 000 -> 001 -> 011 -> 111 (vzdálenost 3)
+  \draw[blue,line width=1.4pt] (v000)--(v001) (v001)--(v011) (v011)--(v111);
+  % vrcholy + návěští ven z krychle
+  \node[label={[lab]below left:000}] at (v000) {};
+  \node[label={[lab]below right:100}] at (v100) {};
+  \node[label={[lab]right:110}] at (v110) {};
+  \node[label={[lab]left:010}] at (v010) {};
+  \node[label={[lab]left:001}] at (v001) {};
+  \node[label={[lab]right:101}] at (v101) {};
+  \node[label={[lab]above right:111}] at (v111) {};
+  \node[label={[lab]above left:011}] at (v011) {};
+\end{tikzpicture}
+\obrpopis{Krychle $Q_3$: vrcholy jsou binární řetězce $000$--$111$, hrana = změna jednoho bitu. Vzdálenost dvou vrcholů = počet bitů, ve kterých se liší (Hammingova vzdálenost); modře vyznačena nejkratší cesta $000\to001\to011\to111$ délky $3$. (Obecně je $Q_d$ \emph{$d$-rozměrná hyperkrychle}; pro $d=3$ je to obyčejná krychle.)}
+\end{center}
+\end{priklad}
+
+\subsection{Eulerovský tah (vsuvka pro řešený příklad)}
+
+Eulerovský tah není v hlavní osnově okruhu, ale objevuje se v jedné reálné SZZ otázce a jeho charakterizace je rychlá; uvedeme ji proto v krátkosti zde, mezi souvislostí a stromy.
+
+\begin{definice}[Tah a eulerovský tah/graf]
+\emph{Tah} v grafu $G$ je sled, ve kterém se neopakují \emph{hrany} (vrcholy se opakovat smí). \emph{Uzavřený eulerovský tah} je tah, který začíná i končí ve stejném vrcholu a obsahuje \emph{každou hranu grafu právě jednou}; vrcholy v něm leží libovolněkrát. Graf, který má uzavřený eulerovský tah, je \emph{eulerovský}.
+\end{definice}
+
+\begin{poznamka}
+Z definice plyne, že eulerovský tah projde každým vrcholem, na kterém leží alespoň jedna hrana -- ale ne nutně právě jednou; např.\ \uv{bowtie} (dva trojúhelníky sdílející středový vrchol $v_1$) má eulerovský tah $v_1\,v_2\,v_3\,v_1\,v_4\,v_5\,v_1$ s $v_1$ třikrát. Izolované vrcholy se eulerovským tahem pokrýt nedají; navazující věta proto izolované vrcholy explicitně vylučuje.
+\end{poznamka}
+
+\begin{veta}[Charakterizace eulerovských grafů]
+Graf $G$ (bez izolovaných vrcholů) má uzavřený eulerovský tah, právě když je souvislý a každý vrchol má sudý stupeň.
+\end{veta}
+
+\begin{intuice}
+\uv{Pokud existuje}: tahem se každý vrchol musí navštívit (souvislý); kdykoli do vrcholu vejdeme jednou hranou, musíme jinou hranou vyjít -- hrany se v daném vrcholu \emph{párují} a jejich celkový počet je sudý. \uv{Naopak}: vezmeme nejdelší tah. Kdyby nebyl uzavřený, použil by v~koncovém vrcholu lichý počet hran; ten má ale sudý stupeň, vede z~něj tedy ještě nepoužitá hrana a tah jde prodloužit -- spor. Uzavřený tah, který nepokrývá všechny hrany, má díky souvislosti na některém svém vrcholu nepoužitou hranu; tah \uv{rozpojíme} v~tomto vrcholu a hranu přidáme -- opět delší tah, spor s~maximalitou.
+\end{intuice}
+
+\begin{priklad}[SZZ jaro 2025 č.~4: Eulerovskost na grafu disjunktních podmnožin] \szzotazka{jaro 2025}{4}{Eulerovské grafy}\par
+\textbf{Zadání.}
+Pro $n>1$ je $G_n$ graf, jehož \emph{vrcholy jsou vlastní podmnožiny} $A\subsetneq[n]$ (tj.\ $|A|<n$, takže $[n]$ samo není vrchol; $\emptyset$ je vrchol), a dva různé vrcholy $A,B$ jsou spojeny hranou právě tehdy, když $A\cap B=\emptyset$.
+\begin{enumerate}[label=(\arabic*)]
+  \item Pro která $n>1$ je $G_n$ souvislý?
+  \item Jaký je stupeň vrcholu $A$ (závisí na $|A|$, $n$\dots)?
+  \item Pro která $n>1$ je $G_n$ eulerovský?
+\end{enumerate}
+\emph{Obrázek $G_3$} v \texttt{priklady/q\_2025-jaro-04\_eulerovske-grafy.tex}.
+
+\textbf{Řešení.}
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{Souvislost.} Vrchol $\emptyset$ je disjunktní s každou jinou množinou, je tedy sousedem všech ostatních vrcholů. Z libovolného vrcholu $A\ne\emptyset$ se tak do libovolného $B\ne\emptyset$ dostaneme cestou $A\to\emptyset\to B$. \textbf{Graf $G_n$ je souvislý pro každé $n>1$.}
+  \item \textbf{Stupeň vrcholu $A$.} Rozlišíme případy podle velikosti $A$:
+    \begin{itemize}
+      \item \emph{Případ $A\ne\emptyset$, $|A|=k$, $1\le k\le n-1$.} Soused $B$ je každá množina disjunktní s $A$ a různá od $A$. Disjunktní s $A$ znamená $B\subseteq[n]\setminus A$ (komplement velikosti $n-k$), takových podmnožin je $2^{n-k}$. Z nich vyloučíme $B=A$, ale to v komplementu vůbec není (protože $A\cap([n]\setminus A)=\emptyset$, takže $A\subseteq[n]\setminus A$ by znamenalo $A=\emptyset$). Tedy $\boxed{\deg(A)=2^{n-k}}$, což je \emph{sudé}, protože $n-k\ge 1$.
+      \item \emph{Případ $A=\emptyset$.} Soused je každá neprázdná \emph{vlastní} podmnožina $[n]$, tj.\ $B\ne\emptyset$ a $B\subsetneq[n]$. Vlastních podmnožin $[n]$ je $2^n-1$ (všech podmnožin je $2^n$, vyloučíme $[n]$); z nich vyloučíme samotnou $\emptyset$ (vrchol $A=\emptyset$ sám sobě sousedem není). Dostáváme $\boxed{\deg(\emptyset)=2^n-2}$, což je \emph{sudé}.
+    \end{itemize}
+    \textbf{Závěr: všechny stupně jsou sudé} pro každé $n>1$.
+  \item \textbf{Eulerovskost.} Graf $G_n$ je souvislý a všechny vrcholy mají sudý stupeň, takže podle charakterizace eulerovských grafů je \textbf{$G_n$ eulerovský pro každé $n>1$}.
+\end{enumerate}
+\end{priklad}
+
+% ============================================================
+\section{Stromy a jejich charakteristiky}
+
+Strom je nejmenší souvislý graf, a zároveň největší acyklický graf -- přesně tato \uv{extremální poloha} dává ekvivalentní charakteristiky. V důkazu hraje klíčovou roli \emph{list} -- vrchol stupně 1.
+
+\begin{definice}[Strom, les, list]
+Graf $G$ je \emph{strom}, je-li souvislý a acyklický (neobsahuje kružnici). \emph{Les} je acyklický graf (komponenty lesa jsou stromy). Vrchol $v\in V(G)$ se stupněm $\deg(v)=1$ se nazývá \emph{list}.
+\end{definice}
+
+\begin{lemma}[Strom má list]
+Každý strom s $|V|\ge 2$ vrcholy má alespoň dva listy.
+\end{lemma}
+
+\begin{proof}[Důkaz \textnormal{(nepovinný -- podpůrné lemma pro indukce po stromě).}]
+Uvažme \emph{nejdelší cestu} $P$ v $G$, řekněme s konci $u$ a $v$. Z $u$ nemůže vést hrana do žádného vrcholu mimo $P$ (jinak bychom $P$ prodloužili), ani do žádného vnitřního vrcholu $P$ (jinak bychom vytvořili kružnici a spor s acykličností). Jediná hrana z $u$ tedy vede k jeho předchůdci na $P$, takže $\deg(u)=1$, a stejně $\deg(v)=1$.
+\end{proof}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.14,every node/.style={circle,fill=black,inner sep=1.6pt}]
+% Tree T with marked leaf
+\begin{scope}
+  \node (r) at (0,1) {};
+  \node (a) at (-1.4,0) {};
+  \node (b) at (0,0) {};
+  \node (c) at (1.4,0) {};
+  \node (a1) at (-2,-1) {};
+  \node (a2) at (-0.9,-1) {};
+  \node[draw=red,fill=red,inner sep=2pt,label=below:{\small list $\ell$}] (b1) at (0,-1) {};
+  \node (c1) at (1.4,-1) {};
+  \draw (r)--(a) (r)--(b) (r)--(c) (a)--(a1) (a)--(a2) (b)--(b1) (c)--(c1);
+  \node[draw=none,fill=none,above=4pt] at (0,1) {\small $T$};
+\end{scope}
+% arrow
+\node[draw=none,fill=none] at (3.4,0) {\large $\implies$};
+\node[draw=none,fill=none] at (3.4,0.35) {\scriptsize odeber};
+\node[draw=none,fill=none] at (3.4,-0.45) {\scriptsize list};
+% Tree T - l (smaller)
+\begin{scope}[shift={(6.5,0)}]
+  \node (r) at (0,1) {};
+  \node (a) at (-1.4,0) {};
+  \node (b) at (0,0) {};
+  \node (c) at (1.4,0) {};
+  \node (a1) at (-2,-1) {};
+  \node (a2) at (-0.9,-1) {};
+  \node (c1) at (1.4,-1) {};
+  \draw (r)--(a) (r)--(b) (r)--(c) (a)--(a1) (a)--(a2) (c)--(c1);
+  \node[draw=none,fill=none,above=4pt] at (0,1) {\small $T-\ell$};
+\end{scope}
+\end{tikzpicture}
+\end{center}
+
+\begin{intuice}
+List je \uv{rozpoznatelně periferní} vrchol -- má jediného souseda, takže odebrání listu strom nepoškodí: zbude opět strom o jeden vrchol a jednu hranu menší. Tato operace je páteří všech indukcí o stromech.
+\end{intuice}
+
+\begin{veta}[Ekvivalentní charakteristiky stromu]
+Pro graf $G$ jsou následující podmínky ekvivalentní:
+\begin{enumerate}[label=(\arabic*)]
+  \item $G$ je souvislý a acyklický (standardní definice);
+  \item mezi každými dvěma vrcholy vede \emph{právě jedna} cesta (jednoznačná souvislost);
+  \item $G$ je souvislý a po odebrání libovolné hrany nesouvislý (minimálně souvislý);
+  \item $G$ je acyklický a přidáním libovolné nové hrany vznikne kružnice (maximálně acyklický);
+  \item $G$ je souvislý a $|E|=|V|-1$.
+\end{enumerate}
+\end{veta}
+
+\begin{poznamka}
+\emph{Princip důkazu.} Implikace (1)$\Rightarrow$(5) se vede indukcí přes \uv{odtrhni list} (viz důsledek níže). Obráceně z~(5) (souvislý, $m=n-1$) plyne (1) takto: kdyby $G$ obsahoval kružnici, odebráním jedné její hrany bychom dostali souvislý graf s~$n-2$ hranami -- spor s~tím, že souvislý graf na $n$ vrcholech má alespoň $n-1$ hran (kostra je strom). Ekvivalence s~(2)--(4) plynou z~(1) krátkými úvahami: dvě různé cesty mezi týmiž vrcholy by daly kružnici, takže (1)$\Rightarrow$(2); hrana stromu je jedinou cestou mezi svými konci, takže její odebrání rozpojí graf (3); přidaná hrana $uv$ uzavře kružnici s~jedinou cestou z~$u$ do $v$ (4). Zpětné implikace se dokazují podobně sporem.
+\end{poznamka}
+
+\begin{dusledek}[Počet hran stromu]
+Strom na $n\ge 1$ vrcholech má přesně $n-1$ hran. Les o $n$ vrcholech a $k$ komponentách má $n-k$ hran.
+\end{dusledek}
+
+\begin{intuice}
+\uv{Strom má $n-1$ hran} je tak důležitý a tak často používaný fakt, že stojí za zvláštní zapamatování. Důkaz indukcí: $n=1$ má 0 hran. Pro $n\ge 2$ vezmeme list $\ell$, odtrhneme ho ($G-\ell$ je strom na $n-1$ vrcholech), použijeme indukční předpoklad ($n-2$ hran) a hranu k listu přidáme zpět: $n-1$ hran.
+\end{intuice}
+
+\begin{priklad}[Stromy a počet hran v lese]
+\textbf{Zadání.} Les má $n=20$ vrcholů a $5$ komponent. Kolik má hran?
+
+\textbf{Řešení.} Každá komponenta lesa je strom; je-li $i$-tá komponenta na $n_i$ vrcholech, má $n_i-1$ hran. Celkem $\sum(n_i-1)=n-5=15$ hran.
+\end{priklad}
+
+% ============================================================
+\section{Rovinné grafy (Eulerova formule)}
+
+Rovinný graf je graf, který umíme bez křížení nakreslit do roviny. Nakreslení rozdělí rovinu na \emph{stěny} (oblasti) a pro každé takové nakreslení platí \emph{Eulerova formule} $n-m+s=2$, která svazuje počty vrcholů, hran a stěn. Důkaz Eulerovy formule výslovně uvádějí požadavky okruhu, proto ho níže provedeme po krocích.
+
+\begin{definice}[Rovinný graf, rovinné nakreslení, stěny]
+\emph{Rovinné nakreslení} grafu $G=(V,E)$ je přiřazení každému vrcholu bodu v $\mathbb{R}^2$ a každé hraně $\{u,v\}\in E$ jednoduchého oblouku s konci v obrazech $u$ a $v$ tak, že dvě různé hrany se protínají nejvýše ve společných koncích. \emph{Rovinný graf} je takový graf, pro který existuje alespoň jedno rovinné nakreslení. \emph{Stěny} nakreslení jsou souvislé komponenty doplňku obrazu vrcholů a hran v $\mathbb{R}^2$; právě jedna stěna je neomezená -- nazývá se \emph{vnější}, ostatní jsou \emph{vnitřní}.
+\end{definice}
+
+\video{https://www.youtube.com/watch?v=LSkB6jR44aE}{Wrath of Math, \emph{What are Planar Graphs?} (definice rovinného grafu, rovinného nakreslení a~stěn).}
+
+\begin{poznamka}
+Existují grafy, které rovinné nejsou. Klasickými minimálními neplanárními grafy jsou $K_5$ a $K_{3,3}$; Kuratowského věta říká, že graf je neplanární právě tehdy, obsahuje-li podgraf, který je \emph{dělením} některého z těchto dvou. (V požadavcích M4 není; uvádíme jen jako kontext.)
+\end{poznamka}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.58,every node/.style={circle,fill=black,inner sep=1.8pt}]
+\fill[blue!10] (0,0) -- (2,0) -- (1,0.55) -- cycle;
+\fill[orange!15] (0,0) -- (1,0.55) -- (1,1.7) -- cycle;
+\fill[green!12] (2,0) -- (1,0.55) -- (1,1.7) -- cycle;
+\draw (0,0) -- (2,0) -- (1,1.7) -- cycle;
+\draw (0,0) -- (1,0.55);
+\draw (2,0) -- (1,0.55);
+\draw (1,1.7) -- (1,0.55);
+\node at (0,0) {}; \node at (2,0) {}; \node at (1,1.7) {}; \node at (1,0.55) {};
+\node[draw=none,fill=none] at (1,0.22) {\scriptsize $F_1$};
+\node[draw=none,fill=none] at (0.6,0.85) {\scriptsize $F_2$};
+\node[draw=none,fill=none] at (1.4,0.85) {\scriptsize $F_3$};
+\node[draw=none,fill=none] at (2.4,1.4) {\scriptsize $F_{\text{vnější}}$};
+\end{tikzpicture}
+\obrpopis{Rovinné nakreslení $K_4$: $n=4$, $m=6$, $s=4$, ověřujeme $n-m+s=4-6+4=2$.}
+\end{center}
+
+\begin{veta}[Eulerova formule]
+Pro každý souvislý rovinný graf $G=(V,E)$ s libovolným rovinným nakreslením platí
+\[ n-m+s=2, \]
+kde $n=|V|$, $m=|E|$ a $s$ je počet stěn (vnitřních i vnější).
+\end{veta}
+
+\begin{proof}[Důkaz (indukcí podle počtu hran).]
+Fixujeme počet vrcholů $n$ a indukujeme přes počet hran $m$. Souvislost je předpoklad.
+\begin{enumerate}[label=(\arabic*)]
+  \item \emph{Báze.} Nejmenší souvislý graf na $n$ vrcholech je strom: $m=n-1$ a stěn je $s=1$ (jen vnější -- nakreslení stromu \uv{neuzavírá} žádnou omezenou oblast). Pak $n-m+s=n-(n-1)+1=2$.
+  \item \emph{Indukční krok.} Nechť $G$ je souvislý a $m>n-1$, tedy obsahuje kružnici. Vyber hranu $e$, která leží na nějaké kružnici, a označ $G'=G-e$. Po odebrání $e$:
+    \begin{itemize}
+      \item $V$ se nemění: $n'=n$;
+      \item hran je o jednu méně: $m'=m-1$;
+      \item dvě stěny, které sousedily přes $e$, se slévají v jednu (z Jordanovy věty: hrana $e$ leží na kružnici, která odděluje svůj vnitřek od vnějšku; $e$ tedy sousedí se dvěma \emph{různými} stěnami, a po jejím odebrání se sloučí) -- tedy $s'=s-1$;
+      \item $G'$ je stále souvislý: každá cesta v $G$ procházející hranou $e$ se dá nahradit obchvatem po zbytku kružnice, na které $e$ leželo.
+    \end{itemize}
+    Z indukčního předpokladu pro $G'$ máme $n'-m'+s'=2$, tedy $n-(m-1)+(s-1)=n-m+s=2$.
+\end{enumerate}
+\end{proof}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.37,every node/.style={circle,fill=black,inner sep=1.8pt}]
+% G with marked edge e on cycle
+\begin{scope}
+  \fill[blue!12] (0.5,0) -- (1.5,0) -- (1.5,1) -- (0.5,1) -- cycle;
+  \fill[orange!15] (1.5,0) -- (2.5,0) -- (2.5,1) -- (1.5,1) -- cycle;
+  \node (a) at (0.5,0) {};
+  \node (b) at (1.5,0) {};
+  \node (c) at (2.5,0) {};
+  \node (d) at (0.5,1) {};
+  \node (e) at (1.5,1) {};
+  \node (f) at (2.5,1) {};
+  \draw (a)--(b)--(c)--(f)--(e)--(d)--(a);
+  \draw[ultra thick,red] (b)--(e) node[midway,right,fill=none,draw=none] {\scriptsize $e$};
+  \node[draw=none,fill=none] at (1,0.5) {\scriptsize $F_1$};
+  \node[draw=none,fill=none] at (2,0.5) {\scriptsize $F_2$};
+\end{scope}
+\node[draw=none,fill=none] at (3.7,0.5) {\large $\implies$};
+% G - e
+\begin{scope}[shift={(4.5,0)}]
+  \fill[purple!12] (0.5,0) -- (2.5,0) -- (2.5,1) -- (0.5,1) -- cycle;
+  \node (aa) at (0.5,0) {};
+  \node (bb) at (1.5,0) {};
+  \node (cc) at (2.5,0) {};
+  \node (dd) at (0.5,1) {};
+  \node (ee) at (1.5,1) {};
+  \node (ff) at (2.5,1) {};
+  \draw (aa)--(bb)--(cc)--(ff)--(ee)--(dd)--(aa);
+  \node[draw=none,fill=none] at (1.5,0.5) {\scriptsize $F$};
+\end{scope}
+\end{tikzpicture}
+\obrpopis{Vlevo: $G$ s hranou $e$ na kružnici, stěny $F_1\ne F_2$. Vpravo: $G-e$ -- stěny $F_1,F_2$ se slévají v $F$, takže $s'=s-1$.}
+\end{center}
+
+\begin{intuice}
+Eulerova formule říká, že číslo $n-m+s$ je \emph{topologický invariant} -- nezáleží na konkrétním nakreslení, závisí jen na grafu (a souvislosti, abychom \uv{nepřičítali} stěny duplicitně). Pro nesouvislý graf s $c$ komponentami platí $n-m+s=1+c$ (každá komponenta přidá svou \uv{jedničku}, vnější stěnu si komponenty sdílí). To je užitečné při počítání s nesouvislými rovinnými grafy.
+\end{intuice}
+
+\video{https://www.youtube.com/watch?v=-9OUyo8NFZg}{3Blue1Brown, \emph{Euler's Formula and Graph Duality} (důkaz Eulerovy formule přes dualitu a~kostru -- jiná cesta než indukce výše, tatáž věta).}
+
+\subsection{Maximální počet hran rovinného grafu}
+
+Pro \uv{velké} rovinné grafy nesmí být příliš mnoho hran; přesně to formalizuje následující věta. V důkazu hraje hlavní roli pozorování, že každá stěna je ohraničena alespoň 3 hranami a každá hrana sousedí s nejvýše 2 stěnami. (Výjimkou je \emph{most} -- hrana, jejímž odebráním vzroste počet komponent souvislosti, ekvivalentně hrana neležící na~žádné kružnici; ta v~rovinném nakreslení sousedí s~toutéž stěnou z~obou stran, proto se v~součtu $\sum_F\ell(F)$ počítá dvakrát.)
+
+\begin{veta}[Maximální počet hran rovinného grafu]
+Pro každý jednoduchý rovinný graf $G$ s $n\ge 3$ vrcholy a $m$ hranami platí
+\[ m\le 3n-6. \]
+Pokud $G$ navíc neobsahuje žádný trojúhelník (např.\ je bipartitní), pak dokonce
+\[ m\le 2n-4. \]
+\end{veta}
+
+\begin{proof}
+Stačí ošetřit souvislý případ (přidáním hran se nerovnost zachovává, doplníme do souvislého). Mějme rovinné nakreslení.
+
+Pro každou stěnu $F$ označme $\ell(F)$ počet hran na její hranici (každou hranu, která se na hranici vyskytne dvakrát, např.\ ve stromu, počítáme dvakrát). Platí
+\[ \sum_{F}\ell(F)=2m, \]
+protože každá hrana sousedí z~obou stran se stěnou (u mostu je to z~obou stran táž stěna, a proto ho v~ní počítáme dvakrát). Zároveň pro $n\ge 3$ je $\ell(F)\ge 3$ pro každou stěnu: obsahuje-li $G$ kružnici, hranice každé stěny kružnici obsahuje a kružnice má aspoň 3 hrany; je-li $G$ strom, má jedinou stěnu a $\ell=2m=2(n-1)\ge 4$. Tedy
+\[ 3s\le\sum_F\ell(F)=2m,\quad\text{tj.}\quad s\le\tfrac{2m}{3}. \]
+Dosazením do Eulerovy formule $n-m+s=2$:
+\[ 2=n-m+s\le n-m+\tfrac{2m}{3}=n-\tfrac{m}{3}, \]
+odkud $\tfrac{m}{3}\le n-2$, tedy $m\le 3n-6$.
+
+Pokud $G$ nemá trojúhelník, je $\ell(F)\ge 4$ (kružnice na hranici má délku aspoň 4, u stromu je $\ell=2(n-1)\ge 4$), takže $4s\le 2m$, tj.\ $s\le m/2$. Dosazením $2\le n-m+m/2=n-m/2$ dostáváme $m\le 2n-4$.
+\end{proof}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.65,every node/.style={circle,fill=black,inner sep=1.8pt}]
+% Triangulation on 5 vertices: A,B,C outer triangle + D inside ABC + E inside ABD
+% A=(0,0), B=(2,0), C=(1,1.9), D=(1,1.05), E=(1,0.4)
+% Faces (all triangles): ABE, ADE, BDE, ADC, BDC, vnější ACB
+\fill[blue!10]    (0,0) -- (2,0) -- (1,0.4) -- cycle;          % ABE
+\fill[orange!12]  (0,0) -- (1,0.4) -- (1,1.05) -- cycle;       % ADE
+\fill[green!12]   (2,0) -- (1,0.4) -- (1,1.05) -- cycle;       % BDE
+\fill[purple!12]  (0,0) -- (1,1.05) -- (1,1.9) -- cycle;       % ADC
+\fill[red!12]     (2,0) -- (1,1.05) -- (1,1.9) -- cycle;       % BDC
+% Outer triangle edges
+\draw (0,0) -- (2,0) -- (1,1.9) -- cycle;
+% D connected to A, B, C
+\draw (0,0) -- (1,1.05);
+\draw (2,0) -- (1,1.05);
+\draw (1,1.9) -- (1,1.05);
+% E connected to A, B, D
+\draw (0,0) -- (1,0.4);
+\draw (2,0) -- (1,0.4);
+\draw (1,1.05) -- (1,0.4);
+% Vertices + labels
+\node[label=below left:$A$] at (0,0) {};
+\node[label=below right:$B$] at (2,0) {};
+\node[label=above:$C$] at (1,1.9) {};
+\node[label=right:$D$] at (1,1.05) {};
+\node[label=right:$E$] at (1,0.4) {};
+% Optional face labels for orientation
+\node[draw=none,fill=none,font=\scriptsize] at (1,0.18) {$ABE$};
+\node[draw=none,fill=none,font=\scriptsize] at (0.78,0.7) {$ADE$};
+\node[draw=none,fill=none,font=\scriptsize] at (1.22,0.7) {$BDE$};
+\node[draw=none,fill=none,font=\scriptsize] at (0.78,1.35) {$ADC$};
+\node[draw=none,fill=none,font=\scriptsize] at (1.22,1.35) {$BDC$};
+\node[draw=none,fill=none,font=\scriptsize] at (-0.5,1.7) {vnější $ACB$};
+\end{tikzpicture}
+\obrpopis{Triangulace na $n=5$ vrcholech: $m=9=3n-6$, $s=6$ stěn (5 vnitřních + 1 vnější $ACB$), \emph{každá stěna je $C_3$}. Ověření Eulerovy formule: $n-m+s=5-9+6=2$.}
+\end{center}
+
+\begin{intuice}
+Maxima dosahují tzv.\ \emph{triangulace} -- rovinné grafy, kde každá stěna (i vnější) je trojúhelník. Když máme jinou stěnu (delší kružnici), můžeme do ní přidat hranu a $m$ tím zvýšit. Pro grafy \emph{bez trojúhelníků} je horní mez $m\le 2n-4$ -- a dobrým testem je, že nerovnost vyřazuje $K_{3,3}$ ($n=6$, $m=9 > 8=2n-4$), což je v souladu s tím, že $K_{3,3}$ není rovinný. I mez $m\le 2n-4$ je nejlepší možná: rovnosti dosahuje např.\ rovinný bipartitní graf $K_{2,n-2}$ ($m=2(n-2)=2n-4$), obecně každý rovinný graf, jehož všechny stěny jsou čtyřúhelníky.
+\end{intuice}
+
+\begin{dusledek}[Existence vrcholu malého stupně]
+Každý rovinný graf má vrchol se stupněm nejvýše 5.
+\end{dusledek}
+
+\begin{proof}[Důkaz \textnormal{(nepovinný -- krátký důsledek $m\le 3n-6$).}]
+Pro $n\le 2$ triviální. Pro $n\ge 3$: kdyby všechny stupně byly $\ge 6$, bylo by $2m=\sum\deg(v)\ge 6n$, takže $m\ge 3n>3n-6$ -- spor s předchozí větou.
+\end{proof}
+
+\begin{priklad}[SZZ jaro 2023 č.~4: Rovinný graf bez trojúhelníků] \szzotazka{jaro 2023}{4}{Rovinné grafy}\par
+\textbf{Zadání.}
+\begin{enumerate}[label=(\arabic*)]
+  \item Uveďte Eulerovu formuli pro rovinné grafy.
+  \item Může existovat rovinný graf na 40 vrcholech s 80 hranami, 5 komponentami souvislosti a bez $C_3$ jako podgraf?
+  \item Určete maximální počet hran takového grafu (40 vrcholů, 5 komponent, bez $C_3$, rovinný).
+\end{enumerate}
+
+\textbf{Řešení.}
+\begin{enumerate}[label=(\arabic*)]
+  \item Pro souvislý rovinný graf platí $n-m+s=2$; pro graf s $c$ komponentami $n-m+s=1+c$.
+  \item Komponenty mají $n_1,\dots,n_5$ vrcholů, $\sum n_i=40$. Komponenta na $n_i\ge 3$ vrcholech je souvislý rovinný graf bez trojúhelníků, takže $m_i\le 2n_i-4$. Komponenta na $n_i\in\{1,2\}$ vrcholech má $m_i\le n_i-1\le 2n_i-2$. Je-li $t\ge 1$ počet komponent s~aspoň třemi vrcholy (aspoň jedna je, protože $40>5\cdot 2$), dostáváme
+  \[ m=\sum_i m_i\le\sum_i(2n_i-2)-2t=80-10-2t=70-2t\le 68. \]
+  Hodnota $m=80$ tedy \emph{nemůže} být dosažena -- takový graf neexistuje.
+  \item Z (2) plyne $m\le 68$ a rovnost vyžaduje $t=1$ a čtyři izolované vrcholy (jen pro $n_i=1$ je $n_i-1=2n_i-2$). Mez je dosažitelná: $K_{2,34}$ (36 vrcholů, $2\cdot 34=68$ hran) je rovinný a bipartitní, tedy bez trojúhelníků; spolu se 4 izolovanými vrcholy dává 5 komponent. Maximum je $\boxed{68}$ hran.
+\end{enumerate}
+\end{priklad}
+
+\begin{priklad}[SZZ jaro 2026 č.~4: 2-souvislý vnitřně triangulovaný + stupně 3 a 4] \szzotazka{jaro 2026}{4}{Rovinné grafy}\par
+\textbf{Zadání.}
+\begin{enumerate}[label=(\arabic*)]
+  \item Uveďte Eulerovu formuli.
+  \item Pro 2-souvislý rovinný graf s vnitřními stěnami $=C_3$ určete minimální a maximální počet hran (pro $n\ge 3$ vrcholů).
+  \item Pro která $n\in\mathbb{N}$ existuje rovinný graf s $2n$ vrcholy, kde $n$ jich má stupeň 3 a $n$ stupeň 4?
+\end{enumerate}
+
+\textbf{Řešení.}
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{Eulerova formule.} $n-m+s=2$ pro souvislý rovinný graf.
+  \item \textbf{Minimální a maximální počet hran.} Použijeme dvě vlastnosti 2-souvislého rovinného grafu:
+  \begin{itemize}
+    \item \emph{Každá stěna je ohraničena kružnicí} (žádné \uv{mosty} a \uv{slepé uličky}, které by mohly hranice protáhnout).
+    \item \emph{Každá hrana sousedí se dvěma různými stěnami} (v 1-souvislém grafu by most mohl ležet na hranici stejné stěny dvakrát; ve 2-souvislém ne).
+  \end{itemize}
+  Z toho plyne dvojí počítání délek hranic stěn: každou hranu započítáme přesně dvakrát (jednou za každou ze dvou různých sousedních stěn). Je-li vnější stěna $C_k$ (kružnice délky $k$, kde $3\le k\le n$) a všechny vnitřní stěny jsou $C_3$ (těch je $s-1$, protože vnější je jedna), pak
+  \[ 2m=3(s-1)+k. \]
+  Z Eulerovy formule $s=m-n+2$. Dosadíme a vyjádříme $m$:
+  \[ 2m=3(m-n+2-1)+k=3m-3n+3+k\implies m=3n-3-k. \]
+  Pro $k=3$ (i vnější trojúhelník): $m=3n-6$ -- klasické maximum (triangulace). Pro $k=n$ (vnější stěna $C_n$, vnitřek triangulovaný = vnějškově rovinný graf): $m=2n-3$ -- minimum.
+  \textbf{Celkem $\boxed{\,2n-3\le m\le 3n-6\,}$.}
+  \item \textbf{Stupně 3 a 4 -- pro která $n$?} Princip sudosti dává $\sum\deg=3n+4n=7n=2m$, takže $7n$ musí být sudé, tedy \textbf{$n$ je sudé}. Vrchol stupně 4 vyžaduje alespoň 5 vrcholů celkem, $2n\ge 5$, kombinací s paritou $n\ge 4$.
+
+  \medskip\noindent\textbf{Konkrétní konstrukce pro $n=4$} (tj.\ 8 vrcholů, 4 stupně 3, 4 stupně 4, $m=14$): vezmeme krychli $Q_3$ (8 vrcholů $\{0,1\}^3$, 12 hran, 3-regulární, rovinná) a přidáme do ní dvě \emph{diagonály v dvojici protilehlých čtvercových stěn}. Konkrétně:
+  \begin{itemize}
+    \item diagonála $\{000,011\}$ ve stěně tvořené vrcholy $\{000,001,011,010\}$ (první bit $=0$);
+    \item diagonála $\{100,111\}$ v opačné stěně $\{100,101,111,110\}$ (první bit $=1$).
+  \end{itemize}
+  Tyto dvě stěny nesdílí žádný vrchol. Konce obou diagonál (celkem 4 různé vrcholy: $000,011,100,111$) získají $+1$ ke stupni; zbylé 4 vrcholy ($001,010,101,110$) zůstanou se stupněm 3. Po přidání:
+  \begin{itemize}
+    \item 4 vrcholy stupně 4 (oba konce každé diagonály),
+    \item 4 vrcholy stupně 3,
+    \item $m=12+2=14$.
+  \end{itemize}
+  Rovinnost: krychli nakreslíme rovinně (jedna stěna jako vnější obrys, opačná jako vnitřní čtverec), diagonála ve vnitřní stěně zůstane uvnitř ní, diagonála ve vnější stěně se nakreslí ve vnějším prostoru -- diagonály se nekříží mezi sebou ani s hranami $Q_3$.
+
+  \medskip\noindent\textbf{Obecná konstrukce pro sudé $n\ge 4$} (požadovaná v~zadání). Vezmeme \emph{hranol} nad $C_n$: dvě kružnice $a_0a_1\dots a_{n-1}$ a $b_0b_1\dots b_{n-1}$ a \uv{příčky} $a_ib_i$. Má $2n$ vrcholů, je 3-regulární a rovinný (vnější kružnice $a_i$, vnitřní $b_i$, příčky mezi nimi); jeho boční stěny jsou čtyřúhelníky $a_ia_{i+1}b_{i+1}b_i$ (indexy modulo $n$). Do každé druhé boční stěny, tj.\ pro $i=0,2,4,\dots,n-2$, přidáme diagonálu $a_ib_{i+1}$. Tyto stěny nesdílejí žádný vrchol (stěna $i$ používá indexy $i$ a $i+1$), takže každý z~$2\cdot\frac n2=n$ konců diagonál získá stupeň~4 a zbylých $n$ vrcholů má stupeň~3. Každá diagonála vede uvnitř své stěny, graf zůstává rovinný. Pro $n=4$ je hranol krychle a dostáváme krychli se dvěma diagonálami v~protilehlých stěnách jako výše.
+
+  \textbf{Závěr: graf existuje, právě když $n$ je sudé a $n\ge 4$.}
+\end{enumerate}
+\end{priklad}
+
+% ============================================================
+\section{Barevnost grafů}
+
+Hledáme, kolika \uv{barvami} (čísly z $[k]$) lze obarvit vrcholy tak, aby žádná hrana nespojila dva vrcholy stejné barvy. Toto číslo $\chrom(G)$ je jeden z nejstudovanějších invariantů grafů; pro nás jsou důležité jeho elementární vlastnosti a vztah ke \emph{klikovosti} $\klik(G)$.
+
+\begin{definice}[Dobré obarvení, barevnost]
+\emph{Dobré obarvení} grafu $G=(V,E)$ pomocí $k$ barev je funkce $c\colon V\to[k]$ taková, že pro každou hranu $\{u,v\}\in E$ platí $c(u)\ne c(v)$. \emph{Barevnost} (chromatické číslo) $\chrom(G)$ je nejmenší $k$, pro které existuje dobré obarvení $G$ pomocí $k$ barev.
+\end{definice}
+
+\video{https://www.youtube.com/watch?v=3VeQhNF5-rE}{Wrath of Math, \emph{Vertex Colorings and the Chromatic Number of Graphs} (definice dobrého obarvení a~chromatického čísla s~příklady).}
+
+\begin{intuice}
+\uv{Konfliktní} = sousední; \uv{barva} = časový slot / místo / kategorie. Barevnost je tedy minimální počet kategorií, do kterých se vrcholy dají rozdělit bez konfliktů. Klasické aplikace: rozvrhování zkoušek (vrchol = předmět, hrana = sdílený student), přidělování frekvencí, alokace registrů kompilátorem.
+\end{intuice}
+
+\begin{poznamka}[Hodnoty barevnosti standardních grafů]\leavevmode
+\begin{itemize}
+  \item $\chrom(P_n)=2$ pro $n\ge 1$ (alespoň jedna hrana, alternujeme 1-2-1-2\dots); $\chrom(P_0)=1$ (cesta délky 0 = jeden izolovaný vrchol);
+  \item $\chrom(C_n)=2$ pro sudé $n$, $\chrom(C_n)=3$ pro liché $n\ge 3$;
+  \item $\chrom(K_n)=n$ (žádné dva vrcholy nesmí mít stejnou barvu);
+  \item $\chrom(G)=1\iff G$ nemá hrany; $\chrom(G)\le 2\iff G$ je bipartitní (resp.\ bez liché kružnice).
+\end{itemize}
+\end{poznamka}
+
+\begin{veta}[Čtyřbarevná věta -- bez důkazu]
+Každý rovinný graf má $\chrom(G)\le 4$. Tento odhad je těsný (například $K_4$ je rovinný a má barevnost 4).
+\end{veta}
+
+\begin{poznamka}
+Důkaz čtyřbarevné věty (Appel--Haken 1976, Robertson--Sanders--Seymour--Thomas 1997) je velmi technický a počítačově asistovaný; v rámci kurzu se uvádí jen znění. Snazší (a důležitý) je důkaz \emph{pětibarevnosti} pomocí existence vrcholu stupně $\le 5$: induktivně vrchol odebereme, podgraf obarvíme 5 barvami a vracející se vrchol obarvíme zbylou barvou (případně \uv{prohozením tříd} přes Kempeho řetězec, pokud je všech 5 sousedů různě obarvených).
+\end{poznamka}
+
+\subsection{Vztah barevnosti a klikovosti}
+
+\begin{definice}[Klikovost]
+\emph{Klikovost} $\klik(G)$ je maximální $k$, pro které $G$ obsahuje $K_k$ jako podgraf.
+\end{definice}
+
+\begin{veta}[Dolní odhad barevnosti klikovostí]
+Pro každý graf $G$ platí
+\[ \chrom(G)\ge\klik(G). \]
+\end{veta}
+
+\begin{proof}[Důkaz \textnormal{(nepovinný -- triviální).}]
+Obsahuje-li $G$ podgraf $K_k$, musí být jeho $k$ vrcholů obarveno navzájem různými barvami, takže $\chrom(G)\ge k$.
+\end{proof}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.2,every node/.style={circle,draw,inner sep=2pt,minimum size=5pt}]
+\foreach \i/\col/\lbl in {0/red/1,1/green!70!black/2,2/red/1,3/green!70!black/2,4/blue/3} {
+  \node[fill=\col!60] (c\i) at ({90+72*\i}:1.1) {\scriptsize \lbl};
+}
+\foreach \i in {0,...,4} {
+  \pgfmathtruncatemacro{\j}{mod(\i+1,5)}
+  \draw (c\i) -- (c\j);
+}
+\end{tikzpicture}
+\obrpopis{$C_5$ s 3-obarvením (čísla v kroužcích = barvy 1, 2, 3): $\klik(C_5)=2$, ale $\chrom(C_5)=3$.}
+\end{center}
+
+\begin{intuice}
+Nerovnost $\chrom(G)\ge\klik(G)$ je obecně \emph{ostrá}. Klasický příklad: lichá kružnice $C_{2k+1}$ má $\klik=2$ (žádné tři vrcholy netvoří trojúhelník), ale $\chrom=3$ (sudou kružnici lze obarvit dvěma barvami střídavě, lichou ne). Existují dokonce grafy s libovolně velkým rozdílem $\chrom-\klik$ -- například Mycielského konstrukce dává grafy bez trojúhelníků ($\klik=2$) s libovolně velkým $\chrom$.
+\end{intuice}
+
+\begin{priklad}[SZZ podzim 2024 č.~4: Barevnost konkrétního grafu] \szzotazka{podzim 2024}{4}{Barevnost grafu}\par
+\textbf{Zadání.}
+\begin{enumerate}[label=(\arabic*)]
+  \item Definujte barevnost grafu.
+  \item Jaká platí omezení pro barevnost rovinných grafů?
+  \item Určete barevnost následujícího grafu.
+\end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}[scale=0.92,
+   vx/.style={circle,draw,thick,minimum size=6mm,inner sep=0pt,font=\small}]
+  \node[vx] (a) at (3.35,4.15) {$a$};
+  \node[vx] (b) at (1.5,4.85) {$b$};
+  \node[vx] (c) at (3.5,6.1) {$c$};
+  \node[vx] (d) at (5.3,4.65) {$d$};
+  \node[vx] (e) at (4.4,2.57) {$e$};
+  \node[vx] (f) at (2.1,2.7) {$f$};
+  \node[vx] (g) at (1.18,0.83) {$g$};
+  \node[vx] (h) at (3.3,0.83) {$h$};
+  \node[vx] (i) at (5.48,0.83) {$i$};
+  \node[vx] (j) at (6.4,2.82) {$j$};
+  \draw (a)--(b) (a)--(c) (a)--(d) (a)--(e) (a)--(f)
+        (b)--(c) (b)--(f) (c)--(d) (d)--(e)
+        (e)--(f) (e)--(i) (e)--(j)
+        (f)--(g) (f)--(h) (g)--(h) (h)--(i) (i)--(j);
+\end{tikzpicture}
+\obrpopis{Graf z~otázky (vrcholy $a,\dots,j$); jeho barevnost určujeme v~bodě~(3).}
+\end{center}
+
+\textbf{Řešení.}
+\begin{enumerate}[label=(\arabic*)]
+  \item $\chrom(G)$ = nejmenší $k$, pro které existuje funkce $c\colon V\to[k]$ s $c(u)\ne c(v)$ pro každou hranu $\{u,v\}\in E$.
+  \item Rovinný graf má $\chrom\le 4$ (čtyřbarevná věta); odhad je těsný (např.\ $K_4$).
+  \item Konkrétní graf (10 vrcholů $a,\dots,j$) má $\chrom=4$. \emph{Horní odhad konstruktivně:} vrcholy $a,b,\dots,j$ obarvíme po řadě barvami
+  \[ 4,\,3,\,2,\,1,\,2,\,1,\,4,\,3,\,4,\,3, \]
+  což je dobré obarvení 4 barvami, tedy $\chrom\le 4$ (alternativně rovnou ze čtyřbarevné věty, neboť graf je rovinný). \emph{Dolní odhad:} graf obsahuje 5-cyklus s připojeným univerzálním vrcholem (tj.\ \uv{kolo} $W_5$); $W_5$ má $\chrom=4$, protože 5-cyklus chce 3 barvy a centrální univerzální vrchol musí mít čtvrtou. Dohromady $\chrom=4$.
+\end{enumerate}
+\end{priklad}
+
+% ============================================================
+\section{Hranová a vrcholová souvislost (Mengerova věta)}
+
+V této sekci přejdeme od \uv{souvislost ano/ne} ke kvantitativní otázce \emph{nakolik je graf souvislý}: kolik nejméně hran (resp.\ vrcholů) je třeba odebrat, aby se graf rozpadl. \emph{Mengerova věta} pak hluboce propojí tento minimální počet odebíraných objektů s maximálním počtem disjunktních cest mezi dvojicí vrcholů.
+
+\begin{definice}[Hranový řez, vrcholový řez]
+Buď $G=(V,E)$ graf. Množina hran $F\subseteq E$ je \emph{hranový řez}, pokud graf $(V,E\setminus F)$ je nesouvislý. Pro dva vrcholy $u,v$ je $F$ \emph{hranový $u$-$v$ řez}, pokud v $(V,E\setminus F)$ neexistuje cesta z $u$ do $v$.
+
+Množina vrcholů $A\subseteq V\setminus\{u,v\}$ je \emph{vrcholový $u$-$v$ řez}, pokud v indukovaném podgrafu $G[V\setminus A]$ neexistuje cesta z $u$ do $v$. Množina $A\subseteq V$ je \emph{vrcholový řez}, je-li $G[V\setminus A]$ nesouvislý (tj.\ $A$ je vrcholový $u$-$v$ řez pro nějaké $u,v$).
+\end{definice}
+
+\begin{definice}[Hranová a vrcholová souvislost]
+\emph{Hranová souvislost} grafu $G$ je $k_e(G)=\min\{|F|:F\text{ je hranový řez}\}$. Pro nesouvislý $G$ je $k_e(G)=0$ (prázdná množina je řez).
+
+\emph{Vrcholová souvislost} je $k_v(G)=\min\{|A|:A\text{ je vrcholový řez}\}$ pro $G\not\cong K_n$, a $k_v(K_n)=n-1$ (úplný graf nemá vrcholový řez ve smyslu definice; konvence). Pro nesouvislý $G$ je $k_v(G)=0$.
+
+Graf je \emph{$t$-hranově souvislý}, je-li $k_e(G)\ge t$; analogicky pro \emph{$t$-vrcholově souvislý}.
+\end{definice}
+
+\begin{poznamka}
+Ve vrcholovém $u$-$v$ řezu nesmí ležet $u$ ani $v$, jinak by dosažitelnost triviálně přerušilo už odebrání samotného $u$. Pro úplné grafy $K_n$ definujeme zvlášť, protože v $K_n$ nelze najít vrcholový řez (mezi dvěma vrcholy se vždy najde přímá hrana, kterou žádné odebrání vrcholu neovlivní).
+\end{poznamka}
+
+\begin{intuice}
+$k_e(G)$ = \uv{nakolik tlustý je graf hranově}, $k_v(G)$ = \uv{nakolik tlustý je vrcholově}. Cesta $P_n$ má $k_e=k_v=1$ (odeber jednu hranu, resp.\ jeden vnitřní vrchol). Kružnice $C_n$ má $k_e=k_v=2$. Hyperkrychle $Q_d$ má $k_e=k_v=d$.
+\end{intuice}
+
+\begin{veta}[Vztah $k_v\le k_e\le\delta$]
+Pro každý graf $G$ s $|V|\ge 2$ platí
+\[ k_v(G)\le k_e(G)\le\delta(G), \]
+kde $\delta(G)=\min_v\deg(v)$ je minimální stupeň.
+\end{veta}
+
+\begin{intuice}
+Obě nerovnosti dohromady jsou známé jako Whitneyho nerovnost (1932). Druhá ($k_e\le\delta$) je snadná: odebráním všech $\delta$ hran z~vrcholu minimálního stupně se vrchol izoluje, je to tedy hranový řez velikosti $\delta$. První ($k_v\le k_e$) je hlubší. Naivní nápad \uv{za každou hranu minimálního hranového řezu $F$ odeberme jeden její konec} závisí na volbě konců: v~$C_4=v_1v_2v_3v_4$ s~řezem $F=\{v_1v_2,v_3v_4\}$ volba $\{v_1,v_3\}$ graf rozdělí, ale volba sousedních $\{v_2,v_3\}$ ne (zbude hrana $v_1v_4$). Formální důkaz $k_v\le k_e$ se proto vede indukcí podle počtu hran (Valla--Matoušek, str.~20). Opačná nerovnost obecně neplatí: \uv{motýlek} (dva trojúhelníky se společným vrcholem) má $k_v=1$ (odebrání společného vrcholu), ale $k_e=2$.
+\end{intuice}
+
+\subsection{Mengerova věta}
+
+\begin{definice}[Hranově a vrcholově disjunktní cesty]
+Dvě cesty z $u$ do $v$ jsou \emph{hranově disjunktní}, pokud nemají žádnou společnou hranu. Jsou \emph{vrcholově disjunktní}, pokud nemají žádný společný vnitřní vrchol (krajní vrcholy $u,v$ samozřejmě sdílí).
+\end{definice}
+
+\begin{veta}[Mengerova věta -- hranová verze]
+Pro každé dva různé vrcholy $u,v$ grafu $G$ platí: maximální počet hranově disjunktních cest z $u$ do $v$ je roven minimální velikosti hranového $u$-$v$ řezu.
+\end{veta}
+
+\begin{veta}[Mengerova věta -- vrcholová verze]
+Pro každé dva různé nesousední vrcholy $u,v$ grafu $G$ platí: maximální počet vrcholově disjunktních cest z $u$ do $v$ je roven minimální velikosti vrcholového $u$-$v$ řezu.
+\end{veta}
+
+\video{https://www.youtube.com/watch?v=u1BiIP0zw-c}{Wrath of Math, \emph{Intro to Menger's Theorem} (obě verze: maximální počet disjunktních cest $=$ minimální řez, hranově i~vrcholově).}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.32,every node/.style={circle,fill=black,inner sep=1.8pt}]
+\node[label=left:$u$] (u) at (0,0) {};
+\node[label=right:$v$] (v) at (5,0) {};
+\node[red,fill=red,label=above right:{\scriptsize $a_1$}] (a1) at (2.5,1.1) {};
+\node (b1) at (1.6,0.3) {};
+\node[red,fill=red,label=above:{\scriptsize $a_2$}] (b2) at (2.5,0.2) {};
+\node (b3) at (3.4,0.3) {};
+\node (c1) at (1.6,-0.6) {};
+\node[red,fill=red,label=below:{\scriptsize $a_3$}] (c2) at (2.5,-0.9) {};
+\node (c3) at (3.4,-0.6) {};
+% three vertex-disjoint paths
+\draw[blue,thick] (u) -- (a1) -- (v);
+\draw[green!60!black,thick] (u) -- (b1) -- (b2) -- (b3) -- (v);
+\draw[orange,thick] (u) -- (c1) -- (c2) -- (c3) -- (v);
+\end{tikzpicture}
+\obrpopis{3 vrcholově disjunktní $u$-$v$ cesty. Červené vrcholy $\{a_1,a_2,a_3\}$ tvoří vrcholový $u$-$v$ řez velikosti 3 (po jejich odebrání mezi $u$ a $v$ nevede cesta).}
+\end{center}
+
+\begin{intuice}[Princip důkazu (převod na toky).]
+Mengerova věta se elegantně dokáže přes \emph{hlavní větu o tocích} (kterou potkáme v další sekci). Idea pro hranovou verzi:
+\begin{enumerate}[label=(\arabic*)]
+  \item Z grafu $G$ vytvoříme orientovanou síť $G'$: každou hranu nahradíme dvěma šipkami v obou směrech, všechny kapacity $=1$. Zdroj $z=u$, stok $s=v$.
+  \item Spustíme Ford-Fulkerson; vznikne celočíselný tok $f$ s $w(f)=t$. Po drobné úpravě (zrušení \uv{vzájemně rušících se} jedniček) má tok hodnoty 0/1 a tvoří \emph{$t$ hranově disjunktních cest} z $u$ do $v$.
+  \item Hlavní věta o tocích: $\max w(f)=\min c(R)$. Minimální řez v $G'$ pak odpovídá minimálnímu hranovému $u$-$v$ řezu v $G$.
+\end{enumerate}
+Pro vrcholovou verzi: každý vrchol $x$ (kromě $u,v$) \emph{rozštěpíme} na dva vrcholy $x',x''$ propojené hranou kapacity 1; vstupní hrany jdou do $x'$, výstupní z $x''$. Toky $\le 1$ skrz $x'x''$ pak modelují omezení \uv{přes vrchol smí projít jen jedna cesta}, a věta o tocích dá vrcholovou verzi.
+\end{intuice}
+
+\begin{priklad}[SZZ podzim 2023 č.~3: Souvislost na grafu šestic 0/1] \szzotazka{podzim 2023}{3}{Souvislost grafů}\par
+\textbf{Zadání.}
+$G$ má 64 vrcholů = šestice $\{0,1\}^6$. Hrany:
+\begin{itemize}
+  \item \emph{(a)} dvojice lišící se \emph{pouze} v 1.\ souřadnici (perfektní párování velikosti 32);
+  \item \emph{(b)} dvojice se shodnými prvními 2 znaky (úplné grafy uvnitř každé ze 4 skupin $\{00\!*\!*\!*\!*, 01\!*\!*\!*\!*, 10\!*\!*\!*\!*, 11\!*\!*\!*\!*\}$ na 16 vrcholech);
+  \item \emph{(c)} tři konkrétní hrany $\{111010,101100\}$, $\{101100,010110\}$, $\{010110,111011\}$.
+\end{itemize}
+Úkoly: (1) vyslovte Mengerovu větu (o~vrcholové souvislosti a~řezech) včetně potřebných pojmů; (2) určete počet hranově disjunktních cest mezi $u=000000$ a $v=111111$; (3) najděte minimální hranový a vrcholový $u$-$v$ řez. (Originální PDF SZZ podzim 2023 v této otázce \emph{nemá náčrt řešení}; rozbor níže je vlastní.)
+
+\textbf{Řešení.}
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{Mengerova věta (vrcholová verze).} Pro dva různé \emph{nesousední} vrcholy $u,v$ grafu $G$ je maximální počet vrcholově disjunktních $u$-$v$ cest roven minimální velikosti vrcholového $u$-$v$ řezu (\emph{vrcholový $u$-$v$ řez} $=$ množina vnitřních vrcholů, po jejímž odebrání nevede z~$u$ do~$v$ cesta; cesty jsou \emph{vrcholově disjunktní}, nesdílejí-li žádný vnitřní vrchol). \emph{Analogická hranová verze} (bez předpokladu nesousednosti) ztotožňuje hranově disjunktní cesty s~hranovým řezem -- tu využijeme v~bodech (2) a~(3).
+
+  \item \textbf{Topologický rozbor grafu (klíč k řešení).} Vrcholy se dělí do 4 \uv{skupin} podle prvních 2 bitů: $S_{00}, S_{01}, S_{10}, S_{11}$, každá po 16 vrcholech.
+  \begin{itemize}
+    \item \textbf{Hrany (a)} jsou perfektní párování přes 1.\ bit: spojují vrchol $0\beta$ s $1\beta$, tedy \emph{zachovávají 2.\ bit}. To znamená, že (a)-hrany jdou \textbf{jen} mezi $S_{00}\!\leftrightarrow\! S_{10}$ a $S_{01}\!\leftrightarrow\! S_{11}$. Mezi dvojicí $\{S_{00},S_{10}\}$ a $\{S_{01},S_{11}\}$ \textbf{žádná hrana (a) nevede}.
+    \item \textbf{Hrany (b)} zůstávají uvnitř každé skupiny (úplný graf $K_{16}$).
+    \item \textbf{Hrany (c)} jsou jediné, které propojují dvojice \emph{přes} 2.\ bit:
+      \begin{itemize}
+        \item $\{111010,101100\}$: $S_{11}\!\leftrightarrow\! S_{10}$ (přes vrchol $101100\in S_{10}$);
+        \item $\{101100,010110\}$: $S_{10}\!\leftrightarrow\! S_{01}$ (přes $101100$);
+        \item $\{010110,111011\}$: $S_{01}\!\leftrightarrow\! S_{11}$ (přes $010110\in S_{01}$).
+      \end{itemize}
+  \end{itemize}
+
+  \medskip\noindent\textbf{Důsledek (úzké hrdlo).} Vrchol $u\in S_{00}$. Z dvojice $\{S_{00},S_{10}\}$ se do dvojice $\{S_{01},S_{11}\}$ (kde leží $v$) dá přejít \emph{pouze hranou (c)}, jejíž jeden konec leží v $\{S_{00},S_{10}\}$. Takových hran jsou jen dvě: $\{101100,111010\}$ a $\{101100,010110\}$ -- \textbf{obě procházejí vrcholem $101100$}. (Třetí hrana (c) má oba konce v $\{S_{01},S_{11}\}$ a pro náš přechod neslouží.) Vrchol $101100$ je tedy \uv{úzké hrdlo} mezi $u$ a $v$.
+
+  \medskip\noindent\textbf{Min vrcholový řez = 1.} Stačí odebrat vrchol $\boxed{\{101100\}}$: po jeho odebrání nezbude z $\{S_{00},S_{10}\}$ do $\{S_{01},S_{11}\}$ žádný most (jediná zbylá hrana (c) je $\{010110,111011\}$, ale ze $S_{00}$ se do jejího počátečního vrcholu $010110\in S_{01}$ nedostaneme). Tedy $u$ a $v$ jsou rozpojeni.
+
+  Z Mengerovy vrcholové věty plyne: max počet vrcholově disjunktních $u$-$v$ cest = 1. Příklad jediné takové cesty:
+  \[ 000000 \xrightarrow{(a)} 100000 \xrightarrow{(b)} 101100 \xrightarrow{(c)} 111010 \xrightarrow{(b)} 111111. \]
+
+  \medskip\noindent\textbf{Min hranový řez = 2.} Stačí odebrat 2 hrany (c) incidentní s $101100$:
+  \[ R = \bigl\{\{101100,111010\},\ \{101100,010110\}\bigr\}. \]
+  Po jejich odebrání zbude mezi dvojicemi $\{S_{00},S_{10}\}$ a $\{S_{01},S_{11}\}$ pouze hrana (c) $\{010110,111011\}$, jejíž konec $010110\in S_{01}$ je ze $S_{00}$ nedosažitelný (žádná hrana (a) ani (b) nevede ze $S_{00}$ do $S_{01}$).
+
+  Z Mengerovy hranové věty plyne: max počet hranově disjunktních $u$-$v$ cest = 2. Konkrétní dvě hranově disjunktní cesty:
+  \begin{align*}
+    P_1:&\quad 000000 \xrightarrow{(a)} 100000 \xrightarrow{(b)} 101100 \xrightarrow{(c)} 111010 \xrightarrow{(b)} 111111,\\
+    P_2:&\quad 000000 \xrightarrow{(b)} 001100 \xrightarrow{(a)} 101100 \xrightarrow{(c)} 010110 \xrightarrow{(a)} 110110 \xrightarrow{(b)} 111111.
+  \end{align*}
+  Obě cesty procházejí vrcholem $101100$ (vrcholově \emph{nejsou} disjunktní), ale použité hrany se neopakují. Že nejde rozšířit na 3 hranově disjunktní cesty, plyne z toho, že z vrcholu $101100$ vedou jen 2 hrany do $\{S_{01},S_{11}\}$ (obě hrany (c) -- první a druhá), a obě musí být v cestách použity.
+
+  \medskip\noindent\textbf{Závěry:}
+  \begin{itemize}
+    \item Max hranově disjunktních $u$-$v$ cest = $\boxed{2}$, min hranový řez = $\boxed{2}$.
+    \item Max vrcholově disjunktních $u$-$v$ cest = $\boxed{1}$, min vrcholový řez = $\boxed{1}$.
+  \end{itemize}
+
+  \item Viz výše -- min hranový řez má velikost 2, min vrcholový řez velikost 1.
+\end{enumerate}
+
+\noindent\emph{Poučení.} Stupeň $\deg(u)=\deg(v)=16$ se zdá slibný, ale obecný horní odhad $k\le\deg$ je v této úloze \emph{daleko} od reality. Skutečnou souvislost mezi $u$ a $v$ limituje \uv{úzké hrdlo} (vrchol $101100$ a dvě hrany (c), které z~něj vedou). Pointou úlohy je rozpoznat tuto topologickou strukturu, ne mechanicky aplikovat stupeň.
+\end{priklad}
+
+% ============================================================
+\section{Orientované grafy, silná a slabá souvislost}
+
+\begin{definice}[Orientovaný graf]
+\emph{Orientovaný graf} (digraf) je dvojice $G=(V,E)$, kde $V$ je konečná neprázdná množina vrcholů a $E\subseteq V\times V\setminus\{(v,v):v\in V\}$ množina (\emph{orientovaných}) hran. Hrana $(u,v)\in E$ je \emph{šipka z $u$ do $v$}, $u$ je její \emph{počáteční}, $v$ \emph{koncový} vrchol. \emph{Vstupní stupeň} $\deg^{-}(v)=|\{u:(u,v)\in E\}|$, \emph{výstupní stupeň} $\deg^{+}(v)=|\{u:(v,u)\in E\}|$.
+\end{definice}
+
+\begin{definice}[Podkladový graf, orientovaná cesta]
+\emph{Podkladový graf} digrafu $G$ vznikne \uv{zapomenutím orientace} (každá šipka se převede na neorientovanou hranu, vícenásobné hrany se sloučí). \emph{Orientovaná cesta} z $u$ do $v$ je posloupnost vrcholů $v_0=u,v_1,\dots,v_k=v$ taková, že $(v_{i-1},v_i)\in E$ pro každé $i$ a vrcholy se neopakují.
+\end{definice}
+
+\begin{definice}[Slabá a silná souvislost]
+Digraf $G$ je
+\begin{enumerate}[label=(\arabic*)]
+  \item \emph{slabě souvislý}, pokud jeho podkladový (neorientovaný) graf je souvislý;
+  \item \emph{silně souvislý}, pokud pro každé dva vrcholy $u,v\in V$ existuje orientovaná cesta z $u$ do $v$ (a tedy i z $v$ do $u$).
+\end{enumerate}
+\end{definice}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.2,every node/.style={circle,fill=black,inner sep=1.7pt},>={Stealth[length=5pt]}]
+\begin{scope}
+  \foreach \i in {0,...,3} {
+    \node (s\i) at ({90+90*\i}:0.9) {};
+  }
+  \foreach \i in {0,...,3} {
+    \pgfmathtruncatemacro{\j}{mod(\i+1,4)}
+    \draw[->] (s\i) -- (s\j);
+  }
+\end{scope}
+\begin{scope}[shift={(5,0)}]
+  \node[label=above:{\scriptsize $w_0$}] (w0) at (0,0) {};
+  \node[label=above:{\scriptsize $w_1$}] (w1) at (1.2,0) {};
+  \node[label=above:{\scriptsize $w_2$}] (w2) at (2.4,0) {};
+  \node[label=above:{\scriptsize $w_3$}] (w3) at (3.6,0) {};
+  \draw[->] (w1) -- (w0);
+  \draw[->] (w1) -- (w2);
+  \draw[->] (w2) -- (w3);
+\end{scope}
+\end{tikzpicture}
+\obrpopis{Vlevo: silně souvislý digraf (orientovaný cyklus). Vpravo: jen slabě souvislý -- z $w_1$ vede orientovaná cesta do všech ostatních, ale z $w_0$ ani $w_3$ se zpět do $w_1$ nedostaneme.}
+\end{center}
+
+\begin{intuice}
+Silná souvislost je striktně silnější vlastnost než slabá: každý silně souvislý digraf je slabě souvislý (orientované cesty dají neorientované), ale opačně to neplatí. Příklad: \uv{cesta po jednosměrkách} $v_0\to v_1\to v_2$ je slabě souvislá, ale ne silně (z $v_2$ se zpět do $v_0$ nedostaneme).
+\end{intuice}
+
+\begin{poznamka}[Komponenty silné souvislosti]
+Vrcholy lze rozdělit na třídy podle relace \uv{$u,v$ jsou v jedné silně souvislé komponentě} ($u$ je orientovaně dosažitelný z $v$ \emph{a} naopak). Tato relace je ekvivalence; její třídy jsou \emph{komponenty silné souvislosti}. Kontrakce každé komponenty do jednoho vrcholu dává tzv.\ \emph{kondenzaci} digrafu, která je vždy \emph{acyklická} (DAG); tu používá řada algoritmů (např.\ Kosaraju nebo Tarjan), v požadavcích jsou ale jen samotné pojmy slabé/silné souvislosti.
+\end{poznamka}
+
+\begin{priklad}[Rozhodnutí silné vs.\ slabé souvislosti]
+\textbf{Zadání.}
+Rozhodněte pro digrafy
+\begin{itemize}
+  \item $H_1$ s vrcholy $\{a,b,c\}$ a šipkami $\{(a,b),(b,c),(c,a)\}$,
+  \item $H_2$ s vrcholy $\{a,b,c\}$ a šipkami $\{(a,b),(b,c)\}$,
+\end{itemize}
+zda jsou silně souvislé, slabě souvislé, nebo ani jedno.
+
+\textbf{Řešení.}
+\begin{enumerate}[label=(\arabic*)]
+  \item $H_1$: orientovaná kružnice. Z $a$ vede orientovaná cesta do $b,c$ (přes hrany); z $b$ do $c,a$; z $c$ do $a,b$. \emph{Silně souvislý} (a tedy automaticky i slabě).
+  \item $H_2$: orientovaná cesta. Z $a$ vede cesta do $b$ a $c$, ale z $c$ neexistuje orientovaná cesta zpět do $a$ (žádná šipka nevede od $c$). \emph{Není silně souvislý.} Podkladový graf je neorientovaná cesta $a$-$b$-$c$ (3 vrcholy, 2 hrany), která je souvislá, takže $H_2$ je \emph{slabě souvislý}.
+\end{enumerate}
+Komponenty silné souvislosti $H_2$: $\{a\}$, $\{b\}$, $\{c\}$ (každý vrchol sám). Kondenzace = řetězec $\{a\}\to\{b\}\to\{c\}$ -- acyklický DAG.
+\end{priklad}
+
+% ============================================================
+\section{Toky v sítích (Ford-Fulkerson)}
+
+Síť je orientovaný graf s vyznačeným zdrojem $z$ a stokem $s$ a s \emph{kapacitami} na hranách. Tok udává, kolik proteče každou hranou, a to tak, aby platil Kirchhoffův zákon (přítok = odtok ve všech vrcholech kromě $z,s$) a žádná hrana se nepřetížila. Hlavní výsledek je věta \emph{max-flow = min-cut}; Ford-Fulkersonův algoritmus ji navíc převádí na konstrukci.
+
+\subsection{Síť, tok, řez}
+
+\begin{definice}[Síť]
+\emph{Síť} je čtveřice $(G,z,s,c)$, kde $G=(V,E)$ je orientovaný graf, $z,s\in V$ jsou dva různé vrcholy (\emph{zdroj} a \emph{stok}) a $c\colon E\to\mathbb{R}_0^{+}$ je \emph{kapacita} (každá hrana je ohodnocená nezáporným reálným číslem).
+\end{definice}
+
+\begin{definice}[Tok]
+\emph{Tok} v síti $(G,z,s,c)$ je funkce $f\colon E\to\mathbb{R}_0^{+}$ splňující:
+\begin{enumerate}[label=(\arabic*)]
+  \item \emph{Kapacitní omezení.} Pro každou hranu $e\in E$ platí $0\le f(e)\le c(e)$.
+  \item \emph{Kirchhoffův zákon.} Pro každý vrchol $u\in V\setminus\{z,s\}$ platí
+  \[ \sum_{(x,u)\in E}f(x,u)=\sum_{(u,y)\in E}f(u,y). \]
+\end{enumerate}
+\emph{Velikost} (hodnota) toku $f$ je
+\[ w(f)=\sum_{(z,x)\in E}f(z,x)-\sum_{(x,z)\in E}f(x,z), \]
+tj.\ čistý odtok ze zdroje. Lze ekvivalentně počítat čistý přítok do stoku (plyne z Kirchhoffova zákona).
+\end{definice}
+
+\begin{intuice}
+Síť si představme jako soustavu jednosměrných vodovodních trubek: $c(e)$ je maximální průtok trubkou, $f(e)$ skutečný okamžitý průtok. Trubkou nesmí téct víc, než kolik je její kapacita, a v každém uzlu (kromě zdroje a stoku) musí přitéct stejně, kolik odteče (\uv{není to děravé}). Velikost toku je \uv{množství vody, co odejde ze zdroje} = \uv{co přiteče do stoku}.
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.44,every node/.style={circle,fill=black,inner sep=1.7pt},>={Stealth[length=5pt]}]
+\node[label=left:$z$] (z) at (0,0) {};
+\node[label=above:$a$] (a) at (1.5,0.9) {};
+\node[label=below:$b$] (b) at (1.5,-0.9) {};
+\node[label=above:$c$] (c) at (3,0.9) {};
+\node[label=below:$d$] (d) at (3,-0.9) {};
+\node[label=right:$s$] (s) at (4.5,0) {};
+\draw[->,blue,thick] (z) -- (a) node[midway,above left=-2pt,fill=none,draw=none] {\scriptsize $3/4$};
+\draw[->,blue,thick] (z) -- (b) node[midway,below left=-2pt,fill=none,draw=none] {\scriptsize $2/3$};
+\draw[->,blue,thick] (a) -- (c) node[midway,above,fill=none,draw=none] {\scriptsize $3/3$};
+\draw[->,blue,thick] (b) -- (d) node[midway,below,fill=none,draw=none] {\scriptsize $2/5$};
+\draw[->] (a) -- (d) node[midway,sloped,above,fill=none,draw=none] {\scriptsize $0/2$};
+\draw[->,blue,thick] (c) -- (s) node[midway,above right=-2pt,fill=none,draw=none] {\scriptsize $3/4$};
+\draw[->,blue,thick] (d) -- (s) node[midway,below right=-2pt,fill=none,draw=none] {\scriptsize $2/3$};
+\end{tikzpicture}
+\obrpopis{Síť s tokem velikosti $w(f)=3+2=5$. Hrany označené $f/c$ (tok / kapacita); modré hrany nesou nenulový tok. Ve vrcholech $a,b,c,d$ platí Kirchhoffův zákon (přítok = odtok).}
+\end{center}
+
+\begin{definice}[Řez sítě]
+\emph{Řez} mezi $z$ a $s$ v síti $(G,z,s,c)$ je množina hran $R\subseteq E$ taková, že v upravené síti $(G',z,s,c)$ s $G'=(V,E\setminus R)$ neexistuje orientovaná cesta ze $z$ do $s$. \emph{Kapacita řezu} je $c(R)=\sum_{e\in R}c(e)$.
+
+Pro každé rozdělení $V=A\sqcup B$ s $z\in A$, $s\in B$ je \emph{elementární řez} $S(A,B)=\{(x,y)\in E:x\in A,\ y\in B\}$ tvořen hranami vedoucími z $A$ do $B$.
+\end{definice}
+
+\begin{poznamka}
+Každý řez obsahuje elementární řez: vezmeme $A=$\,vrcholy dosažitelné ze $z$ v $(V,E\setminus R)$, pak $S(A,V\setminus A)\subseteq R$. Protože kapacity jsou nezáporné, má tento elementární řez kapacitu nejvýše $c(R)$; minimální kapacitu řezu tedy vždy realizuje nějaký elementární řez. Řezů je konečně mnoho (jsou to podmnožiny $E$), takže minimum v~hlavní větě existuje.
+\end{poznamka}
+
+\begin{veta}[Hlavní věta o tocích / max-flow = min-cut]
+V každé síti je velikost \emph{maximálního} toku rovna kapacitě \emph{minimálního} řezu:
+\[ \max_{f\text{ tok}}w(f)=\min_{R\text{ řez}}c(R). \]
+\end{veta}
+
+\begin{intuice}[Princip důkazu]
+Nerovnost $\max w(f)\le\min c(R)$ je \emph{snadná}: pro libovolný tok $f$ a libovolný (elementární) řez $S(A,B)$ platí
+\[ w(f)=f(A,B)-f(B,A)\le f(A,B)\le c(A,B)=c(R), \]
+protože $f(B,A)\ge 0$ a $f(e)\le c(e)$ na každé hraně. Tedy maximální tok je nejvýše roven minimálnímu řezu.
+
+Rovnost (obtížnější část) se dokazuje konstrukcí: vezmeme tok \emph{bez zlepšující cesty} (existuje díky existenci max.\ toku); pro něj sestrojíme řez $R$ stejné kapacity rozdělením vrcholů na ty, do kterých vede ze zdroje zlepšující cesta, a zbytek. Detaily v sekci Ford-Fulkerson níže.
+\end{intuice}
+
+\begin{veta}[Existence maximálního toku -- bez důkazu]
+V každé síti $(G,z,s,c)$ existuje maximální tok, tedy tok $f^*$ s $w(f^*)\ge w(f)$ pro každý tok $f$.
+\end{veta}
+
+\begin{poznamka}
+Tvrzení není zcela triviální: toků je nekonečně mnoho a jejich velikosti jsou obecná reálná čísla (interval typu $(0,1)$ na reálné ose nemá maximum). Důkaz se vede přes kompaktnost množiny všech toků v $\mathbb{R}^{|E|}$ a spojitost funkce $w$, takže $w$ na kompaktu nabývá maxima. Pro \emph{racionální} (zvláště celočíselné) kapacity je důkaz jednodušší -- vyplyne z konečnosti Ford-Fulkersonova algoritmu (viz dále). Požadavky M4 výslovně uvádějí, že tuto větu uvádíme \emph{bez důkazu}.
+\end{poznamka}
+
+\subsection{Ford-Fulkersonův algoritmus}
+
+Princip: dokud existuje cesta ze zdroje do stoku v tzv.\ \emph{rezervní síti} (vznikne ze sítě tak, že každé hraně $e$ s tokem $f(e)$ přiřadíme \emph{rezervu} $c(e)-f(e)$ vpřed a $f(e)$ \emph{zpět}), pošli po této cestě co nejvíc dodatečného toku, tj.\ minimum rezerv na cestě (tím se aspoň jedna rezerva vynuluje).
+
+\begin{definice}[Rezervní (residuální) síť, zlepšující cesta]
+Pro tok $f$ definujeme \emph{rezervní síť} $G_f$: na každé hraně $e=(u,v)\in E$ s $f(e)<c(e)$ uvažujeme \emph{rezervu vpřed} $c(e)-f(e)>0$; pokud $f(e)>0$, uvažujeme i \emph{rezervu vzad} (zpětnou hranu $(v,u)$ s kapacitou $f(e)$). \emph{Zlepšující cesta} je orientovaná cesta ze $z$ do $s$ v $G_f$ s každou rezervou $>0$. Hodnota \emph{zlepšení} je $\varepsilon=\min$\,(rezervy na cestě).
+\end{definice}
+
+\video{https://www.youtube.com/watch?v=LdOnanfc5TM}{WilliamFiset, \emph{Max Flow Ford-Fulkerson} (hledání maximálního toku Fordovým--Fulkersonovým algoritmem přes rezervní síť a~zlepšující cesty).}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.7,every node/.style={circle,fill=black,inner sep=1.7pt},>={Stealth[length=6pt]},font=\small]
+% LEFT: network with current flow
+\begin{scope}
+  \node[label=left:$z$] (z) at (0,0) {};
+  \node[label=above:$a$] (a) at (1.3,0.9) {};
+  \node[label=below:$b$] (b) at (1.3,-0.9) {};
+  \node[label=right:$s$] (s) at (2.6,0) {};
+  \draw[->,blue,thick] (z) -- (a) node[midway,above left=-3pt,fill=none,draw=none] {\footnotesize $2/3$};
+  \draw[->,blue,thick] (a) -- (s) node[midway,above right=-3pt,fill=none,draw=none] {\footnotesize $2/2$};
+  \draw[->] (z) -- (b) node[midway,below left=-3pt,fill=none,draw=none] {\footnotesize $0/2$};
+  \draw[->] (b) -- (s) node[midway,below right=-3pt,fill=none,draw=none] {\footnotesize $0/4$};
+  \draw[->] (a) -- (b) node[midway,fill=white,inner sep=1pt,draw=none] {\footnotesize $0/1$};
+\end{scope}
+% RIGHT: Residual
+\begin{scope}[shift={(4.3,0)}]
+  \node[label=left:$z$] (z) at (0,0) {};
+  \node[label=above:$a$] (a) at (1.3,0.9) {};
+  \node[label=below:$b$] (b) at (1.3,-0.9) {};
+  \node[label=right:$s$] (s) at (2.6,0) {};
+  \draw[->,gray] (z) to[bend left=14] (a);
+  \node[draw=none,fill=none] at (0.55,0.6) {\footnotesize $1$};
+  \draw[->,gray] (a) to[bend left=14] (z);
+  \node[draw=none,fill=none] at (0.85,0.25) {\footnotesize $2$};
+  \draw[->,red,very thick] (z) -- (b) node[midway,below left=-3pt,fill=none,draw=none] {\footnotesize $\mathbf{2}$};
+  \draw[->,red,very thick] (b) -- (s) node[midway,below right=-3pt,fill=none,draw=none] {\footnotesize $\mathbf{4}$};
+  \draw[->,gray] (a) -- (b) node[midway,fill=white,inner sep=1pt,draw=none] {\footnotesize $1$};
+  \draw[->,gray] (s) to[bend left=14] (a);
+  \node[draw=none,fill=none] at (2.05,0.25) {\footnotesize $2$};
+\end{scope}
+\end{tikzpicture}\\[0.2em]
+\makebox[0.45\linewidth]{\small\textbf{(a) Síť s tokem $f$,\ $w(f)=2$}}\hfill
+\makebox[0.45\linewidth]{\small\textbf{(b) Rezervní síť $G_f$ se zlepšující cestou}}\\[0.3em]
+\begin{minipage}{0.96\linewidth}\small
+\textbf{(a)} Hrany označené {\footnotesize $f/c$} (tok / kapacita); \textcolor{blue}{modré} hrany nesou nenulový tok ($f(z,a)=2$, $f(a,s)=2$), černé jsou prázdné. Tok splňuje Kirchhoffův zákon ve všech vnitřních vrcholech.
+
+\smallskip
+\textbf{(b)} \textcolor{gray}{Šedé} šipky jsou \emph{nenasycené rezervy} -- vpřed s kapacitou $c(e)-f(e)$ (např.\ $z\to a$ má rezervu $3-2=1$), vzad (zpětné) s kapacitou $f(e)$ (např.\ $a\to z$ má rezervu $2$ pro \uv{vrácení} části toku). \textcolor{red}{\textbf{Červeně}} je vyznačená \emph{zlepšující cesta} $z\to b\to s$ se zlepšením $\varepsilon=\min(2,4)=\mathbf{2}$. Nový tok dostaneme posláním 2 jednotek po této cestě, $w(f)$ vzroste z 2 na 4.
+\end{minipage}
+\end{center}
+
+\begin{intuice}
+Klíčová myšlenka: zpětné hrany v rezervní síti umožňují \emph{zrušit část dříve poslaného toku}, pokud se ukáže, že byl rozvržen \uv{ne nejlépe}. Bez zpětných hran by algoritmus mohl uvíznout v lokálně optimálním, ale globálně suboptimálním toku.
+\end{intuice}
+
+\begin{veta}[Ford-Fulkersonův algoritmus]\leavevmode
+\begin{enumerate}[label=(\arabic*)]
+  \item Začni s tokem $f\equiv 0$.
+  \item Najdi v rezervní síti $G_f$ nějakou zlepšující cestu $P$ se zlepšením $\varepsilon_P>0$. Pokud žádná neexistuje, vrať $f$ jako maximální tok.
+  \item Aktualizuj $f$ podél $P$: hrany ve směru cesty zvětši o $\varepsilon_P$, hrany proti směru (zpětné) zmenši o $\varepsilon_P$. Vrať se k bodu 2.
+\end{enumerate}
+\end{veta}
+
+\begin{veta}[Korektnost a konečnost FF pro celočíselné kapacity]
+Pro síť s celočíselnými kapacitami Ford-Fulkersonův algoritmus skončí v konečném počtu kroků a vrátí maximální tok. Vrácený tok je celočíselný.
+\end{veta}
+
+\begin{intuice}
+\uv{Konečnost}: každá zlepšující cesta zvedne $w(f)$ aspoň o 1 (rezervy jsou celá nezáporná čísla, takže minimum je $\ge 1$). Velikost toku je omezená kapacitou libovolného řezu, tedy konečnou hodnotou. \uv{Korektnost}: pokud neexistuje zlepšující cesta, vezmeme $A=\{v:$ v $G_f$ vede ze $z$ do $v$ cesta s kladnými rezervami$\}$ a sestrojíme řez $S(A,V\setminus A)$. Na hranách z $A$ do $V\setminus A$ je $f(e)=c(e)$ (nasycené), na hranách zpět $f(e)=0$, takže $w(f)=c(S(A,V\setminus A))$ -- tok je roven kapacitě řezu, a podle slabší části věty je proto maximální (a tento řez je minimální).
+\end{intuice}
+
+\begin{poznamka}
+Pro \emph{iracionální} kapacity FF nemusí konvergovat (existují příklady, kdy běží do nekonečna a tok konverguje k hodnotě \emph{menší} než maximum). Pro racionální kapacity konečnost plyne přenásobením jmenovatelem na celočíselný případ. Modernější varianty FF (Edmonds-Karp, která hledá nejkratší zlepšující cestu BFS) běží v polynomiálním čase $O(VE^2)$ a fungují i pro reálné kapacity.
+\end{poznamka}
+
+\begin{priklad}[FF na malé síti]
+\textbf{Zadání.}
+V síti s vrcholy $z,a,b,s$ a hranami $(z,a):2$, $(z,b):1$, $(a,b):1$, $(a,s):1$, $(b,s):2$ (kapacity) najděte maximální tok.
+
+\textbf{Řešení.}
+\begin{enumerate}[label=(\arabic*)]
+  \item Start $f\equiv 0$. Zlepšující cesta $z\to a\to s$ s $\varepsilon=1$. Aktualizace: $f(z,a)=1$, $f(a,s)=1$, $w(f)=1$.
+  \item Rezervní síť: hrana $(z,a)$ rezerva 1 vpřed; $(z,b)$ rezerva 1; $(b,s)$ rezerva 2. Zlepšující cesta $z\to b\to s$ s $\varepsilon=1$. Aktualizace: $f(z,b)=1$, $f(b,s)=1$, $w(f)=2$.
+  \item Rezervní síť: hrana $(z,a)$ stále rezerva 1; $(a,b)$ rezerva 1; $(b,s)$ rezerva 1. Zlepšující cesta $z\to a\to b\to s$ s $\varepsilon=1$. Aktualizace: $f(z,a)=2$, $f(a,b)=1$, $f(b,s)=2$, $w(f)=3$.
+  \item Rezervní síť už nemá $z$-$s$ cestu (hrana $(z,a)$ nasycena, $(z,b)$ nasycena). \emph{Maximální tok} je $w(f)=3$.
+\end{enumerate}
+Ověření přes minimální řez: rozdělení $A=\{z\}$, $B=\{a,b,s\}$ dává $S(A,B)=\{(z,a),(z,b)\}$ s $c(S)=2+1=3$. Hodnota toku = kapacita řezu.
+\end{priklad}
+
+\subsection{Shrnutí toků}
+
+Pro \emph{aplikace} (např.\ Mengerova věta, párování v bipartitních grafech, problém maximálního přiřazení) si zapamatujme tento postup: úlohu převedeme na hledání maximálního toku ve vhodně zkonstruované síti, spustíme Ford--Fulkerson a celočíselnost vrátí kombinatorické řešení (disjunktní cesty / párování / přiřazení).
+
+% ============================================================
+\section*{Shrnutí}
+\addcontentsline{toc}{section}{Shrnutí}
+
+\begin{poznamka}
+\textbf{Klíčové vlastnosti a vzorce (přehled k~SZZ).} Stručný výčet klíčových definic, vět a vzorců okruhu M4. Zkratky: $n=|V|$, $m=|E|$, $c$ = počet komponent, $\delta(G)$ = minimální stupeň.
+
+\smallskip
+\emph{Základní pojmy a rodiny grafů.}
+\begin{itemize}
+  \item Graf $G=(V,E)$; stupeň $\deg(v)$ = počet hran incidentních s $v$. \textbf{Princip sudosti:} $\sum_{v\in V}\deg(v)=2m$ (každá hrana přispívá do dvou stupňů); zvláště: počet vrcholů lichého stupně je vždy sudý.
+  \item Izomorfismus $G\cong H$: bijekce $\varphi\colon V(G)\to V(H)$ zachovávající hrany. Invarianty: $n,m$, skóre (posloupnost stupňů), počet trojúhelníků.
+  \item Doplněk $\overline{G}$: stejné vrcholy, doplňkové hrany. Bipartitní graf: $V=A\cup B$, $E\subseteq A\times B$ -- obarvitelný 2 barvami $\iff$ neobsahuje lichou kružnici.
+  \item $K_n$: $\binom{n}{2}$ hran, $(n-1)$-regulární; $K_{m,n}$: $mn$ hran; cesta $P_n$ délky $n$: $n+1$ vrcholů, $n$ hran; kružnice $C_n$: $n\ge 3$.
+\end{itemize}
+
+\smallskip
+\emph{Souvislost, vzdálenost, eulerovský tah.}
+\begin{itemize}
+  \item Komponenta = maximální souvislý podgraf; vzdálenost $\dist(u,v)$ = délka nejkratší cesty (metrika: trojúhelníková nerovnost, $\dist(u,v)=0\iff u=v$).
+  \item \textbf{Eulerovský graf:} $G$ (bez izolovaných vrcholů) má uzavřený eulerovský tah $\iff$ $G$ je souvislý a všechny vrcholy mají sudý stupeň. (Eulerovský tah projde každou hranou právě jednou; vrcholy se opakovat smí.)
+\end{itemize}
+
+\smallskip
+\emph{Stromy.}
+\begin{itemize}
+  \item Strom = souvislý acyklický graf; list = vrchol stupně 1; les = acyklický graf (komponenty jsou stromy).
+  \item \textbf{5 ekvivalentních charakteristik stromu:} (1) souvislý a acyklický; (2) mezi každými dvěma vrcholy právě jedna cesta; (3) souvislý, odebrání libovolné hrany poruší souvislost; (4) acyklický, přidání libovolné hrany vytvoří kružnici; (5) souvislý a $m=n-1$.
+  \item Každý strom s $n\ge 2$ vrcholy má alespoň 2 listy. Strom na $n$ vrcholech má přesně $n-1$ hran; les o $n$ vrcholech a $k$ komponentách má $n-k$ hran.
+\end{itemize}
+
+\smallskip
+\emph{Rovinné grafy (Eulerova formule).}
+\begin{itemize}
+  \item Rovinný graf = existuje nakreslení v rovině bez křížení. Stěny = komponenty doplňku nakreslení; vnější stěna je právě jedna (neomezená).
+  \item \textbf{Eulerova formule:} pro \emph{souvislý} rovinný graf $n-m+s=2$; pro $c$ komponent $n-m+s=1+c$.
+  \item \textbf{Horní mez na hrany} (z EF dvojím počítáním hranic stěn: $3s\le 2m$): $m\le 3n-6$ (pro $n\ge 3$); pro graf bez trojúhelníků (každá stěna $\ge 4$ hrany): $m\le 2n-4$ (pro $n\ge 3$; aplikuje se na každou komponentu s $\ge 3$ vrcholy).
+  \item 2-souvislý rovinný vnitřně triangulovaný (vnitřní stěny $= C_3$, vnější $= C_k$): $m=3n-3-k$, tedy $2n-3\le m\le 3n-6$.
+  \item \textbf{Důsledky:} každý rovinný graf má vrchol stupně $\le 5$; $K_5$ ($m=10>9=3\cdot 5-6$) a $K_{3,3}$ ($m=9>8=2\cdot 6-4$) nejsou rovinné. Kuratowského věta (bez důkazu): $G$ je rovinný $\iff$ neobsahuje podgraf, který je dělením $K_5$ nebo $K_{3,3}$.
+\end{itemize}
+
+\smallskip
+\emph{Barevnost grafů.}
+\begin{itemize}
+  \item Dobré obarvení $c\colon V\to[k]$: $c(u)\ne c(v)$ pro každou hranu $\{u,v\}$. Barevnost $\chrom(G)$ = min takové $k$; klikovost $\klik(G)$ = velikost největší kliky.
+  \item $\chrom(G)\ge\klik(G)$ (v klice $K_k$ nutno $k$ barev). Nerovnost obecně ostrá: $C_5$ má $\klik=2$, $\chrom=3$.
+  \item $\chrom=1\iff$ žádné hrany; $\chrom\le 2\iff$ bipartitní; $\chrom(C_n)=2$ (sudé $n$), $\chrom(C_n)=3$ (liché $n$); $\chrom(K_n)=n$.
+  \item \textbf{Čtyřbarevná věta} (bez důkazu): rovinný $\Rightarrow\chrom(G)\le 4$; odhad těsný ($K_4$ rovinný). Pětibarevnost rovinných: snáze, přes existenci vrcholu stupně $\le 5$ + Kempeho řetězce.
+\end{itemize}
+
+\smallskip
+\emph{Hranová a vrcholová souvislost (Mengerova věta).}
+\begin{itemize}
+  \item Hranová souvislost $k_e(G)$ = min hranový řez; vrcholová $k_v(G)$ = min vrcholový řez ($k_v(K_n)=n-1$ konvencí). Vždy $k_v(G)\le k_e(G)\le\delta(G)$.
+  \item \textbf{Mengerova věta -- hranová verze:} pro libovolné dva různé vrcholy $u,v$: max počet \emph{hranově} disjunktních $u$-$v$ cest $=$ min \emph{hranový} $u$-$v$ řez.
+  \item \textbf{Mengerova věta -- vrcholová verze:} pro dva různé \emph{nesousední} vrcholy $u,v$: max počet \emph{vrcholově} disjunktních $u$-$v$ cest $=$ min \emph{vrcholový} $u$-$v$ řez. (Vrcholový řez $A\subseteq V\setminus\{u,v\}$; vrcholově disjunktní = bez společného \emph{vnitřního} vrcholu.)
+  \item Princip důkazu: převod na toky (každou hranu kapacity 1; vrcholová verze: rozštěpit každý vnitřní vrchol $x$ na $x',x''$ s hranou kapacity 1).
+\end{itemize}
+
+\smallskip
+\emph{Orientované grafy.}
+\begin{itemize}
+  \item Orientovaný graf: hrany jsou uspořádané dvojice $(u,v)$; vstupní/výstupní stupeň. \textbf{Slabá souvislost:} podkladový neorientovaný graf je souvislý. \textbf{Silná souvislost:} $\forall u,v$ existuje orientovaná cesta $u\to v$ i $v\to u$. Silné komponenty = maximální silně souvislé podgrafy.
+\end{itemize}
+
+\smallskip
+\emph{Toky v sítích (Ford--Fulkerson).}
+\begin{itemize}
+  \item Síť $(G,z,s,c)$: orientovaný graf, zdroj $z$, stok $s$, kapacity $c\colon E\to\mathbb{R}_0^+$. Tok $f$: kapacitní omezení $f(e)\le c(e)$ a Kirchhoffův zákon $\sum_{\text{in}}f=\sum_{\text{out}}f$ v každém $v\ne z,s$. Hodnota toku $w(f)$ = čistý odtok ze $z$.
+  \item Řez $R$: množina hran, po jejímž odebrání nevede cesta ze $z$ do $s$; kapacita $c(R)=\sum_{e\in R}c(e)$.
+  \item \textbf{Hlavní věta (max-flow = min-cut):} $\max_f w(f)=\min_R c(R)$. Existence maximálního toku \emph{bez důkazu}.
+  \item \textbf{Ford--Fulkerson:} augmentující cesta v rezervní síti (rezerva vpřed $c(e)-f(e)$, zpětná hrana $(v,u)$ s kapacitou $f(e)$); zvýšit tok o min kapacitu. Pro celočíselné kapacity terminuje pseudopolynomiálně ($O(w^*\cdot m)$, kde $w^*$ je velikost maximálního toku); Edmonds--Karp (BFS) dává $O(n\cdot m^2)$.
+\end{itemize}
+\end{poznamka}
+
+\section*{Zdroje}
+\addcontentsline{toc}{section}{Zdroje}
+
+{\raggedright
+\begin{itemize}
+  \item T.~Sláma: \emph{Diskrétní matematika}, zápisky z~přednášky NDMI002 (přednášející M.~Mareš), MFF UK, 2019/20 (primární zdroj výkladu základních pojmů, stromů, rovinných grafů, barevnosti a orientovaných grafů).\\ \url{https://slama.dev/poznamky/diskretni-matematika/}
+  \item T.~Valla, J.~Matoušek: \emph{Kombinatorika a grafy I}, skripta, MFF UK, 2008 (kap.~2 toky v~sítích a Fordův--Fulkersonův algoritmus, kap.~3 míra souvislosti a Mengerova věta).\\ \url{https://iuuk.mff.cuni.cz/~valla/kg.html}
+  \item J.~Matoušek, J.~Nešetřil: \emph{Kapitoly z~diskrétní matematiky}, Karolinum; anglicky \emph{Invitation to Discrete Mathematics}, 2.~vydání, Oxford University Press, 2008 (učebnice k~oběma předmětům; stromy, rovinné grafy, barevnost, souvislost a toky).
+  \item Videa odkazovaná v~textu: Reducible, \emph{Introduction to Graph Theory: A Computer Science Perspective}; Wrath of Math, \emph{What are Planar Graphs?}, \emph{Vertex Colorings and the Chromatic Number of Graphs} a \emph{Intro to Menger's Theorem}; 3Blue1Brown, \emph{Euler's Formula and Graph Duality}; WilliamFiset, \emph{Max Flow Ford Fulkerson} (YouTube, odkazy u~příslušných témat).
+  \item MFF UK: požadavky ke státní závěrečné zkoušce (Informatika, Bc.) a zadání otázek z~minulých termínů.\\ \url{https://www.mff.cuni.cz/cs/studenti/bakalarske-studium/statni-zaverecne-zkousky/bakalarske-statni-zkousky-studijniho-programu-informatika}
+\end{itemize}
+\par}
+
+\end{document}
+

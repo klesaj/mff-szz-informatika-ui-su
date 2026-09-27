@@ -1,0 +1,43 @@
+% Zdroj: PDF priklady-leto-2023.pdf, fyzická str. 6-7. Značka: otázka studijního zaměření. Zařazeno: I4.
+% Stránkovací tabulka je oříznutá z PDF (str. 7) do fig/strankovaci-tabulka.png.
+\section{Překlad adresy}
+\szzotazka{léto 2023}{17}{Překlad adresy (stránkování)}
+\noindent\textit{(Pozn.: v~rámci současné akreditace nešlo o~společnou otázku (q1--q4), ale o~otázku jiné specializace (specializační sekce, systémové zaměření, ne UI). Do společného okruhu I4 tedy formálně nepatří; tematicky sem ovšem spadá a~je výborná k~procvičení.)}\par
+
+\noindent\textbf{Zadání.}\par
+Předpokládejme hypotetický procesor s~paměťovou architekturou, kde virtuální i~fyzický
+prostor používá 16-bitové adresování. Pro překlad adres se používá 1-úrovňové stránkování
+s~64\,B stránkami. Záznamy ve stránkovací tabulce (které mají také 16 bitů) využívají
+offsetové bity pro přidružené příznaky, nejméně významný bit je použit jako příznak
+platnosti (tj. 1 = záznam je platný, 0 = záznam není platný).
+
+Stránkovací tabulka, jejíž výpis následuje níže, se nachází na adrese \texttt{0x1d40}.
+Výpis zobrazuje pro jednoduchost přímo 16-bitové položky stránkovací tabulky, tedy není
+nutné řešit pořadí bytů v~reprezentaci čísel.
+
+\begin{center}\includegraphics[width=\linewidth]{strankovaci-tabulka.png}\end{center}
+
+Přeložte virtuální adresu \texttt{0x328f} (\texttt{0b0011001010001111} binárně) na fyzickou adresu:
+\begin{enumerate}
+\item Napište číslo stránky a~offset pro danou virtuální adresu.
+\item Napište fyzickou adresu položky ve stránkovací tabulce, která odpovídá zadané virtuální adrese.
+\item Napište výslednou fyzickou adresu, pokud existuje překlad. Jinak uveďte, že neexistuje.
+\end{enumerate}
+
+V~odpovědi důsledně uvádějte číselnou soustavu -- čísla bez prefixu jsou v~desítkové
+soustavě, prefix \texttt{0x} označuje šestnáctkovou soustavu, prefix \texttt{0b} označuje
+dvojkovou soustavu. (To, jakou soustavu použijete, se ovšem samo o~sobě nehodnotí.)
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+\item Stránka má $64=2^{6}$\,B, takže offset jsou dolní \textbf{6} bitů a~číslo stránky horních \textbf{10} bitů:
+  \[\texttt{0x328f}=\underbrace{\texttt{0b0011001010}}_{\text{číslo stránky}}\ \underbrace{\texttt{001111}}_{\text{offset}},\]
+  číslo stránky $=\boxed{\texttt{0xCA}=202}$, offset $=\boxed{\texttt{0x0F}=15}$.
+\item Položky tabulky jsou 16-bitové (2\,B), položka stránky $202$ je na adrese
+  $\texttt{0x1d40}+202\cdot 2=\texttt{0x1d40}+\texttt{0x194}=\boxed{\texttt{0x1ED4}}$.
+\item Na adrese \texttt{0x1ED4} je ve výpisu hodnota \texttt{0xFBF7}. Nejnižší bit je $1$, položka je
+  \emph{platná}. Číslo rámce tvoří horních $10$ bitů (dolních $6$ jsou příznaky): $\texttt{0xFBF7}\,\&\,\texttt{0xFFC0}=\texttt{0xFBC0}$.
+  Fyzická adresa vznikne spojením rámce s~offsetem: $\texttt{0xFBC0}\,|\,\texttt{0x0F}=\boxed{\texttt{0xFBCF}}$.
+\end{enumerate}
+\textit{(Náčrt doplněn k~výkladu okruhu; otázka nemá v~PDF řešení, výpočet ověřen skriptem \texttt{verify\_szz.py}.)}

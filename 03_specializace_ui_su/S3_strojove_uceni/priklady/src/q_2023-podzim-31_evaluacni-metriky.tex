@@ -1,0 +1,33 @@
+% Zdroj: PDF priklady-podzim-2023.pdf, fyzická str. 19-20. Značka: specializace UI-SU. Zařazeno: S3.
+\section{Evaluační metriky}
+\szzotazka{podzim 2023}{31}{Evaluační metriky}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Definujte základní evaluační metriky pro binární klasifikátor -- úspěšnost (accuracy),
+    citlivost (sensitivity, recall), přesnost (precision), F1 skóre.
+  \item Chceme vytvořit systém pro detekci podvodných plateb kreditní kartou. Máme data, kde jsou miliony
+    plateb, z nichž jen několik stovek jsou platby podvodné. Jaké metriky použijete pro vyhodnocení takového
+    systému? Jaké metriky naopak nebudou moc vhodné? Odpověď zdůvodněte.
+  \item Pro výše zmíněnou úlohu jsme vytvořili dva systémy. Jeden z nich má citlivost $0{,}99$ a přesnost
+    $0{,}2$. Druhý má citlivost $0{,}9$ a přesnost $0{,}95$. Vysvětlete, co tyto hodnoty prakticky znamenají.
+    Který ze systémů byste použili? Své rozhodnutí zdůvodněte.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Definujme TP/TN/FP/FN jako počty true/false positive/negative. Správnost potom je
+    $(\mathrm{TP}+\mathrm{TN})/(\mathrm{TP}+\mathrm{FP}+\mathrm{TN}+\mathrm{FN})$, citlivost je
+    $\mathrm{TP}/(\mathrm{TP}+\mathrm{FN})$, přesnost je $\mathrm{TP}/(\mathrm{TP}+\mathrm{FP})$
+    a F1 skóre je harmonický průměr citlivosti a přesnosti $= 2\mathrm{TP}/(2\mathrm{TP}+\mathrm{FP}+\mathrm{FN})$.
+  \item Pro vyhodnocení systému je vhodné použít dvojici citlivost a přesnost. Dá se také použít F1 skóre
+    nebo AUC. Nevhodná naopak bude správnost vzhledem k výrazně nevyváženému množství instancí v jednotlivých třídách.
+  \item První model odhalí $99\,\%$ podvodných plateb, na druhou stranu ale jen $20\,\%$ z ohlášených
+    podezřelých plateb budou platby podvodné. Druhý model sice odhalí jen $90\,\%$ podvodných plateb,
+    ale $95\,\%$ z podezřelých plateb opravdu podvody budou. V případě použití prvního modelu tedy bude
+    potřeba prošetřit cca 5krát více případných podvodů, což může vést ke zbytečnému obtěžování zákazníků
+    a i vyšším nákladům na prošetřování. Může tedy být vhodnější použít model druhý. Na druhou stranu,
+    pokud bychom chtěli mít větší jistotu, že podvody odhalíme a výše zmíněné nevýhody nám nevadí, je
+    vhodnější model první. Neexistuje tu jednoznačně správná odpověď, důležitá je především argumentace.
+\end{enumerate}

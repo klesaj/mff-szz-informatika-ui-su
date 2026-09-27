@@ -1,0 +1,28 @@
+% Zdroj: PDF priklady-podzim-2024.pdf, fyzická str. 3--4. Značka: společné okruhy. Zařazeno: M4.
+\section{Barevnost grafů}
+\szzotazka{podzim 2024}{4}{Barevnost grafů}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Definujte, co je barevnost grafu.
+  \item Jaké platí omezení pro barevnosti rovinných grafů?
+  \item Určete barevnost grafu na obrázku níže.
+\end{enumerate}
+
+\begin{center}\includegraphics[width=0.65\linewidth]{barevnost-grafu.png}\end{center}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{itemize}
+  \item Barevnost grafu je minimální počet barev, kterými lze obarvit vrcholy grafu tak, aby žádné dva sousední vrcholy neměly stejnou barvu. Formálně, dobré obarvení grafu $G$ $k$ barvami je funkce $f : V \to \{1, \dots, k\}$, kde $V$ je množina vrcholů grafu, splňující $f(u) \neq f(v)$ pro každé dva sousední vrcholy $u, v \in V$, a barevnost grafu $\chi(G)$ je nejmenší $k$, pro které existuje dobré obarvení $G$ $k$ barvami.
+  \item Pro rovinné grafy platí, že jejich barevnost je nejvýše 4 a tento odhad je těsný.
+  \item Barevnost grafu na obrázku je 4. Horní odhad lze nahlédnout buď z věty výše (graf je rovinný), nebo konstruktivně: pro vrcholy s písmeny $a, b, \dots, j$ lze použít barvy v pořadí $4, 3, 2, 1, 2, 1, 4, 3, 4, 3$ (přesné znění oficiálního náčrtu). Dolní odhad vyplývá z toho, že graf na obrázku má jako podgraf 5-cyklus s připojeným univerzálním vrcholem a protože 5-cyklus má barevnost 3, musí mít graf na obrázku barevnost alespoň 4.
+\end{itemize}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):}
+\begin{itemize}
+  \item \emph{Který podgraf.} Vrchol $a$ sousedí s~$b,c,d,e,f$ a tyto vrcholy tvoří kružnici $b\,c\,d\,e\,f\,b$ (hrany $bc$, $cd$, $de$, $ef$, $fb$). Je to tedy kolo $W_5$ se středem $a$.
+  \item \emph{Proč 4 barvy.} Lichá kružnice $C_5$ se dvěma barvami obarvit nedá (barvy by se musely střídat, a to u~liché délky nejde), potřebuje tedy aspoň 3 barvy. Střed $a$ sousedí se všemi pěti vrcholy kružnice, musí proto dostat barvu různou od všech tří použitých, celkem aspoň 4. Pozor: klikovost grafu je jen 3, dolní odhad tu nedává klika, ale lichá kružnice se středem.
+  \item \emph{Ověřeno programem:} uvedené obarvení je dobré a 3-obarvení neexistuje.
+\end{itemize}

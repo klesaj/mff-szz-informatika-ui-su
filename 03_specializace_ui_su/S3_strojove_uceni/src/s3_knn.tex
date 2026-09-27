@@ -1,0 +1,236 @@
+\section{Učení založené na příkladech: $k$ nejbližších sousedů}\label{sec:knn}
+
+Předchozí dvě sekce zavedly evaluaci a~overfitting obecně; teď přichází \emph{první konkrétní model}. \textbf{$k$ nejbližších sousedů} ($k$-NN, $k$-nearest neighbors) je nejjednodušší příklad \emph{učení založeného na příkladech} (instance-based learning): predikci nového vstupu složí přímo z~\emph{uložených trénovacích příkladů, které jsou mu nejpodobnější}. Žádný globální model dat se nestaví.
+
+\begin{poznamka}[Vztah k~S1]
+Okruh S1 představuje $k$-NN jako \emph{typický neparametrický model} (drží data místo vah) na úrovni přehledu. Zde to nezdvojujeme -- princip jen krátce zrekapitulujeme a~rovnou jdeme do hloubky, kterou S1 přenechává S3: váhování sousedů, volba metriky a~normalizace, volba $k$ křížovou validací a~výpočetní cena predikce.
+\end{poznamka}
+
+\subsection{Princip: líný, neparametrický model}
+
+\begin{definice}[$k$ nejbližších sousedů]
+Mějme trénovací množinu $\{(\mathbf{x}_i,t_i)\}_{i=1}^N$ a~\emph{metriku} (funkci vzdálenosti) $d(\cdot,\cdot)$ na vstupním prostoru. Pro nový (dotazovaný) vstup $\mathbf{x}_q$:
+\begin{enumerate}
+  \item spočti vzdálenosti $d(\mathbf{x}_q,\mathbf{x}_i)$ ke \emph{všem} trénovacím příkladům a~vyber $k$ příkladů s~nejmenší vzdáleností -- jeho \emph{$k$ nejbližších sousedů};
+  \item predikci $y(\mathbf{x}_q)$ slož z~cílů těchto sousedů: u~\textbf{klasifikace} většinovým hlasováním, u~\textbf{regrese} (váženým) průměrem (viz níže).
+\end{enumerate}
+\end{definice}
+
+\begin{intuice}
+$k$-NN je \emph{líný} (lazy) model: \textbf{trénování je triviální -- jen se uloží celá trénovací množina}, žádné parametry se neoptimalizují. Veškerá práce se odkládá na okamžik predikce (proto „líný``). Je to zároveň model \emph{neparametrický}: nepředpokládá pevný tvar rozhodovací funkce s~daným počtem vah; „složitost`` hypotézy roste s~počtem dat (čím víc příkladů, tím jemnější hranice umí popsat). Předpoklad za metodou je prostý: \emph{podobné vstupy mají podobné cíle}, tedy lokální hladkost cílové funkce.
+\end{intuice}
+
+\begin{algo}[$k$-NN: trénování a~predikce]
+\textbf{Trénování}$(\{(\mathbf{x}_i,t_i)\})$:\\
+\hspace*{1.5em} ulož celou trénovací množinu \cmt{nic víc -- líné učení}\\[3pt]
+\textbf{Predikce}$(\mathbf{x}_q,\,k,\,d)$:\\
+\hspace*{1.5em} \textbf{pro} každý trénovací příklad $i=1,\dots,N$:\\
+\hspace*{3em} spočti $d_i \leftarrow d(\mathbf{x}_q,\mathbf{x}_i)$ \cmt{vzdálenost k~dotazu}\\
+\hspace*{1.5em} $S \leftarrow$ indexy $k$ nejmenších $d_i$ \cmt{$k$ nejbližších sousedů}\\
+\hspace*{1.5em} \textbf{klasifikace:} vrať nejčastější třídu mezi $\{t_i : i\in S\}$ \cmt{remízy libovolně}\\
+\hspace*{1.5em} \textbf{regrese:} vrať (vážený) průměr $\{t_i : i\in S\}$
+\end{algo}
+
+\subsection{Klasifikace: většinové hlasování}
+
+U~klasifikace do $K$ tříd se nový vstup zařadí do \textbf{nejčastější třídy} mezi jeho $k$ sousedy (\emph{majority voting}). Remízy (např.\ $2\!:\!2$ při $k=4$) se řeší libovolně -- typicky volbou liché $k$ u~dvou tříd, náhodně, nebo podle bližšího souseda.
+
+\begin{intuice}
+Hlasování lze chápat jako lokální odhad pravděpodobností tříd: podíl sousedů třídy $c$ je odhad $P(c\mid\mathbf{x}_q)$ v~okolí dotazu, a~vybíráme nejpravděpodobnější třídu. Při $k=1$ dostaneme přímo třídu nejbližšího příkladu; rozhodovací hranice je pak \emph{Voroného diagram} trénovacích bodů (každý bod „vlastní`` okolí složené z~míst, kde je nejbližší).
+\end{intuice}
+
+\begin{poznamka}[Vážené hlasování]
+Sousedy lze \emph{vážit} podle blízkosti: bližší soused má větší hlas. Běžné volby vah $w_i$ jsou \emph{uniformní} ($w_i=1$, prostá většina), \emph{inverzní} ($w_i=1/d_i$, váha úměrná převrácené vzdálenosti) nebo \emph{softmax} záporných vzdáleností. Predikovaná třída je pak $\argmax_{c}\sum_{i\in S,\,t_i=c} w_i$ (váhovaný součet hlasů). Vážení zjemňuje vliv vzdálenějších, méně relevantních sousedů.
+\end{poznamka}
+
+\subsection{Regrese: (vážený) průměr sousedů}
+
+U~regrese je cíl reálné číslo a~predikcí je \textbf{průměr cílů} $k$ sousedů. S~vahami $w_i$ (uniformní $\Rightarrow$ prostý průměr):
+\[
+  y(\mathbf{x}_q) \;=\; \sum_{i\in S} \frac{w_i}{\sum_{j\in S} w_j}\; t_i .
+\]
+Pro klasifikaci téhož vzorce: cíle $t_i$ zakódujeme \emph{one-hot} (vektor s~jedničkou na pozici třídy) a~váženě zprůměrujeme, čímž dostaneme rozdělení pravděpodobností tříd $\mathbf{t}=\sum_{i\in S}\frac{w_i}{\sum_j w_j}\mathbf{t}_i$; predikovaná třída je $\argmax_c t_{\,c}$. Uniformní váhy a~argmax pak dají právě většinové hlasování.
+
+\subsection{Vzdálenostní metriky a~normalizace příznaků}
+
+Výsledek $k$-NN zcela stojí na tom, \emph{jak měříme blízkost}. Pro $\mathbf{x},\mathbf{y}\in\mathbb{R}^D$ je standardní volbou \textbf{Minkowského} ($L^p$) vzdálenost
+\[
+  d_p(\mathbf{x},\mathbf{y}) \;=\; \|\mathbf{x}-\mathbf{y}\|_p \;=\; \Big(\sum_{i=1}^{D} |x_i-y_i|^p\Big)^{1/p},
+\]
+jejímiž speciálními případy jsou \emph{Manhattanská} ($p=1$, součet absolutních rozdílů), \emph{Eukleidovská} ($p=2$, „vzdušnou čarou``) a~v~limitě \emph{Čebyševova} ($p\to\infty$, $\max_i |x_i-y_i|$). Nejběžnější je Euklid ($p=2$).
+
+\begin{intuice}[Proč normalizovat příznaky]
+Metriky $L^p$ sčítají rozdíly přes všechny příznaky, takže příznak s~\emph{větším rozsahem hodnot} (např.\ příjem $0$--$100\,000$ vs.\ věk $0$--$100$) vzdálenost zcela ovládne a~ostatní příznaky se přehlasují. Před $k$-NN proto příznaky \textbf{normalizujeme} na srovnatelný rozsah: buď \emph{standardizací} (každý příznak na nulový průměr a~jednotkový rozptyl, $x'\!=\!(x-\mu)/\sigma$), nebo \emph{min-max škálováním} na $[0,1]$. Bez normalizace by „nejbližší soused`` znamenal pouze „nejbližší v~jednom dominantním příznaku``.
+\end{intuice}
+
+\begin{poznamka}[Prokletí dimenzionality]
+Ve vysoké dimenzi přestává pojem „blízký soused`` dávat smysl: vzdálenosti k~nejbližšímu a~nejvzdálenějšímu bodu se k~sobě přibližují, takže všechny příklady jsou zhruba stejně daleko a~hlasování ztrácí výpovědní hodnotu. $k$-NN je proto na vysokodimenzionální data citlivý (\emph{prokletí dimenzionality}, podrobně sekce~\ref{sec:preuceni}); pomáhá redukce dimenze (PCA, sekce~\ref{sec:bezucitele}) nebo výběr příznaků.
+\end{poznamka}
+
+\subsection{Volba $k$: vliv na hranici, overfitting, křížová validace}
+
+Počet sousedů $k$ je \textbf{hyperparametr} -- neučí se z~dat, volíme ho zvenčí. Řídí kompromis mezi \emph{overfittingem} (přeučení, velký rozptyl) a~\emph{underfittingem} (podučení, velké vychýlení); viz sekce~\ref{sec:preuceni}:
+
+\begin{itemize}
+  \item \textbf{malé $k$} (v~krajnosti $k=1$): predikce závisí na jednom či pár nejbližších bodech, je velmi citlivá na šum a~odlehlé příklady. Rozhodovací hranice je \emph{členitá, „roztřepená``}, s~ostrůvky kolem jednotlivých bodů -- model má \emph{velký rozptyl} a~\emph{overfittuje} (trénovací chyba u~$k=1$ je nulová, ale generalizace špatná);
+  \item \textbf{velké $k$}: hlasuje hodně sousedů, predikce je vyhlazená a~odolná vůči šumu, ale hranice je \emph{hladká až příliš} a~ztrácí lokální detail -- model má \emph{velké vychýlení} a~\emph{underfittuje}. V~krajnosti $k=N$ vrací vždy globálně nejčastější třídu (resp.\ celkový průměr) bez ohledu na vstup.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[scale=0.92]
+  % ---- LEVÝ PANEL: malé k (členitá hranice) ----
+  \begin{scope}
+    \def\xmax{4.0} \def\ymaxv{3.4}
+    \draw[osa] (0,0) -- (\xmax+0.25,0) node[right,font=\scriptsize]{$x_1$};
+    \draw[osa] (0,0) -- (0,\ymaxv+0.25) node[above,font=\scriptsize]{$x_2$};
+    % roztřepená hranice (silně lokální)
+    \draw[hranice]
+      (0,2.55) .. controls (0.7,2.2) and (1.0,2.9) .. (1.5,2.45)
+      .. controls (1.9,2.1) and (2.0,2.75) .. (2.5,2.3)
+      .. controls (2.9,1.9) and (3.3,2.6) .. (\xmax,2.15);
+    % izolovaný ostrůvek (overfitting na šumový bod)
+    \draw[hranice] (1.55,1.0) circle (0.42);
+    \node[cls1] at (1.5,2.9) {}; \node[cls1] at (0.6,2.95) {};
+    \node[cls1] at (1.1,3.1) {}; \node[cls1] at (2.1,3.05) {};
+    \node[cls1] at (2.8,2.85) {}; \node[cls1] at (3.4,2.95) {};
+    \node[cls1] at (0.35,3.15) {}; \node[cls1] at (3.6,2.55) {};
+    \node[cls1] at (1.55,1.0) {}; % šumový modrý bod dole -> ostrůvek
+    \node[cls2] at (0.7,1.6) {}; \node[cls2] at (1.5,1.7) {};
+    \node[cls2] at (2.4,1.5) {}; \node[cls2] at (3.1,1.55) {};
+    \node[cls2] at (0.5,0.7) {}; \node[cls2] at (1.2,0.6) {};
+    \node[cls2] at (2.0,0.8) {}; \node[cls2] at (2.8,0.65) {};
+    \node[cls2] at (3.5,1.0) {}; \node[cls2] at (2.2,0.3) {};
+    \node[font=\small,anchor=north] at (\xmax/2,-0.25) {malé $k$ (např.\ $k=1$)};
+  \end{scope}
+  % ---- PRAVÝ PANEL: velké k (hladká hranice) ----
+  \begin{scope}[xshift=5.6cm]
+    \def\xmax{4.0} \def\ymaxv{3.4}
+    \draw[osa] (0,0) -- (\xmax+0.25,0) node[right,font=\scriptsize]{$x_1$};
+    \draw[osa] (0,0) -- (0,\ymaxv+0.25) node[above,font=\scriptsize]{$x_2$};
+    % hladká hranice
+    \draw[hranice] (0,2.4) .. controls (1.3,2.2) and (2.7,2.1) .. (\xmax,2.0);
+    % stejné body, žádný ostrůvek (šumový bod přehlasován)
+    \node[cls1] at (1.5,2.9) {}; \node[cls1] at (0.6,2.95) {};
+    \node[cls1] at (1.1,3.1) {}; \node[cls1] at (2.1,3.05) {};
+    \node[cls1] at (2.8,2.85) {}; \node[cls1] at (3.4,2.95) {};
+    \node[cls1] at (0.35,3.15) {}; \node[cls1] at (3.6,2.55) {};
+    \node[cls1] at (1.55,1.0) {}; % týž šumový bod, teď bez ostrůvku
+    \node[cls2] at (0.7,1.6) {}; \node[cls2] at (1.5,1.7) {};
+    \node[cls2] at (2.4,1.5) {}; \node[cls2] at (3.1,1.55) {};
+    \node[cls2] at (0.5,0.7) {}; \node[cls2] at (1.2,0.6) {};
+    \node[cls2] at (2.0,0.8) {}; \node[cls2] at (2.8,0.65) {};
+    \node[cls2] at (3.5,1.0) {}; \node[cls2] at (2.2,0.3) {};
+    \node[font=\small,anchor=north] at (\xmax/2,-0.25) {velké $k$};
+  \end{scope}
+\end{tikzpicture}
+\obrpopis{Vliv $k$ na rozhodovací hranici $k$-NN (dvě třídy: \tikz[baseline={(0,-0.5ex)}]{\node[cls1]{};}~modré, \tikz[baseline={(0,-0.5ex)}]{\node[cls2]{};}~červené). Při \emph{malém} $k$ (vlevo) je hranice členitá a~kolem osamělého šumového bodu vznikne ostrůvek -- model overfittuje. Při \emph{velkém} $k$ (vpravo) je hranice hladká, šumový bod je sousedy přehlasován; přílišné $k$ však ztrácí lokální detail (underfitting). Optimální $k$ leží mezi.}
+\end{center}
+
+\begin{intuice}[Jak vybrat $k$]
+Vhodné $k$ nehádáme -- vybereme ho \textbf{křížovou validací} (sekce~\ref{sec:evaluace}): pro kandidátní hodnoty $k=1,3,5,\dots$ změříme $k$-násobnou křížovou validací chybu a~zvolíme $k$ s~nejlepším \emph{validačním} skóre. Trénovací chyba k~volbě \emph{nestačí} (u~$k=1$ je vždy nulová, přesto overfittuje). U~dvou tříd se volí \emph{liché} $k$, aby se předešlo remízám v~hlasování. Závislost validační chyby na $k$ má typicky tvar písmene U: zprvu klesá (mizí overfitting), pak roste (underfitting).
+\end{intuice}
+
+\subsection{Výpočetní cena predikce}
+
+Líné učení má svou cenu na druhé straně. \textbf{Naivní predikce je drahá}: pro každý dotaz se spočítá vzdálenost ke \emph{všem} $N$ trénovacím bodům ($D$-rozměrným), tedy $\mathcal{O}(N D)$ na výpočet vzdáleností plus výběr $k$ nejmenších ($\mathcal{O}(N\log k)$ haldou, nebo $\mathcal{O}(N\log N)$ tříděním). Trénování je $\mathcal{O}(1)$ (jen uložení), ale predikce roste lineárně s~velikostí trénovací množiny -- opak parametrických modelů, kde je drahé trénování a~levná predikce.
+
+\begin{poznamka}[Zrychlení vyhledávání]
+Predikci lze urychlit prostorovými datovými strukturami, které předpočítají organizaci bodů: \textbf{$k$-d~stromy} (dotaz v~průměru v~logaritmickém čase pro nízkou dimenzi, ale ve vysoké dimenzi degradují), \emph{ball trees}, \emph{R-stromy} apod. Ve vysoké dimenzi nebo na obrovských datech se používá \emph{přibližné} hledání nejbližších sousedů (ANN). Tyto struktury jsou nad rámec požadavků; podstatné je, že naivní predikce je $\mathcal{O}(ND)$ na dotaz a~že existují stromové struktury pro zrychlení.
+\end{poznamka}
+
+\subsection{Řešený příklad}
+
+\begin{priklad}[SZZ jaro 2025 č.~28: $k$ nejbližších sousedů]
+\szzotazka{jaro 2025}{28}{k nejbližších sousedů}\par
+\textbf{Zadání.} (1)~Popište metodu $k$-NN pro klasifikaci i~regresi; jak probíhá trénování a~predikce? (2)~Data se dvěma atributy se klasifikují do dvou tříd ($\circ$, $\times$) podle obrázku. Pro $k=3$ klasifikujte nový vstup $(3,2)$. Změnila by se klasifikace při jiném $k$? (3)~Jak nastavit vhodné $k$?
+
+\smallskip
+\textbf{Řešení.}
+
+\emph{(1)} Při \textbf{trénování} se pouze uloží celá trénovací množina (líné učení). Při \textbf{predikci} se k~dotazu najde $k$ nejbližších uložených příkladů (zvolenou metrikou, typicky Euklid); pro \emph{klasifikaci} se vrátí jejich nejčastější třída (většinové hlasování), pro \emph{regresi} (vážený) průměr jejich cílů.
+
+\emph{(2)} Dotaz $(3,2)$ leží na rozhraní obou tříd (viz obrázek). Dva nejbližší body jsou \emph{kroužky} ($\circ$) těsně nad ním, $(3{,}25;2{,}29)$ a~$(2{,}86;2{,}37)$ ve vzdálenostech $\approx 0{,}38$ a~$0{,}40$. Třetím sousedem je křížek: dva křížky pod dotazem, $(2{,}81;1{,}46)$ a~$(2{,}68;1{,}52)$, leží skoro stejně daleko ($\approx 0{,}58$), takže nezáleží na tom, který z~nich je třetí. Hlasování $2\!:\!1$ klasifikuje vstup jako $\boxed{\circ}$.
+
+Při \emph{změně} $k$ se výsledek může změnit: dotaz je blízko hranice a~hned za dvěma nejbližšími kroužky následují křížky. Pro $k=5$ rozhoduje téměř remíza vzdáleností: pátý a~šestý soused, kroužek $(2{,}84;2{,}65)$ a~křížek $(2{,}35;1{,}82)$, jsou oba ve vzdálenosti $\approx 0{,}67$ a~rozdíl je pod přesností odečtu z~obrázku (poměr hlasů $3\!:\!2$ nebo $2\!:\!3$). Pro $k=7$ jsou sousedé jednoznačně $3\times\circ$, $4\times\times$ (sedmý je křížek ve vzdálenosti $\approx 0{,}70$, osmý až $\approx 0{,}89$), takže hlasování přejde na $\boxed{\times}$. Větší $k$ tu „dosáhne`` do husté oblasti křížků pod dotazem a~klasifikaci překlopí -- ukázka citlivosti na volbu $k$ u~bodu blízko rozhodovací hranice.
+
+\emph{(3)} Vhodné $k$ zvolíme \textbf{křížovou validací}: pro $k=1,3,5,\dots$ změříme křížově validovanou chybu a~vybereme $k$ s~nejlepším validačním skóre. U~dvou tříd volíme liché $k$ kvůli remízám. Malé $k$ hrozí overfittingem (citlivost na šum), velké $k$ underfittingem (hranice příliš hladká).
+
+\smallskip
+\begin{center}
+% Souřadnice = rekonstrukce dat SZZ jaro 2025 č.28 (gen_s3_knn.py); okolí dotazu přeodečteno 26. 9. 2026.
+% Jednotka os zadaná přes x=/y=..cm, aby šly použít celočíselné i záporné
+% souřadnice bez aritmetiky (vyhneme se "Missing number" pod babel-czech).
+\begin{tikzpicture}[x=1.1cm,y=1.1cm]
+  \def\xlo{-1.9} \def\xhi{5.0} \def\ylo{-1.3} \def\yhi{5.3}
+  % osy a popisky dělení (osa x kreslena u y=ylo, aby byly vidět i body se záporným x2)
+  \draw[osa] (\xlo,\ylo) -- (\xhi,\ylo) node[right,font=\scriptsize]{$x_1$};
+  \draw[osa] (\xlo,\ylo) -- (\xlo,\yhi) node[above,font=\scriptsize]{$x_2$};
+  \foreach \t in {-1,0,1,2,3,4}{\draw (\t,\ylo+0.07)--(\t,\ylo-0.07) node[below,font=\tiny]{$\t$};}
+  \foreach \t in {-1,0,1,2,3,4,5}{\draw (\xlo+0.07,\t)--(\xlo-0.07,\t) node[left,font=\tiny]{$\t$};}
+  % --- třída o (kroužky), horní/levá oblast: věrná data ---
+  \foreach \p in {(-1.6,3.87),(-0.7,4.83),(-0.55,3.73),(-0.6,3.22),(-0.3,4.05),
+                  (-0.25,4.08),(-0.1,4.15),(0.05,4.15),(0.1,3.4),(0.15,2.95),
+                  (0.3,3.45),(0.35,3.1),(0.4,3.1),(0.55,4.3),(0.6,3.12),
+                  (0.65,2.5),(0.9,3.68),(1,4.73),(1.05,3.62),(1.1,3.68),
+                  (1.15,4.48),(1.2,3.65),(1.25,4.1),(1.3,3.08),(1.35,2.87),
+                  (1.4,3.9),(1.55,3.63),(1.7,3.25),(1.75,2.82),(2,2.45),
+                  (2.2,4.27),(2.35,3.25),(2.45,4.8),(2.5,4.47),(2.55,3.22),
+                  (2.84,2.65),(2.86,2.37),(3.25,2.29),(0.15,2.32),(0.25,2.1),(0.25,1.9)}
+    {\node[cls1] at \p {};}
+  % --- třída x (křížky), dolní/pravá oblast: věrná data ---
+  \foreach \p in {(0.6,1.13),(0.65,1.45),(0.7,0.5),(0.75,0.5),(0.9,2.27),
+                  (0.95,0.87),(1,1.35),(1.1,1.67),(1.2,0.78),(1.25,0.75),
+                  (1.3,2.22),(1.3,0.25),(1.35,1.97),(1.35,1.27),(1.4,2.27),
+                  (1.45,0.68),(1.5,0.27),(1.6,1.43),(1.7,2.22),(1.75,-0.2),
+                  (2,2.1),(2,0.33),(2.05,-0.05),(2.1,1.3),(2.35,1.82),
+                  (2.68,1.52),(2.6,0.67),(2.81,1.46),(2.7,0.32),(2.7,-0.38),
+                  (2.95,1.12),(3,0.9),(3,0.7),(3.05,1.07),(3.16,1.32),
+                  (3.2,1.08),(3.2,0),(2.45,0),(1.35,-0.85),(1.35,-0.33),
+                  (3.95,1.93),(4.1,1.83),(4.2,1.5),(4.5,1.53)}
+    {\node[cls2] at \p {};}
+  % --- dotaz a kružnice k=3 (3. a 4. soused jsou křížky ve vzdálenosti 0,577 a 0,581; kružnice prochází oběma) ---
+  \draw[blue!55!black,dashed,thick] (3,2) circle [radius=0.58];
+  \fill[black] (3,2) circle [radius=1.7pt];
+  % popisek dotazu s vynašecí čárou do volné mezery vpravo dole (mimo body i kružnici)
+  \draw[black!55,line width=0.4pt] (3.06,1.92) -- (3.5,0.85);
+  \node[font=\scriptsize,anchor=west] at (3.45,0.75) {$q=(3,2)$};
+  \node[font=\scriptsize,blue!55!black,anchor=south west] at (3.18,2.6) {$k=3$};
+\end{tikzpicture}
+\obrpopis{Data SZZ jaro 2025 č.~28 (rekonstrukce z~obrázku zadání, okolí dotazu odečteno přesně): třída \tikz[baseline={(0,-0.5ex)}]{\node[cls1]{};}~$\circ$ nahoře vlevo, třída \tikz[baseline={(0,-0.5ex)}]{\node[cls2]{};}~$\times$ dole vpravo. Čárkovaná kružnice kolem dotazu $q=(3,2)$ má poloměr $\approx 0{,}58$: uvnitř jsou dva $\circ$ (vzdálenosti $\approx 0{,}38$ a~$0{,}40$), kružnice prochází dvěma $\times$ ve vzdálenosti $\approx 0{,}58$, z~nichž jeden je třetím sousedem. Hlasování $2\!:\!1$ klasifikuje $q$ jako $\circ$. Při větším $k$ (kolem $k=7$) se do okolí dostanou křížky pod dotazem a~klasifikace se překlopí na $\times$.}
+\end{center}
+\end{priklad}
+
+\begin{priklad}[SZZ podzim 2022 č.~20: k-NN s Manhattanskou vzdáleností]
+\szzotazka{podzim 2022}{20}{k nejbližších sousedů}\par
+\textbf{Zadání.} (1)~Popište fungování $k$-NN pro klasifikaci i~regresi -- jak probíhá trénování a~predikce? (2)~Pro data níže (příznaky $A_1,A_2$, třída $C\in\{0,1\}$) ohodnoťte $k$-NN s~$k=3$ a~\emph{Manhattanskou} (L1) vzdáleností nový vstup $(5,5)$. (3)~Změní se odpověď při jiném $k$?
+
+\smallskip
+\begin{center}\small
+\begin{tabular}{ccc}
+\toprule
+$A_1$ & $A_2$ & $C$ \\
+\midrule
+0 & 3 & 0 \\ 2 & 2 & 0 \\ 3 & 0 & 0 \\ 4 & 2 & 0 \\
+6 & 6 & 1 \\ 4 & 5 & 1 \\ 1 & 1 & 1 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\smallskip
+\textbf{Řešení.} \emph{(1)} $k$-NN je líný (instance-based) model: trénování pouze uloží trénovací data. Predikce nového bodu najde jeho $k$ nejbližších sousedů podle zvolené metriky; pro \emph{klasifikaci} vrátí jejich většinovou třídu, pro \emph{regresi} (vážený) průměr jejich cílů.
+
+\emph{(2)} Manhattanské vzdálenosti bodu $(5,5)$ od dat (seřazeno):
+\begin{center}\small
+\begin{tabular}{cc}
+\toprule
+bod & L1 vzdálenost \\
+\midrule
+$(4,5)$ & $1$ \\ $(6,6)$ & $2$ \\ $(4,2)$ & $4$ \\ $(2,2)$ & $6$ \\
+$(0,3)$ & $7$ \\ $(3,0)$ & $7$ \\ $(1,1)$ & $8$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Tři nejbližší jsou $(4,5)$ s~$C{=}1$, $(6,6)$ s~$C{=}1$ a~$(4,2)$ s~$C{=}0$, tedy třídy $\{1,1,0\}$. Pro $k=3$ je $(5,5)$ klasifikován jako třída $\boxed{1}$.
+
+\emph{(3)} Ano, odpověď se mění. Pro $k=5$ je pět nejbližších $(4,5){:}1$, $(6,6){:}1$, $(4,2){:}0$, $(2,2){:}0$, $(0,3){:}0$, tedy $\{1,1,0,0,0\}$, většina $\boxed{0}$ (a~stejně tak $k=7$). Na pátém místě je sice remíza vzdáleností ($(0,3)$ i~$(3,0)$ mají vzdálenost $7$), oba body ale patří do třídy $0$, takže na výsledku nezáleží. Bod leží blízko rozhraní tříd, proto je citlivý na volbu $k$.
+\end{priklad}

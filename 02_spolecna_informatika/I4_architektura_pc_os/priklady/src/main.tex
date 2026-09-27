@@ -1,0 +1,48 @@
+% !TeX program = lualatex
+% Agregátor reálných otázek SZZ pro okruh I4. Jednotlivé otázky jsou v souborech q_*.tex.
+% Sestavení: ./build.sh 02_spolecna_informatika/I4_architektura_pc_os/priklady   (nebo cd .../priklady && latexmk)
+\documentclass[11pt,a4paper]{article}
+\usepackage{szzpriklady}
+% Build běží z adresáře priklady/ (CWD), obrázky jsou v src/fig/.
+\graphicspath{{src/fig/}{fig/}}
+
+\title{Příklady otázek -- Architektura počítačů a operačních systémů\\[0.3em]\large Reálné otázky ze SZZ 2022--2026 (I4)}
+\author{Jakub Klesa}
+\date{Pokryté předměty: NSWI120 (Principy počítačů), NSWI170 (Počítačové systémy)}
+
+\begin{document}
+\sloppy
+\maketitle
+\tableofcontents
+\bigskip
+
+\begin{poznamka}
+Tento dokument obsahuje reálné otázky z minulých termínů SZZ (2022--2026) zařazené do
+okruhu I4. U otázek s obrázkem je grafika oříznutá z originálního PDF (viz odkaz na
+zdroj). Text, číselná data a tabulky jsou přepsané věrně.
+Zadání i oficiální náčrty řešení pocházejí ze sad zveřejněných na webu MFF UK:\par
+{\raggedright\url{https://www.mff.cuni.cz/cs/studenti/bakalarske-studium/statni-zaverecne-zkousky/bakalarske-statni-zkousky-studijniho-programu-informatika}\par}
+Náčrty označené jako doplněné jsou vlastní, oficiální sada je k~dané otázce neobsahuje.
+Vlastní doplnění k~oficiálnímu náčrtu jsou zřetelně oddělena.
+Pojmy a~značení odpovídají přednáškám předmětů NSWI170 \emph{Počítačové systémy}
+(\url{https://teaching.ms.mff.cuni.cz/nswi170-web/}) a~NSWI120 \emph{Principy počítačů}
+(\url{https://d3s.mff.cuni.cz/teaching/nswi120/}).
+\end{poznamka}
+\bigskip
+
+% === Otázky (chronologicky). Doplň \input řádky a soubory q_*.tex do src/. ===
+% Příklad: \input{q_2024-leto-28_bayesovske-site}
+% ZACATEK-OTAZEK
+\input{src/q_2022-podzim-02_virtualni-pamet}
+\input{src/q_2023-leto-14_synchronizace}
+\input{src/q_2023-leto-15_strankovani-tlb}
+\input{src/q_2023-leto-17_preklad-adresy}
+\input{src/q_2023-podzim-01_architektura-pc-os}
+\input{src/q_2024-jaro-02_ovladac-radic-disku}
+\input{src/q_2024-leto-02_semafor}
+\input{src/q_2025-leto-02_spravce-pameti}
+\input{src/q_2025-podzim-02_ukladani-dat-binarni-soubor}
+\input{src/q_2026-jaro-02_semafor-mezi-procesy}
+% KONEC-OTAZEK
+
+\end{document}

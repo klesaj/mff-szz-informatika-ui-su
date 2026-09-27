@@ -1,0 +1,32 @@
+% Zdroj: PDF priklady-podzim-2025.pdf, fyzická str. 3. Značka: společné okruhy (matematika). Zařazeno: M3.
+\section{Binární relace}
+\szzotazka{podzim 2025}{4}{Binární relace}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Definujte podmínky, které musí splňovat binární relace $R$ na neprázdné množině $X$, aby byla ekvivalencí. Podmínky formulujte pomocí matematických zápisů s použitím logických spojek, kvantifikátorů a podobně.
+  \item Pro $X = \{a, b, c, d\}$ určete, kolik různých ekvivalencí na množině $X$ existuje.
+  \item Pro $X = \{a, b, c, d\}$ najděte příklad binární relace, která je tranzitivní, ale není symetrická ani (slabě) antisymetrická. Zdůvodněte, že nalezená relace má požadované vlastnosti.
+
+  (Antisymetrií míníme $\forall x, y \in X : ((x, y) \in R \wedge (y, x) \in R) \Rightarrow x = y$.)
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Ekvivalence je relace, která je
+    \begin{itemize}
+      \item reflexivní $\forall x \in X : (x, x) \in R$
+      \item symetrická $\forall x, y \in X : (x, y) \in R \Rightarrow (y, x) \in R$
+      \item tranzitivní $\forall x, y, z \in X : ((x, y) \in R \wedge (y, z) \in R) \Rightarrow (x, z) \in R$\footnote{V originálním PDF je zde překlep: \uv{$\in R$} místo \uv{$\in X$} a spojka \uv{$\vee$} místo \uv{$\wedge$}. Zde uvedeno korektně.}
+    \end{itemize}
+  \item Budeme počítat rozklady $X$ na třídy ekvivalence, rozborem případů dle velikostí rozkladových tříd: jedna třída (velikosti 4) 1$\times$, dvě třídy $1 + 3$ 4$\times$, $2 + 2$ 3$\times$, tři třídy ($2 + 1 + 1$) 6$\times$, čtyři jednoprvkové třídy 1$\times$, celkem 15 možností.
+  \item Například $R = \{(a, a), (a, b), (b, a), (b, b), (c, d)\}$. Tranzitivita rozborem případů (předpoklady splňují volby $x = a, y = b, z = a$ a $x = b, y = a, z = b$), volba $x = a, y = b$ porušuje antisymetrii, volba $x = c, y = d$ porušuje symetrii.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):}
+\begin{itemize}
+  \item \emph{K bodu 2.} Třídy ekvivalence tvoří rozklad $X$ a naopak každý rozklad určuje ekvivalenci (\uv{být ve stejné třídě}), takže ekvivalencí je přesně tolik jako rozkladů. Počty u jednotlivých tvarů: u $3+1$ volíme samotný prvek ($\binom41=4$), u $2+1+1$ volíme dvojici ($\binom42=6$), u $2+2$ volíme dvojici obsahující $a$ (jejího partnera lze vybrat $3$ způsoby, zbytek tvoří druhou dvojici), tj.\ $\tfrac12\binom42=3$.
+  \item \emph{K bodu 3, tranzitivita.} Probíráme všechny dvojice $(x,y),(y,z)\in R$. Dvojice $(c,d)$ nemá pokračování (žádná dvojice nezačíná v~$d$) a žádná dvojice nekončí v~$c$, takže $(c,d)$ se v~předpokladu tranzitivity nikdy neobjeví spolu s~jinou dvojicí. Zbývají dvojice uvnitř $\{a,b\}$, kde $R$ obsahuje všechny čtyři možné dvojice; výsledná $(x,z)$ tedy v~$R$ leží vždy. Náčrt jmenuje jen dva případy, kde $x\ne y$ a $y\ne z$ (výsledkem je smyčka $(a,a)$, resp.\ $(b,b)$); případy se smyčkou jsou triviální, protože z~$(x,x),(x,z)\in R$ je $(x,z)\in R$ přímo předpoklad (obdobně u~$(x,z),(z,z)\in R$).
+\end{itemize}

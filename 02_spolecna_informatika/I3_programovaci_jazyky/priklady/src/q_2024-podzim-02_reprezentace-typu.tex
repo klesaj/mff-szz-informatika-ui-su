@@ -1,0 +1,69 @@
+% Zdroj: PDF priklady-podzim-2024.pdf, fyzická str. 2. Značka: společné okruhy I3. Zařazeno: I3.
+\section{Reprezentace typů}
+\szzotazka{podzim 2024}{2}{Reprezentace typů (návrh tříd/interfaců pro IDE)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+\item Představte si, že vyvíjíte integrované vývojové prostředí (IDE). V okně projektu
+  je potřeba zobrazit typy a elementy typů (tj. jejich metody, datové položky,
+  vnitřní/vnořené typy -- viz obrázek níže). Ve zvoleném jazyce (Java, C++, C\#)
+  navrhněte vhodnou sadu tříd/interfaců, které vám umožní uchovávat informace o typech
+  tak, aby mohly být zobrazeny v okně v IDE. Informace zahrnují alespoň názvy typů,
+  jejich druhy, metody typů a jejich signatury, datové položky a vnitřní/vnořené typy.
+  Navrhněte vaše řešení tak, aby bylo v budoucnu snadno rozšiřitelné. Vytvořte pouze
+  deklarace tříd/interfaců, tj. bez těl jejich metod.
+
+  \begin{center}\includegraphics[width=0.6\linewidth]{reprezentace-typu.png}\end{center}
+
+\item Implementujte metodu, která bere jako parametry (i)~typ (jak jste jej definovali
+  pro část otázky výše) a (ii)~„operaci". Metoda aplikuje danou operaci na daný typ
+  a všechny elementy typu. Pokud založíte procházení struktury typu na nějakém obecně
+  známém řešení, explicitně toto řešení pojmenujte. Pro operaci použijte vhodný koncept,
+  který nabízí vámi zvolený jazyk.
+
+\item Napište kód, který zavolá vaší metodu z předchozího bodu. Operace předaná metodě
+  je: „vytiskne název elementu, ale pouze v případě, že element reprezentuje datovou
+  položku nebo typ (včetně vnitřních/vnořených typů)".
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+\item Existuje více správných řešení. Typické řešení je obvyklá hierarchie tříd, např.
+  abstraktní třída \texttt{Element}, a dále pak třídy, které od \texttt{Element} dědí,
+  tj. třída \texttt{Type}, třída \texttt{Method}, třída \texttt{Field}, atd.
+
+\item Existuje více správných řešení. Průchod strukturou může být založen např. na vzoru
+  „Visitor", nebo mohou být typy deklarovány jako „sealed" (pokud to jazyk umožňuje)
+  a průchod používá pattern matching, atd.
+
+  Pro reprezentaci operace lze použít interface nebo funkcionální typ apod.
+
+\item V závislosti na reprezentaci bude operace definována jako anonymní třída, lambda
+  výraz atd.
+\end{enumerate}
+
+\medskip
+\begin{csalt}[sealed + pattern matching místo Visitoru]
+Náčrt sám zmiňuje „sealed`` a~pattern matching. Pattern matching mají C\# i~Java: průchod je
+\texttt{switch} s~typovými vzory --- bez psaní celé hierarchie \texttt{Visit}/\texttt{Accept} jako v~C++.
+(V~C\# \texttt{sealed} jen zakáže další dědění z~listových typů; skutečně uzavřenou hierarchii
+má Java (\texttt{sealed interface \dots{} permits}, od verze~17) a~\texttt{switch} s~typovými vzory
+nad ní kontroluje úplnost od verze~21.)
+\begin{lstlisting}[style=cs]
+abstract record Element(string Name);
+sealed record TypeElem(string Name, IReadOnlyList<Element> Members) : Element(Name);
+sealed record Field(string Name)  : Element(Name);
+sealed record Method(string Name) : Element(Name);
+
+void Walk(Element e, Action<Element> op) {
+    switch (e) {                                  // pattern matching = nahrada Visitoru
+        case TypeElem t: op(t); foreach (var m in t.Members) Walk(m, op); break;
+        case Field or Method: op(e); break;
+    }
+}
+// volani: vytiskni jen datove polozky a typy
+Walk(root, x => { if (x is Field or TypeElem) Console.WriteLine(x.Name); });
+\end{lstlisting}
+Operace se předá jako lambda (delegát \texttt{Action}) --- není nutná anonymní třída.
+\end{csalt}

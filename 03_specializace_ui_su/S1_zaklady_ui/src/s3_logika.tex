@@ -1,0 +1,299 @@
+\section{Logické uvažování (DPLL, dopředné a zpětné řetězení, rezoluce)}
+
+Druhým velkým paradigmatem AI je \emph{logické uvažování}. Místo prohledávání stavů popíšeme svět množinou logických tvrzení (\emph{znalostní bází}) a~ptáme se, co z~ní logicky plyne. \emph{Agent založený na znalostech} drží znalostní bázi $KB$ (množinu vět nějakého jazyka), kterou rozšiřuje operací \textsc{Tell} (přidej nové pozorování či poznatek) a~dotazuje se operací \textsc{Ask} (plyne z~$KB$ daná věta?). Logická \emph{inference} mu dovolí odvodit i~to, co není přímo pozorovatelné. V~tomto okruhu zůstáváme u~\emph{výrokové} logiky a~díváme se na ni \emph{aplikačně} -- jako na nástroj pro algoritmy (rozhodnutí splnitelnosti, dokazování důsledku). Syntaxi a~sémantiku logiky systematicky buduje společný okruh M6; zde stačí pracovní minimum.
+
+\subsection{Model, splnitelnost, důsledek}
+
+\begin{definice}[Model, splnitelnost, důsledek]
+\emph{Model} $M$ je ohodnocení (přiřazení pravdivostních hodnot) všem výrokovým proměnným. $M$ je \emph{modelem} věty $\alpha$, pokud je $\alpha$ v~$M$ pravdivá; množinu všech modelů $\alpha$ značíme $M(\alpha)$.
+\begin{itemize}
+  \item Věta je \textbf{splnitelná} (satisfiable), je-li pravdivá v~\emph{nějakém} modelu (např.\ $A\vee B$).
+  \item Věta je \textbf{nesplnitelná} (unsatisfiable), není-li pravdivá v~\emph{žádném} modelu (např.\ $A\wedge\neg A$).
+  \item $\alpha$ \textbf{(sémanticky) vyplývá} z~$KB$ (entails), píšeme $KB\models\alpha$, je-li $\alpha$ pravdivá v~každém modelu $KB$, tj.\ $M(KB)\subseteq M(\alpha)$.
+\end{itemize}
+\end{definice}
+
+\begin{intuice}
+$KB\models\alpha$ znamená „kdykoli platí všechno v~$KB$, platí i~$\alpha$`` -- $\alpha$ je důsledek, ne nová informace. Ve světě Wumpa (klasický příklad z~učebnice: agent prochází mřížku jeskyně, kde \emph{závan} v~poli signalizuje bezednou jámu v~některém sousedním) pozorujeme „v~poli $[1,1]$ není závan`` a~chceme zjistit, zda je sousední pole bezpečné. Vyjmenujeme modely shodné s~pozorováním a~ověříme, zda ve \emph{všech} je dané pole bez jámy. Je-li tomu tak, bezpečnost \emph{plyne} z~$KB$; existuje-li model $KB$, v~němž tam jáma je, neplyne a~jistotu nemáme.
+\end{intuice}
+
+Klíčový převod, na němž stojí algoritmy dokazování, vyjadřuje větu (důsledek) jazykem (ne)splnitelnosti:
+
+\begin{veta}[Důsledek jako nesplnitelnost]
+Pro každou $KB$ a~větu $\alpha$ platí
+\[ KB\models\alpha \quad\Longleftrightarrow\quad (KB\wedge\neg\alpha)\ \text{je nesplnitelná}. \]
+\end{veta}
+
+\begin{intuice}
+Toto je výroková obdoba „důkazu sporem``. Pokud z~$KB$ plyne $\alpha$, pak nemůže současně platit $KB$ a~$\neg\alpha$, takže konjunkce $KB\wedge\neg\alpha$ nemá model -- je nesplnitelná. A~naopak. Díky tomu se každá otázka „plyne $\alpha$?“ převede na otázku splnitelnosti, kterou řeší DPLL (hledá model) i~rezoluce (odvozuje spor). Proto se v~AI místo důsledku rovnou rozhoduje splnitelnost.
+\end{intuice}
+
+\subsection{Konjunktivní a disjunktivní normální forma}
+
+Algoritmy chtějí formuli v~jednotném tvaru. \emph{Literál} je výroková proměnná nebo její negace (např.\ $A$, $\neg B$); \emph{klauzule} je disjunkce literálů (např.\ $A\vee\neg B$); \emph{elementární konjunkce} je konjunkce literálů.
+
+\begin{definice}[CNF a DNF]
+\begin{itemize}
+  \item \textbf{Konjunktivní normální forma (CNF)} je \emph{konjunkce klauzulí} (AND disjunkcí), tj.\ tvar $\bigwedge_i\bigvee_j \ell_{ij}$. Příklad: $(A\vee\neg B)\wedge(B\vee\neg C\vee\neg D)$.
+  \item \textbf{Disjunktivní normální forma (DNF)} je \emph{disjunkce elementárních konjunkcí} (OR konjunkcí), tj.\ tvar $\bigvee_i\bigwedge_j \ell_{ij}$. Příklad: $(A\wedge B)\vee(\neg A\wedge C)$.
+\end{itemize}
+Každá výroková formule je logicky ekvivalentní nějaké formuli v~CNF i~nějaké v~DNF.
+\end{definice}
+
+\begin{intuice}
+CNF je tvar pro \emph{dokazování}: formule v~CNF je pravdivá, právě když je pravdivá \emph{každá} klauzule, a~klauzule je nepravdivá jen tehdy, jsou-li nepravdivé \emph{všechny} její literály. Na tom stojí DPLL i~rezoluce (rezoluce pracuje výhradně s~klauzulemi). DNF je naopak tvar, v~němž je splnitelnost triviální (stačí jedna splnitelná elementární konjunkce), zato rozhodnout, zda je formule v~DNF tautologií (a~tedy i~důsledek), je obtížné -- proto se pro dokazování normalizuje na CNF. Pozn.: převod do CNF může formuli exponenciálně nafouknout (rozdistribuování $\vee$ přes $\wedge$), takže ani „jen`` převod na CNF není zadarmo.
+\end{intuice}
+
+\begin{priklad}[Převod na CNF z definice ekvivalence]
+Převedeme $B \Leftrightarrow (P_1\vee P_2)$ do CNF -- typický krok při kódování pravidel světa do klauzulí.
+\begin{enumerate}
+  \item \emph{Odstranění ekvivalence} $a\Leftrightarrow b \equiv (a\Rightarrow b)\wedge(b\Rightarrow a)$:
+  \[ \bigl(B\Rightarrow(P_1\vee P_2)\bigr)\wedge\bigl((P_1\vee P_2)\Rightarrow B\bigr). \]
+  \item \emph{Odstranění implikace} $a\Rightarrow b \equiv \neg a\vee b$:
+  \[ \bigl(\neg B\vee P_1\vee P_2\bigr)\wedge\bigl(\neg(P_1\vee P_2)\vee B\bigr). \]
+  \item \emph{De Morgan} $\neg(P_1\vee P_2)\equiv(\neg P_1\wedge\neg P_2)$ a~roznásobení ($\vee$ přes $\wedge$):
+  \[ \boxed{(\neg B\vee P_1\vee P_2)\wedge(\neg P_1\vee B)\wedge(\neg P_2\vee B)}. \]
+\end{enumerate}
+Postup je obecný: (1)~odstraň $\Leftrightarrow$ a~$\Rightarrow$, (2)~zatlač negace dovnitř (De Morgan, $\neg\neg a\equiv a$), (3)~rozdistribuuj $\vee$ přes $\wedge$. Výsledkem jsou tři klauzule -- to je hledaná CNF.
+\end{priklad}
+
+\subsection{Algoritmus DPLL}
+
+Splnitelnost CNF (problém SAT) lze rozhodnout vyčíslením pravdivostní tabulky ($2^n$ modelů), to je ale neúnosné. \textbf{DPLL} (Davis--Putnam--Logemann--Loveland) je chytřejší: prohledávání modelů s~backtrackingem, urychlené \emph{inferencí} (stejné spojení prohledávání a~inference jako u~CSP). Pracuje nad \emph{částečnými} modely a~používá tři zrychlení.
+
+\begin{definice}[Tři klíčové prvky DPLL]
+\begin{itemize}
+  \item \textbf{Předčasné ukončení} (early termination): klauzule je pravdivá, je-li pravdivý byť jediný její literál; formule je nepravdivá, je-li nepravdivá byť jediná klauzule (všechny literály nepravdivé). Lze tak rozhodnout už nad částečným modelem, bez doplnění zbylých proměnných.
+  \item \textbf{Čistý literál} (pure symbol): proměnná, která se ve všech (dosud nesplněných) klauzulích vyskytuje se \emph{stejným znaménkem}. Takovou proměnnou bezpečně nastavíme tak, aby tyto literály byly pravdivé -- nemůže to uškodit, protože v~žádné klauzuli nevystupuje opačně.
+  \item \textbf{Jednotková klauzule} (unit clause): klauzule, v~níž po dosazení částečného modelu zbývá \emph{jediný} dosud neohodnocený literál. Ten \emph{musí} být pravdivý, jinak je klauzule nepravdivá; proměnnou tedy vynutíme (\emph{jednotková propagace}). Nastavení jednoho literálu může vyrobit další jednotkové klauzule -- řetězí se.
+\end{itemize}
+\end{definice}
+
+\begin{algo}[DPLL -- rozhodnutí splnitelnosti CNF]
+\ttfamily\small
+DPLL-SATISFIABLE?(s):\\
+\hspace*{1.5em}clauses $\leftarrow$ klauzule CNF formule $s$;\quad symbols $\leftarrow$ proměnné v~$s$\\
+\hspace*{1.5em}\textbf{return} DPLL(clauses, symbols, \{\,\}) \cmt{prázdný model}\\[2pt]
+DPLL(clauses, symbols, model):\\
+\hspace*{1.5em}\textbf{if} každá klauzule je v~model pravdivá: \textbf{return} \textsc{true} \cmt{model nalezen}\\
+\hspace*{1.5em}\textbf{if} některá klauzule je v~model nepravdivá: \textbf{return} \textsc{false} \cmt{backtrack}\\
+\hspace*{1.5em}$P$, hodnota $\leftarrow$ \textsc{Find-Pure-Symbol}(symbols, clauses, model) \cmt{čistý literál}\\
+\hspace*{1.5em}\textbf{if} $P\neq$ null: \textbf{return} DPLL(clauses, symbols$-P$, model $\cup\,\{P=$hodnota$\}$)\\
+\hspace*{1.5em}$P$, hodnota $\leftarrow$ \textsc{Find-Unit-Clause}(clauses, model) \cmt{jednotková klauzule}\\
+\hspace*{1.5em}\textbf{if} $P\neq$ null: \textbf{return} DPLL(clauses, symbols$-P$, model $\cup\,\{P=$hodnota$\}$)\\
+\hspace*{1.5em}$P\leftarrow$ \textsc{First}(symbols);\quad rest $\leftarrow$ \textsc{Rest}(symbols) \cmt{větvení}\\
+\hspace*{1.5em}\textbf{return} DPLL(clauses, rest, model $\cup\,\{P=$\textsc{true}$\}$)\\
+\hspace*{4.5em}\textbf{or}\ \, DPLL(clauses, rest, model $\cup\,\{P=$\textsc{false}$\}$)
+\end{algo}
+
+\noindent Pořadí pravidel je podstatné: nejdřív se zkusí ukončit (pravda/spor), pak levná \emph{inference} bez větvení (čisté literály, jednotkové klauzule), a~teprve když nic z~toho nezabere, se \emph{větví} na zvolené proměnné s~možností backtrackingu. DPLL je \textbf{korektní a~úplný} algoritmus rozhodující splnitelnost CNF: vrátí \textsc{true} právě tehdy, má-li formule model (důkaz neuvádíme). Moderní SAT solvery DPLL rozšiřují o~analýzu komponent, heuristiky volby proměnné (stupňová, aktivitní), náhodné restarty, sledované literály a~\emph{učení klauzulí} z~konfliktů.
+
+\subsection{Řešený příklad SZZ: DPLL a perfektní párování}
+
+\begin{priklad}[SZZ jaro 2025 č.~27: DPLL a perfektní párování]
+\szzotazka{jaro 2025}{27}{DPLL a párování}\par
+\textbf{Zadání.}\par
+Nechť $G=(V,E)$ je neorientovaný graf s~$n$ vrcholy; \emph{perfektní párování} je $M\subseteq E$ tak, že každý vrchol je incidentní s~právě jednou hranou z~$M$. (1)~Navrhněte formuli ve výrokové logice splnitelnou právě tehdy, má-li $G$ perfektní párování, obecně v~CNF. (2)~Vysvětlete \emph{čistý literál} a~\emph{jednotkovou klauzuli} a~jejich roli v~DPLL. (3)~Napište formuli z~(1) pro cestu na čtyřech vrcholech $a,b,c,d$ a~demonstrujte na ní obě heuristiky.
+
+\medskip
+\textbf{Řešení.}
+
+\textbf{(1) Kódování do CNF.} Pro každou hranu $e\in E$ zavedeme proměnnou $m_e$ s~významem „hrana $e$ je v~párování``. Pro každý vrchol $u$ s~incidentními hranami $e_1,\dots,e_k$ vyjádříme podmínku „právě jedna``:
+\begin{itemize}
+  \item \emph{aspoň jedna} (at-least-one): $m_{e_1}\vee m_{e_2}\vee\cdots\vee m_{e_k}$ -- jedna klauzule;
+  \item \emph{nejvýš jedna} (at-most-one): pro každou dvojici různých incidentních hran $e_i\neq e_j$ klauzule $\neg m_{e_i}\vee\neg m_{e_j}$ -- tedy $\binom{k}{2}$ klauzulí.
+\end{itemize}
+Konjunkce všech těchto klauzulí přes všechny vrcholy je hledaná CNF: její model přesně odpovídá výběru hran, kde každý vrchol pokrývá právě jedna -- tedy perfektnímu párování. (Rozklad „právě jedna $=$ aspoň jedna $\wedge$ nejvýš jedna`` je standardní obrat při kódování úloh do SAT.)
+
+\textbf{(2) Čistý literál a~jednotková klauzule.}
+\begin{itemize}
+  \item \emph{Jednotková klauzule} obsahuje (po dosazení dosavadního modelu) jediný literál; ten musí být pravdivý, jinak je klauzule nesplněná. DPLL proto danou proměnnou ihned vynutí (jednotková propagace) bez větvení.
+  \item \emph{Čistý literál} je proměnná, jejíž všechny výskyty v~dosud nesplněných klauzulích mají stejné znaménko. Nastavíme ji tak, aby tyto literály byly pravdivé; nemůže to nikde uškodit, takže opět bez větvení.
+\end{itemize}
+Obě pravidla nahrazují slepé větvení \emph{vynucenou} dedukcí, čímž drasticky ořežou strom prohledávání.
+
+\textbf{(3) Cesta $a\!-\!b\!-\!c\!-\!d$.} Hrany jsou $ab$, $bc$, $cd$; proměnné $m_{ab},m_{bc},m_{cd}$. Incidence: $a$ jen s~$ab$; $b$ s~$ab,bc$; $c$ s~$bc,cd$; $d$ jen s~$cd$. Klauzule po vrcholech:
+\[
+\underbrace{m_{ab}}_{a}\ \wedge\ \underbrace{(m_{ab}\vee m_{bc})\wedge(\neg m_{ab}\vee\neg m_{bc})}_{b}\ \wedge\ \underbrace{(m_{bc}\vee m_{cd})\wedge(\neg m_{bc}\vee\neg m_{cd})}_{c}\ \wedge\ \underbrace{m_{cd}}_{d}.
+\]
+Vrcholy $a$ a~$d$ mají jen jednu incidentní hranu, takže jejich „aspoň jedna`` jsou rovnou \emph{jednotkové klauzule} $m_{ab}$ a~$m_{cd}$. Běh DPLL:
+\begin{enumerate}
+  \item Jednotková klauzule $m_{ab}$ $\Rightarrow$ $\boxed{m_{ab}=\textsc{true}}$. Klauzule „nejvýš jedna`` u~$b$, tj.\ $\neg m_{ab}\vee\neg m_{bc}$, se redukuje na jednotkovou $\neg m_{bc}$.
+  \item Jednotková klauzule $m_{cd}$ $\Rightarrow$ $\boxed{m_{cd}=\textsc{true}}$. Klauzule „nejvýš jedna`` u~$c$, tj.\ $\neg m_{bc}\vee\neg m_{cd}$, se rovněž redukuje na $\neg m_{bc}$.
+  \item Jednotková klauzule $\neg m_{bc}$ $\Rightarrow$ $\boxed{m_{bc}=\textsc{false}}$. Zbylé klauzule (např.\ $m_{bc}\vee m_{cd}$) jsou už splněné díky $m_{cd}$.
+\end{enumerate}
+Samotná \emph{jednotková propagace} tedy bez jediného větvení najde model $m_{ab}=m_{cd}=\textsc{true}$, $m_{bc}=\textsc{false}$, tj.\ párování $\boxed{M=\{ab,cd\}}$, které je opravdu perfektní (pokrývá všechny čtyři vrcholy). Lze i~poznamenat, že $m_{bc}$ je po fixaci $m_{ab},m_{cd}$ \emph{čistý literál} (zbude jen jeho negativní výskyt), takže by se na \textsc{false} nastavila i~tímto pravidlem. (Numericky ověřeno: jediný model formule odpovídá párování $\{ab,cd\}$.)
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0]
+  \node[uzel] (a) at (0,0) {$a$};
+  \node[uzel] (b) at (2.4,0) {$b$};
+  \node[uzel] (c) at (4.8,0) {$c$};
+  \node[uzel] (d) at (7.2,0) {$d$};
+  \draw[hrana,green!50!black,line width=1.3pt] (a)--(b) node[midway,above,font=\small] {$m_{ab}=\top$};
+  \draw[hrana,red!60!black,dashed] (b)--(c) node[midway,above,font=\small] {$m_{bc}=\bot$};
+  \draw[hrana,green!50!black,line width=1.3pt] (c)--(d) node[midway,above,font=\small] {$m_{cd}=\top$};
+\end{tikzpicture}
+\obrpopis{Cesta $a\!-\!b\!-\!c\!-\!d$. Vrcholy $a$ a~$d$ mají stupeň $1$, takže $m_{ab}$ a~$m_{cd}$ jsou jednotkové klauzule a~vynutí se na $\top$ (zelené, tlusté hrany v~párování); klauzule „nejvýš jedna`` u~$b$ a~$c$ pak vynutí $m_{bc}=\bot$ (červená přerušovaná, mimo párování). Perfektní párování $\{ab,cd\}$ vznikne samotnou jednotkovou propagací.}
+\end{center}
+\end{priklad}
+
+\noindent Originál zadání a~oficiální (stručnější) náčrt řešení této otázky jsou ve složce \texttt{priklady/}.
+
+\begin{priklad}[SZZ podzim 2022 č.~17: Barvení grafu jako SAT a DPLL]
+\szzotazka{podzim 2022}{17}{Barvení grafu, DPLL}\par
+\textbf{Zadání.}\par
+Nechť $G=(V,E)$ je neorientovaný graf s~$N$ vrcholy. (1)~Definujte konjunktivní normální formu (CNF) formule výrokové logiky. (2)~Navrhněte formuli, která je splnitelná, právě když je $G$ obarvitelný $k$ barvami; popište ji obecně v~CNF pro libovolný graf a~libovolné $k>0$. (3)~Napište formuli pro úplný graf $K_3$ a~$k=3$ a~demonstrujte na ní algoritmus DPLL.
+
+\medskip
+\textbf{Řešení.}
+
+\textbf{(1) CNF.} Formule je v~\emph{konjunktivní normální formě}, je-li to konjunkce klauzulí, kde každá klauzule je disjunkce literálů a~literál je výroková proměnná nebo její negace.
+
+\textbf{(2) Kódování obarvitelnosti.} Zavedeme proměnné $x_{v,c}$ pro $v\in V$, $c\in\{1,\dots,k\}$ s~významem „vrchol $v$ má barvu $c$``. Klauzule:
+\begin{itemize}
+  \item \emph{Pokrývací} (každý vrchol aspoň jednu barvu): pro každý vrchol $v$ klauzule $(x_{v,1}\vee\cdots\vee x_{v,k})$.
+  \item \emph{Různosti} (sousedé různou barvu): pro každou hranu $\{u,v\}\in E$ a~každou barvu $c$ klauzule $(\neg x_{u,c}\vee\neg x_{v,c})$.
+\end{itemize}
+Konjunkce všech těchto klauzulí je v~CNF a~je splnitelná právě tehdy, je-li $G$ obarvitelný $k$ barvami. Volitelnou podmínku „nejvýše jedna barva na vrchol`` ($\neg x_{v,c}\vee\neg x_{v,c'}$ pro $c\neq c'$) přidávat netřeba: dostane-li vrchol víc barev, stačí jednu ponechat.
+
+\textbf{(3) Formule pro $K_3$, $k=3$ a~běh DPLL.} $K_3$ má vrcholy $1,2,3$ a~hrany $\{1,2\},\{1,3\},\{2,3\}$; pro $k=3$ máme $9$ proměnných $x_{v,c}$. Pokrývací klauzule:
+\[ (x_{1,1}\vee x_{1,2}\vee x_{1,3}),\ (x_{2,1}\vee x_{2,2}\vee x_{2,3}),\ (x_{3,1}\vee x_{3,2}\vee x_{3,3}), \]
+a~pro každou hranu a~barvu klauzule různosti, např.\ pro $\{1,2\}$: $(\neg x_{1,1}\vee\neg x_{2,1}),(\neg x_{1,2}\vee\neg x_{2,2}),(\neg x_{1,3}\vee\neg x_{2,3})$, obdobně pro $\{1,3\},\{2,3\}$.
+
+\textbf{Běh DPLL.} Rozhodneme $x_{1,1}=\textsc{true}$. Jednotková propagace přes klauzule různosti $\neg x_{1,1}\vee\neg x_{2,1}$ a~$\neg x_{1,1}\vee\neg x_{3,1}$ vynutí $x_{2,1}=x_{3,1}=\textsc{false}$. Rozhodneme $x_{2,2}=\textsc{true}$; propagace vynutí $x_{3,2}=\textsc{false}$ (přes hranu $\{2,3\}$). Vrcholu~$3$ pak v~jeho pokrývací klauzuli po eliminaci $x_{3,1},x_{3,2}$ zbude jediný literál $x_{3,3}$ (jednotková klauzule), takže $\boxed{x_{3,3}=\textsc{true}}$. Splňující ohodnocení $x_{1,1},x_{2,2},x_{3,3}=\textsc{true}$ (ostatní $\textsc{false}$) odpovídá obarvení vrcholů $1,2,3$ barvami $1,2,3$. Roli hraje hlavně jednotková klauzule (vynucené dosazení); backtracking při tomto pořadí rozhodnutí není potřeba.
+\end{priklad}
+
+\noindent Originál zadání této otázky je ve složce \texttt{priklady/} (v~PDF bez oficiálního náčrtu řešení; náčrt tam je doplněný).
+
+\subsection{Rezoluce}
+
+Druhým přístupem (vedle hledání modelu) je \emph{symbolické dokazování}: z~klauzulí $KB\wedge\neg\alpha$ odvozovat nové klauzule, dokud nevznikne spor. Stojí na jediném inferenčním pravidle.
+
+\begin{definice}[Rezoluční pravidlo]
+Mají-li dvě klauzule \emph{komplementární} dvojici literálů ($P$ v~jedné, $\neg P$ v~druhé), lze je \emph{rezolvovat} na novou klauzuli (rezolventu), která obsahuje všechny ostatní literály obou klauzulí (bez $P$ a~$\neg P$):
+\[
+\frac{(\ell_1\vee\cdots\vee \ell_k)\qquad (m_1\vee\cdots\vee m_n)}{\ell_1\vee\cdots\vee\ell_{i-1}\vee\ell_{i+1}\vee\cdots\vee\ell_k\ \vee\ m_1\vee\cdots\vee m_{j-1}\vee m_{j+1}\vee\cdots\vee m_n},
+\]
+kde $\ell_i$ a~$m_j$ jsou komplementární. Rezolventa se přidá ke~$KB$ pro další rezolvování. \emph{Prázdná klauzule} $\bot$ (prázdná disjunkce, vždy nepravdivá) značí spor.
+\end{definice}
+
+\begin{algo}[Rezoluce -- rozhodnutí $KB\models\alpha$]
+\ttfamily\small
+PL-RESOLUTION(KB, $\alpha$):\\
+\hspace*{1.5em}clauses $\leftarrow$ klauzule CNF formule $KB\wedge\neg\alpha$ \cmt{důsledek $=$ nesplnitelnost}\\
+\hspace*{1.5em}new $\leftarrow$ \{\,\}\\
+\hspace*{1.5em}\textbf{while} \textsc{true}:\\
+\hspace*{3em}\textbf{for} každou dvojici klauzulí $C_i, C_j$ z~clauses:\\
+\hspace*{4.5em}resolventy $\leftarrow$ PL-RESOLVE($C_i, C_j$) \cmt{všechny rezolventy dvojice}\\
+\hspace*{4.5em}\textbf{if} resolventy obsahují $\bot$: \textbf{return} \textsc{true} \cmt{spor $\Rightarrow KB\models\alpha$}\\
+\hspace*{4.5em}new $\leftarrow$ new $\cup$ resolventy\\
+\hspace*{3em}\textbf{if} new $\subseteq$ clauses: \textbf{return} \textsc{false} \cmt{po všech dvojicích nic nového: pevný bod, $KB\not\models\alpha$}\\
+\hspace*{3em}clauses $\leftarrow$ clauses $\cup$ new
+\end{algo}
+
+\noindent Algoritmus produkuje všechny rezolventy, dokud (a)~nevyrobí prázdnou klauzuli -- pak je $KB\wedge\neg\alpha$ nesplnitelná, tedy $KB\models\alpha$ -- nebo (b)~nedosáhne \emph{pevného bodu} (žádná nová klauzule), pak je $KB\wedge\neg\alpha$ splnitelná a~$KB\not\models\alpha$. Výroková rezoluce je \textbf{korektní a~úplná} (vyvracecí úplnost: je-li $KB\wedge\neg\alpha$ nesplnitelná, rezoluce $\bot$ odvodí; bez důkazu).
+
+\begin{priklad}[Rezoluční vyvrácení]
+Ukážeme, že $KB=\{A\vee B,\ \neg A\vee C,\ \neg B,\ \neg C\}$ je nesplnitelná. Rezolvujeme komplementární literály:
+\[
+(A\vee B),\ (\neg B)\ \Rightarrow\ A;\qquad A,\ (\neg A\vee C)\ \Rightarrow\ C;\qquad C,\ (\neg C)\ \Rightarrow\ \bot.
+\]
+Odvození prázdné klauzule dokazuje nesplnitelnost. Ekvivalentně: pro $KB'=\{A\vee B,\ \neg A\vee C,\ \neg B\}$ a~$\alpha=C$ je $KB'\wedge\neg\alpha$ právě tato množina klauzulí, takže $KB'\models C$. Ověřeno i~vyčíslením: $KB$ nemá žádný model.
+\end{priklad}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0,
+   kl/.style={draw,rounded corners=2pt,fill=blue!6,thick,inner sep=3pt,font=\small},
+   res/.style={draw,rounded corners=2pt,fill=teal!8,thick,inner sep=3pt,font=\small}]
+  \node[kl] (c1) at (0,4)   {$A\vee B$};
+  \node[kl] (c2) at (3,4)   {$\neg B$};
+  \node[kl] (c3) at (6,4)   {$\neg A\vee C$};
+  \node[kl] (c4) at (9,4)   {$\neg C$};
+  \node[res] (r1) at (1.5,2.5) {$A$};
+  \node[res] (r2) at (4,1.2)   {$C$};
+  \node[res] (r3) at (6.5,0)   {$\bot$};
+  \draw[sipp] (c1) -- (r1);
+  \draw[sipp] (c2) -- (r1);
+  \draw[sipp] (r1) -- (r2);
+  \draw[sipp] (c3) -- (r2);
+  \draw[sipp] (r2) -- (r3);
+  \draw[sipp] (c4) -- (r3);
+\end{tikzpicture}
+\obrpopis{Rezoluční vyvrácení (refutace) pro $KB=\{A\vee B,\ \neg A\vee C,\ \neg B,\ \neg C\}$. Modré jsou vstupní klauzule, zelené rezolventy. Komplementární literály se v~každém kroku „vyruší``: $B/\neg B$, pak $A/\neg A$, nakonec $C/\neg C$ dá prázdnou klauzuli~$\bot$. Tím je $KB$ nesplnitelná.}
+\end{center}
+
+\subsection{Hornovy klauzule, dopředné a zpětné řetězení}
+
+V~praxi mají znalostní báze často speciální tvar, na němž jde uvažovat \emph{lineárně rychle}.
+
+\begin{definice}[Hornova a definitní klauzule]
+\textbf{Hornova klauzule} je disjunkce literálů, z~nichž \emph{nejvýš jeden} je pozitivní. \textbf{Definitní klauzule} má \emph{právě jeden} pozitivní literál. Definitní klauzuli $\neg P_1\vee\cdots\vee\neg P_k\vee Q$ lze ekvivalentně psát jako implikaci (pravidlo)
+\[ P_1\wedge\cdots\wedge P_k\ \Rightarrow\ Q, \]
+kde tělo (premisa) je konjunkce proměnných a~hlava (závěr) je jediná proměnná. \emph{Fakt} je definitní klauzule s~prázdným tělem (samotné $Q$). Příklad Hornovy báze: $C\wedge(B\Rightarrow A)\wedge(C\wedge D\Rightarrow B)$.
+\end{definice}
+
+\begin{intuice}
+Na Hornových klauzulích lze odvozování provést v~\emph{lineárním} čase vzhledem k~velikosti $KB$ -- bez exponenciálního prohledávání. Odpovídají pravidlům „když premisy, pak závěr`` (logické jádro Prologu bez proměnných, expertních systémů, deduktivních databází). Dotaz „plyne výroková proměnná $q$ ze~$KB$?“ se řeší dvěma duálními algoritmy, oba korektní a~úplné pro Hornovy báze.
+\end{intuice}
+
+\begin{algo}[Dopředné řetězení (forward chaining)]
+\ttfamily\small
+PL-FC-ENTAILS?(KB, q):\\
+\hspace*{1.5em}count[c] $\leftarrow$ počet proměnných v~premise klauzule $c$ \cmt{pro každé pravidlo}\\
+\hspace*{1.5em}inferred[s] $\leftarrow$ \textsc{false} pro všechny proměnné $s$\\
+\hspace*{1.5em}queue $\leftarrow$ proměnné známé jako pravdivé v~KB \cmt{fakta}\\
+\hspace*{1.5em}\textbf{while} queue $\neq\emptyset$:\\
+\hspace*{3em}$p\leftarrow$ \textsc{Pop}(queue)\\
+\hspace*{3em}\textbf{if} $p=q$: \textbf{return} \textsc{true} \cmt{dotaz dokázán}\\
+\hspace*{3em}\textbf{if} inferred[$p$] $=$ \textsc{false}:\\
+\hspace*{4.5em}inferred[$p$] $\leftarrow$ \textsc{true}\\
+\hspace*{4.5em}\textbf{for} každé pravidlo $c$, kde $p$ je v~premise:\\
+\hspace*{6em}count[c] $\leftarrow$ count[c] $-\,1$ \cmt{premisa splněna}\\
+\hspace*{6em}\textbf{if} count[c] $=0$: přidej $c$.\textsc{Závěr} do queue \cmt{nový fakt}\\
+\hspace*{1.5em}\textbf{return} \textsc{false}
+\end{algo}
+
+\noindent \textbf{Dopředné řetězení} jde \emph{od faktů k~závěrům} (\emph{řízeno daty}). Pro každé pravidlo si drží počet dosud neověřených premis; jakmile klesne na nulu, hlava pravidla se stává novým faktem a~přidá se na agendu. Odvodí postupně \emph{všechny} důsledky, dokud nedojdou nebo dokud nedokáže dotaz. \textbf{Zpětné řetězení} (backward chaining) jde naopak \emph{od dotazu k~faktům} (\emph{řízeno cílem}): dotaz $q$ rozloží přes pravidlo s~hlavou $q$ na pod-dotazy (jeho premisy) a~ty rekurzivně dokazuje, dokud nenarazí na fakta. Hodí se, když nás zajímá jediný dotaz -- nemusí odvodit celou bázi, jen relevantní podstrom. Obě metody jsou speciálním případem rezoluce (každý krok je modus ponens). Dopředné řetězení běží v~lineárním čase vzhledem k~velikosti $KB$, zpětné bývá ještě levnější, protože se dotkne jen relevantních pravidel.
+
+\begin{priklad}[Dopředné a zpětné řetězení na Hornově bázi]
+Mějme fakta $A$, $B$ a~pravidla
+\[ (A\wedge B\Rightarrow L),\quad (B\wedge L\Rightarrow M),\quad (L\wedge M\Rightarrow P),\quad (A\wedge P\Rightarrow L),\quad (P\Rightarrow Q). \]
+Dotaz: plyne $Q$?
+
+\textbf{Dopředné řetězení} (od faktů): ze známých faktů $A,B$ vyhoví pravidlo $A\wedge B\Rightarrow L$, takže $L$. Pak $B\wedge L\Rightarrow M$ dá $M$; $L\wedge M\Rightarrow P$ dá $P$; nakonec $P\Rightarrow Q$ dá $\boxed{Q}$. Dotaz tedy z~$KB$ \emph{plyne}. (Ověřeno simulací: odvozená báze je $\{A,B,L,M,P,Q\}$.)
+
+\textbf{Zpětné řetězení} (od dotazu): cíl $Q$ rozložíme pravidlem $P\Rightarrow Q$ na pod-cíl $P$; ten pravidlem $L\wedge M\Rightarrow P$ na pod-cíle $L$ a~$M$. Cíl $L$ dokáže pravidlo $A\wedge B\Rightarrow L$ ($A,B$ jsou fakta, splněno); cíl $M$ pravidlo $B\wedge L\Rightarrow M$ ($B$ fakt, $L$ už dokázáno). Tím je $P$, a~tedy i~$\boxed{Q}$, dokázáno. Všimněte si, že zpětné řetězení se dotklo jen \emph{relevantních} pravidel (pravidlo $A\wedge P\Rightarrow L$ vůbec nevyužilo), kdežto dopředné odvodilo celou bázi.
+\end{priklad}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0,
+   fakt/.style={circle,draw=green!50!black,fill=green!12,thick,minimum size=8mm,inner sep=1pt,font=\small},
+   odv/.style={circle,draw=blue!55!black,fill=blue!8,thick,minimum size=8mm,inner sep=1pt,font=\small},
+   andn/.style={draw,rounded corners=1pt,fill=orange!12,thick,inner sep=2pt,font=\scriptsize}]
+  \node[fakt] (A) at (0,3) {$A$};
+  \node[fakt] (B) at (0,1) {$B$};
+  \node[odv] (L) at (3,2.4) {$L$};
+  \node[odv] (M) at (5.2,1) {$M$};
+  \node[odv] (P) at (7.4,2) {$P$};
+  \node[odv] (Q) at (9.6,2) {$Q$};
+  \node[andn] (r1) at (1.6,2.4) {$\wedge$};
+  \node[andn] (r2) at (3.9,1) {$\wedge$};
+  \node[andn] (r3) at (6.2,2) {$\wedge$};
+  \draw[sipp] (A) -- (r1);
+  \draw[sipp] (B) -- (r1);
+  \draw[sipp] (r1) -- (L);
+  \draw[sipp] (B) to[bend right=12] (r2);
+  \draw[sipp] (L) -- (r2);
+  \draw[sipp] (r2) -- (M);
+  \draw[sipp] (L) to[bend left=18] (r3);
+  \draw[sipp] (M) -- (r3);
+  \draw[sipp] (r3) -- (P);
+  \draw[sipp] (P) -- (Q);
+\end{tikzpicture}
+\obrpopis{Hornova báze jako AND-OR graf. Zelené vrcholy jsou fakta ($A$, $B$), modré odvozené proměnné. Oranžový uzel $\wedge$ je pravidlo: spojí všechny premisy a~ukáže na hlavu. \emph{Dopředné} řetězení postupuje zleva doprava (od faktů $A,B$ přes $L,M,P$ k~$Q$); \emph{zpětné} řetězení jde zprava doleva (rozkládá dotaz $Q$ přes $P\Rightarrow Q$ na pod-dotaz $P$, ten přes $L\wedge M\Rightarrow P$ na $L$ a~$M$, atd., až ke~faktům). Pro tuto bázi má každá hlava jediné pravidlo, takže jsou potřeba jen AND-uzly; OR-uzel by vznikl, kdyby tutéž proměnnou odvozovalo víc pravidel.}
+\end{center}
+
+\begin{poznamka}[Kdy co použít]
+\emph{DPLL} rozhoduje splnitelnost obecné CNF (najde model, nebo prohlásí nesplnitelnost) -- vhodné, když chceme \emph{ohodnocení}. \emph{Rezoluce} dokazuje důsledek $KB\models\alpha$ vyvrácením $KB\wedge\neg\alpha$ -- úplná, ale obecně může vyrábět mnoho klauzulí. \emph{Řetězení} je nejrychlejší (lineární), ale jen pro \emph{Hornovy} báze; dopředné, jdeme-li za \emph{všemi} důsledky, zpětné, jdeme-li za \emph{jedním} dotazem. Všechny tři jsou korektní; DPLL a~rezoluce úplné pro obecnou výrokovou logiku, řetězení úplné pro Hornovy báze.
+\end{poznamka}

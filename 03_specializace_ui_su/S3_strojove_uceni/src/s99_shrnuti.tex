@@ -1,0 +1,95 @@
+\begin{poznamka}
+\textbf{Klíčové vlastnosti a~vzorce (přehled).} Stručný výčet klíčových definic, vět a vzorců okruhu S3. Anglická terminologie tam, kde čeština není běžná. Zkratky: TP/TN/FP/FN~= true/false positive/negative; $D$~= počet příznaků; $N$~= počet příkladů; $\mathbf{w}$~= váhy; $\alpha$~= krok SGD; $\lambda$~= regularizační síla; $\hat y$~= predikce modelu.
+
+\smallskip
+\emph{Evaluace klasifikátoru.}
+\begin{itemize}
+  \item \textbf{Matice záměn:} řádky $=$ skutečná třída, sloupce $=$ predikovaná; TP (správně pozitivní), TN (správně negativní), FP (falešně pozitivní), FN (falešně negativní).
+  \item $\mathrm{accuracy}=\dfrac{TP+TN}{TP+TN+FP+FN}$. Pro nevyvážené třídy \textbf{nevhodná}; používej precision/recall/F1 nebo AUC.
+  \item $\mathrm{precision}=\dfrac{TP}{TP+FP}$;\quad $\mathrm{recall}=\mathrm{sensitivity}=\mathrm{TPR}=\dfrac{TP}{TP+FN}$;\quad $F_1=\dfrac{2\,TP}{2\,TP+FP+FN}=\dfrac{2\cdot\text{prec}\cdot\text{recall}}{\text{prec}+\text{recall}}$.
+  \item $\mathrm{specificity}=\mathrm{TNR}=\dfrac{TN}{TN+FP}$;\quad $\mathrm{FPR}=1-\mathrm{specificity}$. \textbf{ROC:} TPR vs.\ FPR při plynulém posouvání prahu; \textbf{AUC}~= plocha pod ROC ($0{,}5$~= náhoda, $1{,}0$~= perfektní).
+  \item \textbf{Regresní metriky:} $\mathrm{MSE}=\tfrac1N\sum_i(y_i-t_i)^2$; RMSE $=\sqrt{\mathrm{MSE}}$; MAE $=\tfrac1N\sum_i|y_i-t_i|$.
+  \item \textbf{Křížová validace} ($k$-fold): data dělí na $k$ foldů; každý slouží jednou jako validační, ostatní jako trénovací; průměr $k$ chyb $=$ odhad generalizační chyby. Leave-one-out: $k=N$.
+  \item \textbf{MLE:} $\mathbf{w}_\mathrm{MLE}=\argmin_{\mathbf{w}}\sum_i\bigl(-\log p(t_i\mid\mathbf{x}_i;\mathbf{w})\bigr)$; pro normální šum $\Rightarrow$ MSE, pro binární klasifikaci $\Rightarrow$ cross-entropy.
+  \item \textbf{Naivní Bayes:} $\hat c=\argmax_c P(c)\prod_j P(x_j\mid c)$; předpoklad podmíněné nezávislosti příznaků dané třídou; $P(c)$ a~$P(x_j\mid c)$ odhadujeme z~dat četnostmi.
+\end{itemize}
+
+\smallskip
+\emph{Overfitting, regularizace a~prokletí dimenzionality.}
+\begin{itemize}
+  \item \textbf{Overfitting:} model se naučí šum; trénovací chyba malá, generalizační velká. \textbf{Underfitting:} model slabý; obě chyby velké. \emph{U-křivka:} generalizační chyba má minimum pro optimální kapacitu.
+  \item \textbf{L2 regularizace} (ridge, Tikhonov): $E(\mathbf{w})=E_0(\mathbf{w})+\frac\lambda2\|\mathbf{w}\|^2$; penalizuje velké váhy, dává hladké řešení; analyticky pro lin.\ regresi: $\mathbf{w}=(\mathbf{X}^\top\mathbf{X}+\lambda\mathbf{I})^{-1}\mathbf{X}^\top\mathbf{t}$.
+  \item \textbf{L1 regularizace} (LASSO): $E(\mathbf{w})=E_0(\mathbf{w})+\lambda\|\mathbf{w}\|_1$; tlačí váhy přesně na nulu~$\Rightarrow$ řídká řešení (feature selection). Geometricky: L1 koule (v~2D kosočtverec) má rohy na osách, L2 koule je hladká~-- proto L1 řešení typicky padne do rohu (nulová souřadnice).
+  \item \textbf{Early stopping:} sleduj validační chybu; zastav trénování ve chvíli, kdy začne na validaci růst (model se začíná přeučovat). Hyperparametr je počet trpělivostních epoch (\textit{patience}).
+  \item \textbf{Prokletí dimenzionality:} objem prostoru roste exponenciálně s~$D$ -- pokrýt $[0,1]^D$ mřížkou s~krokem $r$ vyžaduje $N\propto r^{-D}$ příkladů; objem se koncentruje u~povrchu; vzdálenosti ztrácejí kontrast ($k$-NN degraduje); nutná regularizace nebo redukce dimenze.
+\end{itemize}
+
+\smallskip
+\emph{$k$-NN ($k$ nejbližších sousedů).}
+\begin{itemize}
+  \item \textbf{Líný/neparametrický:} trénování $=$ uložení dat; inference $=$ najdi $k$ nejbližších sousedů. \emph{Klasifikace} $=$ nejčastější třída, \emph{regrese} $=$ průměr cílů $k$ sousedů.
+  \item Metrika: $L^p$ ($L^1$ manhattanská, $L^2$ euklidovská). Nutná \textbf{normalizace příznaků} (různé škály deformují vzdálenosti). Volba $k$ křížovou validací: malé $k$ $\Rightarrow$ overfitting, velké $k$ $\Rightarrow$ underfitting.
+\end{itemize}
+
+\smallskip
+\emph{Lineární regrese.}
+\begin{itemize}
+  \item Model: $y(\mathbf{x})=\mathbf{w}^\top\mathbf{x}+b$; minimalizujeme $\mathrm{MSE}=\tfrac1N\|\mathbf{X}\mathbf{w}-\mathbf{t}\|^2$ (ekvivalentně součet čtverců).
+  \item \textbf{Normální rovnice} (analytické řešení): $\mathbf{w}=(\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{t}$; s~L2: $(\mathbf{X}^\top\mathbf{X}+\lambda\mathbf{I})^{-1}\mathbf{X}^\top\mathbf{t}$. Přesné, ale pomalé ($\mathcal O(ND^2+D^3)$), neumí early stopping.
+  \item \textbf{SGD krok} (jeden příklad $(\mathbf{x},t)$): $\mathbf{w}\leftarrow\mathbf{w}-\alpha\bigl[(\mathbf{w}^\top\mathbf{x}-t)\,\mathbf{x}+\lambda\mathbf{w}\bigr]$; bias bez L2: $b\leftarrow b-\alpha(\hat y-t)$. Škálovatelné, umí early stopping.
+\end{itemize}
+
+\smallskip
+\emph{Logistická regrese.}
+\begin{itemize}
+  \item \textbf{Binární:} $\hat y=\sigma(\mathbf{w}^\top\mathbf{x}+b)=P(C_1\mid\mathbf{x})$; $\sigma(z)=\frac{1}{1+e^{-z}}\in(0,1)$; prahování na $0{,}5$; $P(C_0)=1-\hat y$.
+  \item \textbf{Cross-entropy ztráta} (NLL Bernoulliho): $E=-\sum_i\bigl[t_i\log\hat y_i+(1-t_i)\log(1-\hat y_i)\bigr]$.
+  \item \textbf{Gradient/SGD krok:} $\nabla_{\mathbf{w}}E_i=(\hat y_i-t_i)\,\mathbf{x}_i$; $\mathbf{w}\leftarrow\mathbf{w}-\alpha(\hat y-t)\mathbf{x}$ (tvar identický s~lin.\ regresí, liší se jen $\hat y$).
+  \item \textbf{Multiclass (softmax):} $K$ tříd, $K$ vektorů vah $\mathbf{w}_k$; $p_k=\dfrac{e^{\mathbf{w}_k^\top\mathbf{x}}}{\sum_j e^{\mathbf{w}_j^\top\mathbf{x}}}$; ztráta~= categorical cross-entropy $-\sum_i\log p_{t_i}(\mathbf{x}_i)$.
+\end{itemize}
+
+\smallskip
+\emph{Rozhodovací stromy.}
+\begin{itemize}
+  \item \textbf{Stavba:} hladově shora dolů (greedy, rozděl a~panuj); v~každém uzlu vyber řez $(j^*,v^*)=\argmin_{j,v}\bigl[c(\mathcal T_L)+c(\mathcal T_R)\bigr]$; rekurze do zastavovací podmínky (max.\ hloubka, min.\ příkladů). Predikce listu: nejčastější třída (klas.) nebo průměr cílů (reg.).
+  \item \textbf{Entropie:} $H(S)=-\sum_k p_k\log_2 p_k$ (bity; $0\log0:=0$; čistý uzel $\Rightarrow H=0$).
+  \item \textbf{Informační zisk:} $\mathrm{IG}=H(\mathcal T)-\dfrac{|\mathcal T_L|}{|\mathcal T|}H(\mathcal T_L)-\dfrac{|\mathcal T_R|}{|\mathcal T|}H(\mathcal T_R)$; volíme řez s~maximálním $\mathrm{IG}$.
+  \item \textbf{Gini index:} $\mathrm{Gini}(S)=\sum_k p_k(1-p_k)=1-\sum_k p_k^2$; rychlejší výpočet, podobné výsledky jako entropie; pro regresní stromy používáme vážené MSE (rozptyl cílů v~uzlu).
+  \item \textbf{Prořezávání} (pruning): neomezený strom overfittuje. \emph{Post-pruning} (cost-complexity): $C_\alpha(T)=\text{chyba}(T)+\alpha\cdot|\text{listy}(T)|$; ladí se $\alpha$ na validaci. \emph{Pre-pruning:} max.\ hloubka, min.\ příkladů v~uzlu.
+\end{itemize}
+
+\smallskip
+\emph{SVM (metoda podpůrných vektorů).}
+\begin{itemize}
+  \item \textbf{Hard-margin} (lineárně separabilní): $\min_{\mathbf{w},b}\,\tfrac12\|\mathbf{w}\|^2$ za $t_i(\mathbf{w}^\top\mathbf{x}_i+b)\ge1$; cílové hodnoty $t_i\in\{-1,+1\}$; margin $=\tfrac{1}{\|\mathbf{w}\|}$, šíře pásu $=\tfrac{2}{\|\mathbf{w}\|}$. \textbf{Podpůrné vektory:} trénovací body na hranici pásu ($t_i\cdot y(\mathbf{x}_i)=1$).
+  \item \textbf{Soft-margin} (neseparabilní): $\min\,\tfrac12\|\mathbf{w}\|^2+C\sum_i\xi_i$ za $t_i(\mathbf{w}^\top\mathbf{x}_i+b)\ge1-\xi_i$, $\xi_i\ge0$. $C$~velké $\Rightarrow$ menší margin, méně klasifikačních chyb; $C$~malé $\Rightarrow$ větší margin, více chyb.
+  \item \textbf{Kernel trick:} nahraď $\mathbf{x}_i^\top\mathbf{x}_j$ jádrem $K(\mathbf{x}_i,\mathbf{x}_j)=\varphi(\mathbf{x}_i)^\top\varphi(\mathbf{x}_j)$ -- výpočet $K$ bez explicitní $\varphi$. \textbf{RBF:} $K(\mathbf{x},\mathbf{x}')=e^{-\gamma\|\mathbf{x}-\mathbf{x}'\|^2}$. \textbf{Polynomiální:} $(1+\mathbf{x}^\top\mathbf{x}')^d$.
+  \item \textbf{Multiclass:} one-vs-rest -- $K$ binárních SVM, predikce $=$ třída s~nejvyšším $y_k(\mathbf{x})$; one-vs-one -- $\binom{K}{2}$ SVM pro dvojice tříd, predikce hlasováním (\texttt{libsvm}).
+\end{itemize}
+
+\smallskip
+\emph{Kombinace více modelů (ensemble).}
+\begin{itemize}
+  \item \textbf{Bagging} (bootstrap aggregating): $M$ kopií modelu, každá na vlastním bootstrapovém vzorku ($N$ příkladů s~opakováním); predikce průměrem (reg.) nebo hlasováním (klas.). Snižuje \emph{rozptyl}; out-of-bag příklady ($\approx37\,\%$) $\Rightarrow$ zdarma validace.
+  \item \textbf{Boosting:} sekvenční -- každý model se zaměří na příklady, které předchozí chybovaly. \textbf{AdaBoost:} hlas slabého klasifikátoru $\alpha_m=\tfrac12\ln\dfrac{1-\varepsilon_m}{\varepsilon_m}$; špatně klasifikovaným příkladům zvýší váhy $w_i$; finální $\hat y=\sign\bigl(\sum_m\alpha_m h_m(\mathbf{x})\bigr)$.
+  \item \textbf{Random forest:} bagging rozhodovacích stromů + v~každém uzlu nejlepší řez z~náhodné podmnožiny příznaků ($\approx\!\sqrt{D}$, typicky u~klasifikace); stromy se nechávají přerůst; snižuje korelaci chyb stromů.
+  \item Ensemble zlepší pouze při \textbf{nekorelovaných chybách} modelů; jsou-li chyby totožné, kombinace nepomůže.
+\end{itemize}
+
+\smallskip
+\emph{Statistické testy.}
+\begin{itemize}
+  \item \textbf{Jednovýběrový t-test:} $H_0\colon\mu=\mu_0$; testová statistika $t=\dfrac{\bar X-\mu_0}{s/\sqrt{n}}$ ($s$ = výběrová směrodatná odchylka); pod $H_0$ platí $t\sim t_{n-1}$. Zamítáme $H_0$, padne-li $|t|$ do kritického oboru (tj.\ $|t|>t_{n-1,1-\alpha/2}$, nebo $p\text{-value}<\alpha$).
+  \item \textbf{Dvouvýběrový t-test:} $H_0\colon\mu_1=\mu_2$; při shodných rozptylech $t=\dfrac{\bar X-\bar Y}{s_p\sqrt{1/n_1+1/n_2}}$, df $= n_1+n_2-2$, kde $s_p^2=\frac{(n_1-1)s_1^2+(n_2-1)s_2^2}{n_1+n_2-2}$; \emph{Welchova} varianta (nestejné rozptyly): jiný jmenovatel a~df.
+  \item \textbf{$\chi^2$ test dobré shody:} $H_0$: pozorované četnosti odpovídají očekávaným; $\chi^2=\sum_{i=1}^k\dfrac{(O_i-E_i)^2}{E_i}$; pod $H_0$ platí $\chi^2\sim\chi^2_{k-1}$ ($k$ kategorií). Zamítáme, je-li $\chi^2>$ kritická hodnota (nebo $p<\alpha$).
+\end{itemize}
+
+\smallskip
+\emph{Učení bez učitele: shlukování a~redukce dimenze.}
+\begin{itemize}
+  \item \textbf{$k$-means} (Lloydův algoritmus): střídej \emph{přiřazení} (každý bod k~nejbližšímu centroidu) a~\emph{přepočet} (centroid~$=$ průměr shluku); kritérium $J=\sum_i\sum_k z_{i,k}\|\mathbf{x}_i-\mu_k\|^2$. Konverguje k~\emph{lokálnímu} minimu ($J$ v~žádném kroku neroste; konečně mnoho přiřazení $\Rightarrow$ zastaví se). Spouštět vícekrát, vzít nejmenší $J$.
+  \item \textbf{k-means++:} první střed náhodně; každý další s~pravděpodobností $\propto$ čtverci vzdálenosti od nejbližšího dosud zvoleného -- lepší inicializace, $\mathcal O(\log K)$ aproximace optima v~očekávání.
+  \item \textbf{Hierarchické shlukování} (aglomerativní, zdola nahoru): začni se $N$ singletony; opakovaně slučuj dvojici s~nejmenší vzdáleností; výsledkem je \textbf{dendrogram} -- vodorovný řez určuje počet shluků. Linkage: \emph{single} (min vzdálenost; riziko řetězení), \emph{complete} (max vzdálenost; kompaktní shluky), \emph{average}, \emph{Ward} (min nárůst vnitroshlukového rozptylu; výchozí ve \texttt{scikit-learn}).
+  \item \textbf{PCA} (analýza hlavních komponent): (1)~centruj data $\tilde{\mathbf{X}}=\mathbf{X}-\bar{\mathbf{x}}$; (2)~kovarianční matice $\mathbf{S}=\tfrac1N\tilde{\mathbf{X}}^\top\tilde{\mathbf{X}}$; (3)~vlastní vektory $\mathbf{v}_1,\dots,\mathbf{v}_D$ seřazené dle $\lambda_1\ge\dots\ge\lambda_D\ge0$ jsou hlavní komponenty; (4)~projekce: $\mathbf{z}_i=(\mathbf{v}_1^\top\tilde{\mathbf{x}}_i,\dots,\mathbf{v}_M^\top\tilde{\mathbf{x}}_i)\in\mathbb{R}^M$. Vlastní číslo $\lambda_k$~= rozptyl dat ve~směru $\mathbf{v}_k$; zachovaný podíl $=\dfrac{\sum_{k=1}^M\lambda_k}{\sum_{k=1}^D\lambda_k}$. PCA je bez učitele -- maximalizuje rozptyl, \emph{ne} oddělitelnost tříd; po projekci může accuracy $k$-NN klesnout.
+\end{itemize}
+\end{poznamka}

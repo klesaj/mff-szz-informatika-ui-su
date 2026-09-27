@@ -1,0 +1,108 @@
+Okruh S1 prochází hlavní paradigmata umělé inteligence. Společným motivem je \emph{racionální agent}, který se za různých předpokladů (deterministicky/stochasticky, plně/částečně pozorovatelně, jeden/více agentů) rozhoduje tak, aby maximalizoval užitek. Důraz je na \emph{aplikaci}: zformalizovat úlohu, popsat a~odsimulovat algoritmus, spočítat pravděpodobnost či užitek.
+
+\begin{poznamka}
+\textbf{Klíčové pojmy, algoritmy a vzorce (přehled k~SZZ).} Devět bloků odpovídá tematickým skupinám z požadavků. Zkratky: NV $=$ náhodná veličina, CWA $=$ uzavřený svět, MEU $=$ maximální očekávaný užitek, NE $=$ Nashovo ekvilibrium.
+
+\smallskip
+\emph{Prohledávání -- formulace, BFS/DFS/UCS, A${}^*$, heuristiky (řešené otázky: jaro 2024, léto 2022).}
+\begin{itemize}
+  \item Úloha $= (s_0,\,A(s),\,\textsc{Result}(s,a),\,\text{test cílovosti},\,c(s,a,s'))$; řešení $=$ posloupnost akcí; optimální $=$ min cena.
+  \item Strom (bez closed listu -- opakuje stavy) vs. graf (closed list -- každý stav rozvine nejvýš jednou).
+  \item BFS (FIFO, nejmělčí): úplné, optimální (cena neklesající s~hloubkou), čas i~paměť $O(b^d)$.
+  \item DFS (LIFO, nejhlubší): neúplné (strom), neoptimální; paměť $O(bm)$, čas $O(b^m)$.
+  \item Uniform-cost ($g$-min, Dijkstra): expanduje v~pořadí ceny $g(n)$; úplné a~optimální; test cíle \emph{při výběru} uzlu (ne při generování!), jinak hrozí neoptimalita.
+  \item A${}^*$: $f(n)=g(n)+h(n)$. \textbf{Přípustná} $h(n)\le h^*(n)$ $\Rightarrow$ optimalita ve stromovém prohledávání. \textbf{Konzistentní} (monotónní) $h(n)\le c(n,a,n')+h(n')$ $\Rightarrow$ optimalita v~grafovém; navíc $f$ podél cesty neklesá. Konzistentní $\Rightarrow$ přípustná.
+  \item Příklady heuristik pro 8-puzzle: počet špatně umístěných kostek $h_1$ a~Manhattanská vzdálenost $h_2$ (obě přípustné i~konzistentní). Dominance: $h_2\ge h_1$ všude $\Rightarrow$ A${}^*$ s~$h_2$ rozvine nejvýš tolik uzlů jako s~$h_1$.
+\end{itemize}
+
+\smallskip
+\emph{CSP -- backtracking, AC-3, MAC (řešené otázky: podzim 2023, jaro 2026, léto 2022).}
+\begin{itemize}
+  \item CSP $= (X,D,C)$: proměnné, domény (konečné), podmínky (relace -- výčet, nebo formule). Řešení $=$ úplné konzistentní ohodnocení. Splnitelnost CSP je NP-úplná.
+  \item Binární CSP: podmínky arity $\le 2$; zobrazujeme jako \emph{síť podmínek} (constraint network): vrcholy $=$ proměnné, hrany $=$ podmínky.
+  \item Hranová konzistence: pro každou hodnotu $x\in D_i$ existuje opora $y\in D_j$ splňující podmínku $(X_i,X_j)$. Hranová konzistence splnitelnost nezaručuje; hranová nekonzistence splnitelnost nevylučuje.
+  \item AC-3: fronta oblouků; po zúžení $D_i$ přidej zpět oblouky $(X_k,X_i)$; složitost $O(e\,d^3)$ ($e=$ počet podmínek, $d=$ max.\ doména).
+  \item Backtracking: DFS nad částečnými ohodnoceními + ověření podmínek vůči přiřazeným. Heuristiky výběru proměnné: MRV (min remaining values), degree (max podmínek). Pořadí hodnot: LCV (least constraining value).
+  \item Forward checking (FC): po přiřazení $X_i=v$ odstraň nekonzistentní hodnoty z~domén sousedních proměnných.
+  \item MAC (Maintaining Arc Consistency): po každém přiřazení spusť AC-3 -- silnější než FC, odhalí spor dříve.
+\end{itemize}
+
+\smallskip
+\emph{Logické uvažování -- CNF/DNF, DPLL, řetězení, rezoluce (řešené otázky: jaro 2025, podzim 2022).}
+\begin{itemize}
+  \item Základní převod: $KB\models\alpha \;\Leftrightarrow\; (KB\wedge\neg\alpha)$ nesplnitelná. Na něm stojí DPLL i~rezoluce.
+  \item CNF: konjunkce klauzulí (AND disjunkcí); DNF: disjunkce elementárních konjunkcí (OR konjunkcí). Každá formule je ekvivalentní CNF i~DNF (CNF může být exponenciálně větší).
+  \item DPLL: backtracking po proměnných $+$ dvě zkratky: (1) \emph{čistý literál} -- proměnná jen v~jedné polaritě $\to$ nastav ji tak, aby literál byl pravdivý; (2) \emph{jednotková klauzule} -- klauzule s~jediným neohodnoceným literálem $\to$ vynucená propagace. Tím se ořezávají větve bez explicitní enumerace.
+  \item Hornovské klauzule: $\le 1$ pozitivní literál. Dopředné řetězení jde od faktů k~závěrům (lineární čas); zpětné od dotazu k~faktům (AND-OR rozklad, dotkne se jen relevantních pravidel).
+  \item Rezoluce: pravidlo $(A\vee C)\wedge(\neg A\vee D)\vdash(C\vee D)$; pracuje na CNF; prázdná klauzule $\bot$ $=$ spor; korektní a~úplná pro vyvracení: $KB\models\alpha \Leftrightarrow KB\wedge\neg\alpha\vdash\bot$.
+\end{itemize}
+
+\smallskip
+\emph{Pravděpodobnostní uvažování -- Bayesovské sítě, exaktní i~aproximační inference (řešená otázka: léto 2024).}
+\begin{itemize}
+  \item Podmíněná pravděpodobnost: $P(a\mid b)=P(a\wedge b)/P(b)$; součinové pravidlo: $P(a\wedge b)=P(a\mid b)P(b)$.
+  \item Bayesovo pravidlo: $P(a\mid b)=P(b\mid a)\,P(a)/P(b)=\alpha\,P(b\mid a)\,P(a)$ (kauzální $\to$ diagnostický směr).
+  \item Marginalizace: $\mathbf{P}(Y\mid e)=\alpha\sum_{h}\mathbf{P}(Y,e,h)$ (vysčítej skrytá $H$, normalizuj $\alpha=1/P(e)$).
+  \item Podmíněná nezávislost $X\perp Y\mid Z$: $P(X\mid Y,Z)=P(X\mid Z)$; umožňuje faktorizovat sdruženou distribuci.
+  \item Bayesovská síť: orientovaný acyklický graf; uzly $=$ NV, hrany $=$ přímý vliv; CPT pro každý uzel $X_i$. Faktorizace: $P(x_1,\dots,x_n)=\prod_i P(x_i\mid\mathrm{pa}(X_i))$; plně reprezentuje sdruženou distribuci.
+  \item Exaktní inference: enumerace (sečti přes skrytá); eliminace proměnných (join faktorů + marginalizace; pořadí eliminace ovlivňuje složitost).
+  \item Aproximace: \emph{zamítací vzorkování} -- generuj svět dle apriori, zamítni pokud $\neg e$, odhadni frekv. \emph{Vážení věrohodností} -- nastav $e$, váha $=\prod_i P(e_i\mid\mathrm{pa}(E_i))$; neodmítá -- efektivnější.
+\end{itemize}
+
+\smallskip
+\emph{Reprezentace znalostí -- situační kalkulus, Markovské modely, HMM (řešená otázka: léto 2023).}
+\begin{itemize}
+  \item Situační kalkulus: situace $s_0$, $\textsc{Result}(s,a)$; fluenty $F(s)$ indexované situací; axiom použitelnosti $\Phi(s)\Rightarrow\mathit{Poss}(a,s)$.
+  \item Problém rámce: efektové axiomy neříkají, co se \emph{nezměnilo}. Řešení: \emph{successor-state axiom} -- 1 axiom na fluent: $F(\textsc{Result}(s,a))\Leftrightarrow(\text{akce }F\text{ nastavila})\vee(F(s)\wedge\text{akce }F\text{ nezrušila})$.
+  \item Markovův předpoklad: $P(X_t\mid X_{0:t-1})=P(X_t\mid X_{t-1})$; senzorový: $P(E_t\mid X_{0:t},E_{1:t-1})=P(E_t\mid X_t)$.
+  \item \textbf{Filtrace} $\mathbf{P}(X_t\mid e_{1:t})$: rekurze predikce $+$ update senzorem $+$ normalizace:
+    \[ \mathbf{P}(X_t\mid e_{1:t})=\alpha\,P(E_t{=}e_t\mid X_t)\sum_{x_{t-1}}P(X_t\mid X_{t-1}{=}x_{t-1})\,\mathbf{P}(X_{t-1}\mid e_{1:t-1}). \]
+  \item Predikce: $\mathbf{P}(X_{t+k}\mid e_{1:t})$ ($k>0$); vyhlazování: $\mathbf{P}(X_k\mid e_{1:t})$ ($k<t$) -- přesnější, využívá pozdější pozorování.
+  \item Viterbi: nejpravděpodobnější průchod (sekvence stavů); analogie s~filtrací, ale $\max$ místo $\sum$ při rekurzi.
+  \item HMM: diskrétní $X_t$, diskrétní $E_t$; maticová formulace -- přechodová matice $\mathbf{T}$, senzorová matice $\mathbf{O}_t$ (diagonální). DBN $=$ generalizace HMM na více navzájem závislých veličin.
+\end{itemize}
+
+\smallskip
+\emph{Automatické plánování -- operátor, progrese, regrese (řešená otázka: jaro 2023).}
+\begin{itemize}
+  \item Stav $=$ množina konkretizovaných atomů; CWA: atom neuvedený v~$s$ ve stavu $s$ neplatí.
+  \item Operátor $o=(\mathrm{name},\mathrm{precond},\mathrm{effects})$; použitelný v~$s$: $\mathrm{precond}^+\subseteq s$ a~$\mathrm{precond}^-\cap s=\emptyset$; efekt: $\gamma(s,o)=(s\setminus\mathrm{eff}^-)\cup\mathrm{eff}^+$.
+  \item Dopředné plánování (progrese): od $s_0$ aplikuj použitelné operátory; prohledávání v~konkrétních stavech.
+  \item Zpětné plánování (regrese): od cíle $g$; relevantní akce přispívá k~cíli ($g\cap\mathrm{effects}\neq\emptyset$) a~nic z~něj neruší ($g^-\cap\mathrm{eff}^+=\emptyset$, $g^+\cap\mathrm{eff}^-=\emptyset$); regresní množina $\gamma^{-1}(g,a)=(g\setminus\mathrm{effects})\cup\mathrm{precond}$; menší větvení, ale pracuje s~podmínkami, ne konkrétními stavy.
+  \item Relaxační heuristiky: ignoruj záporné efekty ($h^+$) -- přípustná, pomáhá informovat prohledávání.
+\end{itemize}
+
+\smallskip
+\emph{MDP a POMDP -- Bellmanova rovnice, iterace hodnot a strategií (řešená otázka: léto 2025).}
+\begin{itemize}
+  \item MDP $= (S, A(s), P(s'\mid s,a), R(s), \gamma)$; diskontovaný užitek $U([s_0,s_1,\ldots])=\sum_t\gamma^t R(s_t)\le R_{\max}/(1-\gamma)$.
+  \item \textbf{Bellmanova rovnice}: $U(s)=R(s)+\gamma\max_{a\in A(s)}\sum_{s'}P(s'\mid s,a)\,U(s')$ (charakterizuje optimální $U$).
+  \item Iterace hodnot: inicializuj $U_0$, opakuj $U_{k+1}(s)\leftarrow R(s)+\gamma\max_a\sum_{s'}P(s'\mid s,a)\,U_k(s')$; konverguje (Bellman $=$ kontrakce v~$\|\cdot\|_\infty$).
+  \item Iterace strategií: střídej (1) \emph{vyhodnocení} $\pi$ (lineární soustava -- $\max$ odpadá: $U^\pi(s)=R(s)+\gamma\sum_{s'}P(s'\mid s,\pi(s))\,U^\pi(s')$) a~(2) \emph{zlepšení} $\pi$ (greedy: $\pi'(s)=\arg\max_a\sum_{s'}P\,U^\pi(s')$); konverguje v~konečném počtu kroků.
+  \item POMDP: MDP $+$ senzorový model $P(E_t\mid S_t)$; agent udržuje \emph{stav víry} $b=\mathbf{P}(S_t\mid e_{1:t})$; rozhoduje v~prostoru stavů víry (belief-state MDP).
+\end{itemize}
+
+\smallskip
+\emph{Hry a teorie her -- minimax, alfa-beta, Nash, aukce (řešené otázky: podzim 2024, podzim 2025).}
+\begin{itemize}
+  \item Minimax: $\textsc{Minimax}(n)=$ Utility (list), $\max$ dětí (MAX-uzel), $\min$ dětí (MIN-uzel); čas $O(b^m)$, paměť $O(bm)$.
+  \item Alfa-beta: drží $\alpha$ (nejlepší dosud pro MAX) a~$\beta$ (nejlepší dosud pro MIN); $\alpha$\nobreakdash-řez v~MIN-uzlu, jakmile hodnota $\le\alpha$; $\beta$\nobreakdash-řez v~MAX-uzlu, jakmile hodnota $\ge\beta$; vrací tutéž hodnotu jako minimax; při perfektním pořadí tahů $O(b^{m/2})$.
+  \item Ořezání hloubky $+$ ohodnocovací funkce: nelistový uzel $\to$ pseudolist; ohodnocení má odhadovat minimaxovou hodnotu pozice.
+  \item \textbf{Dominantní strategie}: lepší než každá jiná bez ohledu na volbu soupeře.
+  \item \textbf{Nashovo ekvilibrium}: profil, kde nikdo si jednostrannou změnou nepolepší; při neexistenci NE v~čistých strategiích existuje smíšené (randomizovaná volba akcí).
+  \item \textbf{Pareto optimalita}: nelze zlepšit všem hráčům zároveň. NE $\neq$ Pareto optimum -- struktura vězňova dilematu (hra~3, podzim 2025): dominantní NE $(\mathrm{Right},\mathrm{Right})=(10,10)$ je Pareto-dominováno $(\mathrm{Left},\mathrm{Left})=(20,20)$.
+  \item Mechanism design: návrh pravidel $\to$ požadované chování racionálních hráčů. Vickreyova aukce: výherce $=$ nejvyšší nabídka, platí 2. nejvyšší nabídku; dominantní strategie $=$ pravdivá valuace $b_i=v_i$.
+\end{itemize}
+
+\smallskip
+\emph{Strojové učení -- přehled (druhy, stromy, regrese, SVM, Bayesovské učení, EM, zpětnovazební; řešená otázka: jaro 2025).}
+\begin{itemize}
+  \item Druhy: \emph{s~učitelem} (dvojice $(x_i,y_i)$: klasifikace nebo regrese), \emph{bez učitele} (jen $x_i$: shluky, vzory), \emph{zpětnovazební} (agent v~MDP bez znalosti $R$, $P$: odměny a~tresty).
+  \item Rozhodovací strom: vnitřní uzel $=$ test atributu, list $=$ rozhodnutí. Stavba: informační zisk $\mathrm{Gain}(A)=B(p/(p+n))-\mathrm{Remainder}(A)$, kde $B(q)=-q\log_2 q-(1-q)\log_2(1-q)$ a~$\mathrm{Remainder}(A)=\sum_k\tfrac{|E_k|}{|E|}B(p_k/(p_k+n_k))$; v~každém kroku vyber $A$ s~max.\ ziskem.
+  \item Lineární a~logistická regrese: $h_w(x)=w^Tx+b$; logistická: $P(y{=}1\mid x)=\sigma(w^Tx)$; trénink gradientním sestupem (u~lineární regrese L2 ztráta).
+  \item SVM: maximalizuje margin; podpůrné vektory $=$ body nejblíže separátoru (samy ho určují). Jádrový trik: zobrazí data do vyšší dimenze -- stačí počítat skalární součiny (jádro), bez explicitní transformace. Detaily (duální formulace, $C$, RBF/polynom) v~S3.
+  \item Bayesovské učení: posterior $P(h\mid d)=\alpha\,P(d\mid h)\,P(h)$; MAP $=\arg\max_h P(h\mid d)$; MLE $=\arg\max_h P(d\mid h)$ (bez prioru); Bayesovsky optimální predikce $=\sum_h P(h\mid d)\,P(x\mid h)$ (průměr přes hypotézy).
+  \item EM algoritmus: (E-krok) sečti přes skrytá data -- posteriorní $P(z\mid x,\theta)$; (M-krok) maximalizuj očekávanou log-věrohodnost v~$\theta$; opakuj do konvergence (zaručena, ale jen lokální maximum).
+  \item Zpětnovazební učení: \emph{pasivní TD}: $U^\pi(s)\leftarrow U^\pi(s)+\alpha[R(s)+\gamma U^\pi(s')-U^\pi(s)]$ (temporal difference). \emph{Q-učení} (off-policy): $Q(s,a)\leftarrow Q(s,a)+\alpha[R+\gamma\max_{a'}Q(s',a')-Q(s,a)]$; $\pi(s)=\arg\max_a Q(s,a)$. \emph{SARSA} (on-policy): totéž, ale $Q(s',a')$ s~aktuální $\pi$ (ne $\max$). Explorace vs. exploitace: explorační funkce $f(u,n)$ (optimistický odhad pro málo zkoušené dvojice).
+\end{itemize}
+\end{poznamka}

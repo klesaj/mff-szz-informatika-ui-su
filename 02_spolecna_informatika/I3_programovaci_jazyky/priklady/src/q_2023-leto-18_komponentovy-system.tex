@@ -1,0 +1,172 @@
+% Zdroj: PDF priklady-leto-2023.pdf, fyzická str. 7-8. Značka: otázka studijního zaměření I3. Zařazeno: I3.
+\section{Komponentový systém}
+\szzotazka{léto 2023}{18}{Komponentový systém (herní framework, generika, komponenty)}
+
+\noindent\textit{(Pozn.: v~rámci současné akreditace nešlo o~společnou otázku (q1--q4), ale o~otázku jiné specializace (specializační sekce, ne UI). Do společného okruhu I3 tedy formálně nepatří; tematicky sem ovšem spadá a~je výborná k~procvičení.)}\par
+
+\noindent\textbf{Zadání.}\par
+Naprogramujte v C++, C\# nebo Javě všechny níže zmíněné a další potřebné typy (včetně
+zmíněných metod) pro implementaci následujícího komponentového herního frameworku.
+Ve hře vytvořené pomocí vašeho frameworku má každý objekt ve scéně (např. ležící kámen,
+nebo odpočívající trol) být reprezentovaný instancí typu \texttt{GameObject} (dále jen
+GO). Samotný GO má reprezentovat množinu komponent -- kde komponenta je pro nás
+libovolný vhodný typ (dle vašeho návrhu), jehož instance přidává k instanci GO nějaká
+silně typovaná data, a/nebo nějakou další funkcionalitu. Od každého druhu komponenty
+může být na instanci GO připojena právě 0 nebo 1 instance daného druhu komponenty.
+Každá instance nějaké komponenty může být připojena na maximálně 1 GO.
+
+\begin{enumerate}
+\item Na GO by měla být vhodná metoda pro připojení instance nějaké komponenty ke GO --
+  pokud GO komponentu stejného druhu již má, tak nová instance nahradí instanci původní.
+
+  Na GO by měla být vhodná metoda pro vrácení instance komponenty zvoleného druhu
+  (požadovaný druh si nějak vhodně může zvolit volající). Pokud na GO žádná instance
+  požadovaného typu komponenty připojená není, tak to má funkce nějak rozumně indikovat
+  (funkci budeme chtít běžně používat pro detekci, zda daný typ komponenty na GO je,
+  nebo není).
+
+  Na GO má být metoda \texttt{Update} s parametrem \texttt{timeDelta} jako 32-bitové
+  float číslo, které reprezentuje čas v sekundách od předchozího volání metody
+  \texttt{Update} na stejném GO. Metoda \texttt{Update} na GO má projít všechny instance
+  připojených komponent, a pro komponenty, které mají metodu \texttt{Update} se stejným
+  parametrem, se má tato zavolat. Pořadí volání metod \texttt{Update} na komponentách GO
+  není důležité. Ve svém objektovém návrhu vhodně zohledněte, že autor komponenty má mít
+  možnost se rozhodnout, zda komponenta bude metodu \texttt{Update} mít nebo nikoliv.
+
+\item Napište implementaci komponenty \texttt{Position}, která ke GO přidává 32-bitové
+  float souřadnice X a Y reprezentující polohu GO na 2D herní ploše. Napište implementaci
+  komponenty \texttt{Health}, která ke GO přidává 32-bitové float hodnoty maximálního
+  a aktuálního zdraví (aktuální zdraví je vždy v rozsahu 0 až max včetně).
+
+  Napište příklad kódu, který vytvoří instanci GO pro kámen, který má komponentu
+  \texttt{Position}, a instanci GO pro trola, který má komponenty \texttt{Position}
+  a \texttt{Health} (max $=30$, aktuální $=20$).
+
+\item Doplňte vhodné komponenty reprezentující efekt otravy a efekt krvácení -- oba
+  efekty vyžadují, aby GO, ke kterému jsou připojené, měl komponentu \texttt{Health}
+  (pokud GO takovou komponentu nemá, tak efekt nic nedělá). Dále jsou oba efekty
+  parametrizované 32-bit float hodnotou, která reprezentuje, kolik aktuálního zdraví
+  efekt odečítá každou sekundu. Pokud je efekt připojený k nějakému GO, tak má dojít
+  k úpravě zdraví GO dle parametru efektu. Na jednom GO může být maximálně 1 efekt
+  otravy a nezávisle maximálně 1 efekt krvácení (tedy GO může být bez efektu, nebo mít
+  1 otravu a žádné krvácení, nebo žádnou otravu a 1 krvácení, nebo 1 otravu a 1 krvácení).
+  Do budoucna budeme přidávat další podobné efekty.
+
+  Napište implementaci funkce, která dostane seznam GO a hodnotu zranění za sekundu --
+  funkce projde všechny předané GO a pokud GO má komponentu \texttt{Health}, tak ke GO
+  připojí novou instanci efektu otravy nebo krvácení parametrizované předanou hodnotou
+  zranění za sekundu. Volající musí mít navíc možnost si nějak vhodně zvolit, zda funkce
+  aplikuje na předané GO efekt otravy nebo efekt krvácení.
+
+  Napište příklad kódu, který na výše vytvořený kámen a trola zkusí aplikovat efekt
+  krvácení s hodnotou zranění 1.2 za sekundu.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu: vlastní vzorové řešení v~C++, ověřené překladem a~během.)}
+
+\medskip
+Klíčová myšlenka: \texttt{GameObject} drží komponenty v~mapě klíčované \emph{typem} komponenty (\texttt{std::\allowbreak type\_index}). Tím je „nejvýš jedna instance daného druhu`` zdarma a vrácení komponenty podle typu je triviální. Volitelnou metodu \texttt{Update} řeší zvláštní rozhraní \texttt{IUpdatable}.
+
+\textbf{(1) Komponenta, rozhraní \texttt{IUpdatable} a \texttt{GameObject}:}
+\begin{lstlisting}[language=C++]
+struct Component  { virtual ~Component() = default; };
+struct IUpdatable {                                     // volitelne chovani
+    virtual ~IUpdatable() = default;
+    virtual void Update(float dt) = 0;
+};
+
+class GameObject {
+    std::unordered_map<std::type_index, std::unique_ptr<Component>> comps_;
+public:
+    template <typename T> void Add(std::unique_ptr<T> c) {
+        comps_[std::type_index(typeid(T))] = std::move(c);  // nahradi stary druh
+    }
+    template <typename T> T* Get() const {
+        auto it = comps_.find(std::type_index(typeid(T)));
+        return it == comps_.end() ? nullptr               // indikace "nemam"
+                                  : static_cast<T*>(it->second.get());
+    }
+    void Update(float dt) {
+        for (auto& [type, c] : comps_)
+            if (auto* u = dynamic_cast<IUpdatable*>(c.get()))  // jen kdo Update ma
+                u->Update(dt);
+    }
+};
+\end{lstlisting}
+
+\textbf{(2) Konkrétní komponenty a scéna (kámen, trol):}
+\begin{lstlisting}[language=C++]
+struct Position : Component { float x = 0, y = 0; };
+class Health : public Component {             // invariant: 0 <= cur_ <= max_
+    float max_, cur_;
+public:
+    Health(float max, float cur) : max_(max), cur_(std::clamp(cur, 0.0f, max)) {}
+    float Max() const { return max_; }
+    float Current() const { return cur_; }
+    void SetCurrent(float v) { cur_ = std::clamp(v, 0.0f, max_); }  // hlida rozsah
+};
+
+auto kamen = std::make_unique<GameObject>();
+kamen->Add(std::make_unique<Position>());
+auto trol = std::make_unique<GameObject>();
+trol->Add(std::make_unique<Position>());
+trol->Add(std::make_unique<Health>(30.0f, 20.0f));   // max = 30, aktualni = 20
+\end{lstlisting}
+
+\textbf{(3) Efekty.} Efekt je komponenta \emph{a zároveň} \texttt{IUpdatable}; v~\texttt{Update} si najde \texttt{Health} svého GO a ubírá zdraví. Otrava a krvácení sdílejí logiku, ale musejí to být \emph{dva různé typy} (mapa klíčuje podle typu, jinak by se přepsaly), aby mohly být na GO obě naráz. Volbu efektu předáme \emph{šablonovým} parametrem typu:
+\begin{lstlisting}[language=C++]
+class Effect : public Component, public IUpdatable {
+protected:
+    GameObject* owner_;  float perSec_;     // pozorovatel vlastnika + parametr
+public:
+    Effect(GameObject* o, float p) : owner_(o), perSec_(p) {}
+    void Update(float dt) override {
+        if (auto* hp = owner_->Get<Health>())            // nic, chybi-li Health
+            hp->SetCurrent(hp->Current() - perSec_ * dt);
+    }
+};
+struct Poison   : Effect { using Effect::Effect; };  // dva ruzne typy,
+struct Bleeding : Effect { using Effect::Effect; };  // aby sly na GO obe naraz
+
+template <typename E>                          // volba efektu = typovy parametr
+void applyEffect(const std::vector<GameObject*>& gos, float perSec) {
+    for (GameObject* go : gos)
+        if (go->Get<Health>())                 // jen na GO s komponentou Health
+            go->Add(std::make_unique<E>(go, perSec));
+}
+// pouziti: na kamen a trola zkusime krvaceni 1.2/s (kamen nema Health -> preskoci)
+applyEffect<Bleeding>({kamen.get(), trol.get()}, 1.2f);
+\end{lstlisting}
+
+\noindent Klíčování podle typu (\texttt{type\_index}) splní „nejvýš jedna instance daného druhu`` zadarmo; držení přes \texttt{unique\_ptr} zaručí, že komponenta patří nejvýš jednomu GO; zapouzdřená \texttt{Health} hlídá invariant $0 \le$ aktuální $\le$ max ze zadání na jediném místě; \texttt{Get<T>} vrací \texttt{nullptr} při absenci (vhodná indikace pro dotaz „má GO tuto komponentu?``); volitelnost \texttt{Update} přes \texttt{IUpdatable} a \texttt{dynamic\_cast} respektuje, že ne každá komponenta \texttt{Update} má. Volba efektu v~šablonovém parametru je statický polymorfismus; alternativou je běhový příznak nebo tovární funkce.
+
+\medskip
+\begin{csalt}[komponenty přes generika]
+Komponentový systém je idiomatický v~C\# (styl Unity). \texttt{Get<T>()} přes generika
+s~omezením vrací komponentu nebo \texttt{null}; volba efektu je generický typový parametr.
+Bez hlaviček, bez instanciačních chyb šablon, bez ruční správy paměti:
+\begin{lstlisting}[style=cs]
+class GameObject {
+    readonly Dictionary<Type, Component> comps = new();
+    public T? Get<T>() where T : Component               // null, chybi-li komponenta
+        => comps.TryGetValue(typeof(T), out var c) ? (T)c : null;
+    public void Add(Component c) => comps[c.GetType()] = c;   // klic = skutecny typ
+}
+abstract class Effect : Component, IUpdatable {
+    public GameObject Owner { get; set; } = null!;
+    public float PerSec { get; set; }
+    public void Update(float dt) { var h = Owner.Get<Health>(); if (h != null) h.Current -= PerSec * dt; }
+}
+sealed class Poison : Effect { }  sealed class Bleeding : Effect { }
+void ApplyEffect<E>(IEnumerable<GameObject> gos, float perSec) where E : Effect, new() {
+    foreach (var go in gos)
+        if (go.Get<Health>() != null)                   // jen na GO s komponentou Health
+            go.Add(new E { Owner = go, PerSec = perSec });
+}
+\end{lstlisting}
+Klíčování slovníkem podle \texttt{Type} dá „nejvýš jedna instance druhu`` zdarma; volitelný
+\texttt{Update} řeší rozhraní \texttt{IUpdatable} a~test \texttt{if (c is IUpdatable u)} místo \texttt{dynamic\_cast}.
+\texttt{Health.Current} je vlastnost, jejíž \texttt{set} ořízne hodnotu do rozsahu 0 až max (není vypsáno).
+\end{csalt}

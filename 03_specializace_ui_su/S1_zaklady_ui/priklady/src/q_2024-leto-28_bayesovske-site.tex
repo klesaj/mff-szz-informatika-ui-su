@@ -1,0 +1,27 @@
+% Zdroj: PDF priklady-leto-2024.pdf, fyzická str. 23. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S1 (bayesovské sítě). CPT tabulky jsou součástí obrázku.
+\section{Bayesovské sítě}
+\szzotazka{léto 2024}{28}{Bayesovské sítě}
+
+\noindent\textbf{Zadání.}\par
+Definujte Bayesovskou síť a napište, jak se takové sítě používají a jak se konstruují. Jaký je vztah mezi Bayesovskou sítí a úplnou sdruženou pravděpodobnostní distribucí?
+
+Uvažujte níže zobrazenou Bayesovskou síť se 4 náhodnými proměnnými $P_1, \dots, P_4$ a uvedenými podmíněnými pravděpodobnostními distribucemi. Máme pozorování $P_3 = F$ a $P_4 = T$. Spočítejte, jaká je pravděpodobnost, že $P_1 = T$, tedy $P(P_1 = T \mid P_3 = F, P_4 = T)$.
+
+\begin{center}\includegraphics[width=0.85\linewidth]{bayesovske-site.png}\end{center}
+
+\medskip
+\noindent\textbf{Řešení.} \textit{(V~PDF bez náčrtu řešení; vlastní vzorové řešení, výpočet ověřen numericky.)}\par
+
+\noindent\emph{Definice a vztah ke sdružené distribuci.} Bayesovská síť je orientovaný acyklický graf, jehož uzly jsou náhodné veličiny, hrana $X\to Y$ značí přímý vliv (rodičovství) a~každý uzel nese tabulku podmíněných pravděpodobností (CPT) $P(X\mid \mathrm{Parents}(X))$. Síť \emph{plně reprezentuje} úplnou sdruženou distribuci součinem CPT:
+\[ P(x_1,\dots,x_n)=\prod_i P\big(x_i\mid \mathrm{Parents}(X_i)\big). \]
+Používá se k~odpovídání na dotazy $P(X\mid \text{evidence})$; konstruuje se seřazením veličin (ideálně příčiny před důsledky) a~výběrem minimální množiny rodičů pro každou veličinu.
+
+\noindent\emph{Výpočet} $P(P_1{=}T\mid P_3{=}F,P_4{=}T)$. Síť je řetěz $P_1\to P_2\to\{P_3,P_4\}$ ($P_2$ je rodič $P_3$ i~$P_4$). Vysčítáme skrytou $P_2$:
+\begin{align*}
+P(P_1{=}T,P_3{=}F,P_4{=}T) &= P(P_1{=}T)\sum_{P_2} P(P_2\mid P_1{=}T)\,P(P_3{=}F\mid P_2)\,P(P_4{=}T\mid P_2)\\
+&= 0{,}4\,[\,0{,}8\cdot0{,}8\cdot0{,}8 + 0{,}2\cdot0{,}7\cdot0{,}5\,]=0{,}4\cdot0{,}582=0{,}23280,\\
+P(P_1{=}F,P_3{=}F,P_4{=}T) &= 0{,}6\,[\,0{,}5\cdot0{,}8\cdot0{,}8 + 0{,}5\cdot0{,}7\cdot0{,}5\,]=0{,}6\cdot0{,}495=0{,}29700.
+\end{align*}
+Normalizace ($P(P_3{=}F,P_4{=}T)=0{,}23280+0{,}29700=0{,}52980$):
+\[ P(P_1{=}T\mid P_3{=}F,P_4{=}T)=\frac{0{,}23280}{0{,}52980}=\boxed{0{,}4394}\quad(\approx 43{,}9\,\%). \]
+(Použito $P(P_3{=}F\mid P_2{=}T)=1-0{,}2=0{,}8$ a~$P(P_3{=}F\mid P_2{=}F)=1-0{,}3=0{,}7$.) Pozorování $P_3,P_4$ tak zvedlo víru v~$P_1{=}T$ z~apriorních $0{,}4$ na~$0{,}439$.

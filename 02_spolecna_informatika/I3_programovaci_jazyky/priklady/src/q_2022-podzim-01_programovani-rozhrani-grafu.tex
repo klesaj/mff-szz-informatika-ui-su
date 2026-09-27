@@ -1,0 +1,132 @@
+% Zdroj: PDF priklady-podzim-2022.pdf, fyzická str. 1-2. Značka: společné okruhy. Zařazeno: I3.
+\section{Programování}
+\szzotazka{podzim 2022}{1}{Programování (objektové rozhraní pro grafy)}
+
+\noindent\textbf{Zadání.}\par
+Pro tuto otázku si vyberte libovolný mainstreamový objektově orientovaný staticky
+typovaný jazyk (C++, C\# nebo Java) a svůj výběr napište na začátek řešení.
+
+\begin{enumerate}
+\item Naimplementujte (nadeklarujte) vhodné objektové rozhraní (pomocí \textit{interfaces}
+  nebo abstraktních tříd) pro neorientované grafy $G = (V, E)$ ve své nejběžnější podobě
+  (hrany spojují právě dva vrcholy, mezi dvěma vrcholy vede nejvýš jedna hrana). Motivací
+  je, aby toto rozhraní mohly implementovat různé reprezentace grafů (seznam sousedů,
+  matice sousednosti, \dots), zatímco programátor grafových algoritmů (BFS, hledání
+  minimální kostry, \dots) může napsat svůj kód pouze jednou a bude fungovat se všemi
+  reprezentacemi.
+
+  Rozhraní pokrývá 3 entity (vrchol, hranu a graf): vrchol nabídne přístup ke všem
+  incidentním hranám, hrana ke svým dvěma vrcholům, graf k seznamu všech vrcholů a všech
+  hran. Graf je pouze pro čtení (bez modifikací).
+
+  Každý vrchol a každá hrana má příznak (\textit{tag}) -- u vrcholu např. zda byl
+  navštíven, u hrany např. váhu. Tagy mohou mít různé datové typy, ale pro danou instanci
+  grafu mají všechny vrcholy stejný typ tagu a všechny hrany taktéž. Rozhraní má být
+  generické (uživatel zvolí typy tagů vrcholů a hran) a nabídne pro každý vrchol/hranu
+  prostředky tag přečíst a nastavit.
+
+\item Uvažme implementaci, kde tagy vrcholů jsou \texttt{int} (index komponenty
+  souvislosti, od~0) a tagy hran jsou \texttt{float} (délky hran, na počátku
+  inicializované). Napište tělo funkce využívající vaše rozhraní, která dostane graf a
+  reálné číslo $r$ a provede rozklad grafu na komponenty souvislosti tak, že každý vrchol
+  bude mít index své komponenty uložený jako tag (konkrétní hodnoty indexů nejsou
+  podstatné, jen že vrcholy téže komponenty mají stejný tag). Hrany s délkou (tagem) větší
+  než $r$ se neberou v potaz (jako by neexistovaly).
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu.)}
+
+\medskip
+Zvolme \textbf{Javu}. Generika nesou typy tagů: \texttt{VTag} pro vrcholy, \texttt{ETag}
+pro hrany.
+
+\begin{enumerate}
+\item Tři spolupracující generická rozhraní (pouze deklarace, bez těl):
+
+\begin{lstlisting}[language=Java]
+interface IVertex<VTag, ETag> {
+    Iterable<IEdge<VTag, ETag>> incidentEdges(); // hrany incidentni s vrcholem
+    VTag getTag();
+    void setTag(VTag tag);
+}
+
+interface IEdge<VTag, ETag> {
+    IVertex<VTag, ETag> endpoint1();             // jeden z dvou koncovych vrcholu
+    IVertex<VTag, ETag> endpoint2();             // druhy koncovy vrchol
+    ETag getTag();
+    void setTag(ETag tag);
+}
+
+interface IGraph<VTag, ETag> {                   // graf je pouze pro cteni
+    Iterable<IVertex<VTag, ETag>> vertices();
+    Iterable<IEdge<VTag, ETag>> edges();
+}
+\end{lstlisting}
+
+  Díky generikám je rozhraní nezávislé na konkrétním typu tagu i na vnitřní reprezentaci
+  grafu (seznam sousedů, matice sousednosti, \dots). Algoritmus se proti rozhraní napíše
+  jednou a běží nad libovolnou implementací.
+
+\item BFS z každého dosud neoznačeného vrcholu; šíříme se jen po hranách s tagem
+  $\le r$, ostatní (delší) hrany ignorujeme, jako by neexistovaly. Všem vrcholům dosaženým
+  v jednom průchodu nastavíme stejný index komponenty, čítač pak zvýšíme.
+
+\begin{lstlisting}[language=Java]
+static void connectedComponents(IGraph<Integer, Float> g, float r) {
+    final int UNVISITED = -1;
+    for (IVertex<Integer, Float> v : g.vertices()) {
+        v.setTag(UNVISITED);                     // inicializace: nikdo neoznacen
+    }
+
+    int component = 0;
+    for (IVertex<Integer, Float> start : g.vertices()) {
+        if (start.getTag() != UNVISITED) {
+            continue;                            // jiz prirazen do komponenty
+        }
+        // BFS z vrcholu start, vse dosazene dostane index "component"
+        Queue<IVertex<Integer, Float>> queue = new ArrayDeque<>();
+        start.setTag(component);
+        queue.add(start);
+        while (!queue.isEmpty()) {
+            IVertex<Integer, Float> u = queue.remove();
+            for (IEdge<Integer, Float> e : u.incidentEdges()) {
+                if (e.getTag() > r) {
+                    continue;                    // prilis dlouha hrana, ignoruj
+                }
+                // urci druhy konec hrany (graf je neorientovany)
+                IVertex<Integer, Float> w =
+                    (e.endpoint1() == u) ? e.endpoint2() : e.endpoint1();
+                if (w.getTag() == UNVISITED) {
+                    w.setTag(component);
+                    queue.add(w);
+                }
+            }
+        }
+        component++;                             // dalsi komponenta
+    }
+}
+\end{lstlisting}
+
+  Hrany s tagem $> r$ se v BFS přeskočí, takže rozklad odpovídá podgrafu jen s hranami
+  délky $\le r$. Protože pracujeme výhradně přes rozhraní (\texttt{vertices()},
+  \texttt{incidentEdges()}, \texttt{getTag/setTag}), je tělo funkce stejné pro každou
+  reprezentaci grafu.
+\end{enumerate}
+
+\medskip
+\begin{csalt}[generická rozhraní grafu]
+Stejný návrh je v~C\# přímočařejší: rozhraní mají vlastní klíčové slovo \texttt{interface},
+tag je \emph{vlastnost} s~\texttt{get}/\texttt{set} místo dvojice metod a~kolekce se vracejí jako
+\texttt{IEnumerable} (procházené přes \texttt{foreach}). Tělo BFS zůstává nezávislé na reprezentaci grafu.
+\begin{lstlisting}[style=cs]
+interface IVertex<VTag, ETag> { VTag Tag { get; set; }
+    IEnumerable<IEdge<VTag, ETag>> IncidentEdges { get; } }
+interface IEdge<VTag, ETag>   { ETag Tag { get; set; }
+    IVertex<VTag, ETag> Endpoint1 { get; }  IVertex<VTag, ETag> Endpoint2 { get; } }
+interface IGraph<VTag, ETag>  { IEnumerable<IVertex<VTag, ETag>> Vertices { get; }
+    IEnumerable<IEdge<VTag, ETag>> Edges { get; } }        // jen pro cteni
+\end{lstlisting}
+Proti C++ odpadá virtuální destruktor i~ruční správa životnosti uzlů a~hran (uklízí GC).
+\end{csalt}

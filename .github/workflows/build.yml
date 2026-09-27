@@ -1,0 +1,58 @@
+name: Build PDF a publikace na GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/xu-cheng/texlive-full:latest
+      options: --user root
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sestav všechny okruhy
+        run: ./build.sh all
+
+      - name: Rozcestník index.html
+        run: python3 scripts/gen_index.py --site _site
+
+      - name: Artefakt s PDF (všechny větve)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdfs
+          path: _site/
+          retention-days: 30
+
+      - name: Pages artefakt (jen main)
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site/
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Nasazení na GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

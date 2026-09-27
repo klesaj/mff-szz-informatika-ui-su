@@ -1,0 +1,250 @@
+\section{Automatické plánování (dopředné a zpětné plánování)}
+
+\emph{Plánování} je hledání posloupnosti akcí, která agenta dovede k~jeho cíli. V~principu jde o~tutéž úlohu jako prohledávání (sekce~1), ale s~jedním zásadním rozdílem v~\emph{reprezentaci stavu}. Prohledávání pracovalo se stavem \emph{atomickým} -- nedělitelným černým boxem, takže heuristiku bylo nutno vymyslet zvlášť pro každou doménu. \emph{Klasické (faktorové) plánování} naproti tomu reprezentuje stav \emph{strukturovaně}, jako množinu pravdivých tvrzení (atomů) o~světě, a~akce popisuje obecnými \emph{operátory} s~předpoklady a~efekty. Z~této struktury lze automaticky odvodit \emph{doménově nezávislé} heuristiky -- tytéž pro libovolnou doménu. To je hlavní motivace celého formalismu.
+
+\begin{intuice}
+Faktorová reprezentace je nutnost už z~důvodu velikosti. Barták uvádí příklad logistiky: 5~lokací, 3~hromady na lokaci, 100~kontejnerů a~3~roboty dají řádově $10^{277}$ stavů -- o~$10^{190}$ víc, než je odhadovaný počet částic ve vesmíru. Takový prostor nelze vypsat ani uložit; lze ho jen \emph{implicitně} generovat aplikací operátorů a~ořezávat heuristikou, kterou si plánovač sám odvodí ze struktury operátorů.
+\end{intuice}
+
+Pozn.: \emph{situační kalkulus} a~\emph{problém rámce} (plánování pomocí logické inference v~predikátové logice) patří do reprezentace znalostí a~jsou probrány v~sekci~5. Zde se věnujeme \emph{klasickému plánování} s~faktorovou reprezentací, jak je formuluje učebnice AIMA i~slidy přednášejícího.
+
+\subsection{Stavy, atomy a cíle}
+
+Stav světa popíšeme tím, co v~něm \emph{platí}. Základním stavebním kamenem je \emph{konkretizovaný atom}, tj. predikát aplikovaný na konkrétní konstanty (objekty), bez proměnných -- například $\mathtt{na}(\mathit{r}_1,\mathit{loc}_2)$ („robot $r_1$ je na lokaci $\mathit{loc}_2$``).
+
+\begin{definice}[Stav, fluenty a rigidní atomy, předpoklad uzavřeného světa]
+\emph{Stav} $s$ je \textbf{množina konkretizovaných atomů} (bez proměnných). Atomů konečně mnoho $\Rightarrow$ stavů je \emph{konečně} mnoho.
+\begin{itemize}
+  \item \textbf{Fluent} (proměnný atom) -- atom, jehož pravdivost se mezi stavy mění; jen fluenty smí měnit akce. Příklad: $\mathtt{na}(\mathit{r}_1,\mathit{loc}_2)$. (Obdoba fluentů ze situačního kalkulu v~sekci~5, zde bez argumentu situace.)
+  \item \textbf{Rigidní atom} -- atom, který platí ve všech stavech stejně (akce ho nemění). Příklad: $\mathtt{soused}(\mathit{loc}_1,\mathit{loc}_2)$.
+\end{itemize}
+Platí \textbf{předpoklad uzavřeného světa} (closed-world assumption): \emph{atom, který v~$s$ není uveden, ve stavu~$s$ neplatí.} Stav tedy vyjmenovává právě pravdivé atomy a~vše ostatní je nepravda.
+\end{definice}
+
+\begin{definice}[Cíl a jeho splnění]
+\emph{Cíl} $g$ je \textbf{množina konkretizovaných literálů} (atom nebo jeho negace). Rozložíme ho na kladnou a~zápornou část:
+\[ g^{+} = \{\text{atomy, které mají v~cíli platit}\}, \qquad g^{-} = \{\text{atomy, jejichž negace je v~cíli (mají neplatit)}\}. \]
+Stav $s$ \textbf{splňuje} cíl $g$ právě tehdy, když
+\[ g^{+}\subseteq s \quad\wedge\quad g^{-}\cap s = \emptyset, \]
+tj. všechny požadované atomy ve stavu jsou a~žádný zakázaný tam není. Cíl typicky popisuje \emph{množinu} cílových stavů (nemusí předepisovat hodnotu každého atomu).
+\end{definice}
+
+\subsection{Operátory a akce}
+
+\begin{definice}[Operátor]
+\emph{Operátor} (schéma akce) $o$ je trojice
+\[ o = \bigl(\mathrm{name}(o),\ \mathrm{precond}(o),\ \mathrm{effects}(o)\bigr): \]
+\begin{itemize}
+  \item $\mathrm{name}(o)=n(x_1,\dots,x_k)$ -- jméno operátoru ($n$ je jednoznačný symbol) a~jeho \emph{parametry} (proměnné). Musí obsahovat \emph{všechny} proměnné vystupující v~definici operátoru.
+  \item $\mathrm{precond}(o)$ -- \emph{předpoklady}: literály, které musí ve stavu platit, aby byl operátor použitelný.
+  \item $\mathrm{effects}(o)$ -- \emph{efekty}: literály, které po provedení začnou platit (kladný efekt) nebo přestanou platit (záporný efekt). V~efektech smí být \emph{jen fluenty} (rigidní atomy se nemění).
+\end{itemize}
+Operátor je \emph{parametrizovaná} (lifted) reprezentace: popisuje akci obecně, nezávisle na konkrétních objektech.
+\end{definice}
+
+\begin{definice}[Akce]
+\emph{Akce} je \textbf{plně konkretizovaný operátor}: za parametry $x_1,\dots,x_k$ dosadíme konstanty. Z~jednoho operátoru tak vznikne mnoho akcí. Pro akci $a$ značíme $\mathrm{precond}^{+}(a),\mathrm{precond}^{-}(a)$ kladné a~záporné předpoklady (atomy, které mají, resp. nemají platit) a~podobně $\mathrm{effects}^{+}(a),\mathrm{effects}^{-}(a)$.
+\end{definice}
+
+\begin{priklad}[Operátory světa kostek (blockworld)]
+Robotická ruka přemísťuje kostky $a,b,c$. Predikáty: $\mathtt{ontable}(x)$ (kostka na stole), $\mathtt{on}(x,y)$ (kostka $x$ na $y$), $\mathtt{clear}(x)$ (na $x$ nic neleží, lze ji vzít), $\mathtt{holding}(x)$ (ruka drží $x$), $\mathtt{handempty}$ (ruka je prázdná). Čtyři operátory:
+\begin{center}\footnotesize
+\begin{tabular}{@{}lll@{}}
+\toprule
+operátor & precond & effects \\
+\midrule
+$\mathtt{unstack}(x,y)$ & $\mathtt{on}(x,y),\mathtt{clear}(x),\mathtt{handempty}$ & $\neg\mathtt{on}(x,y),\neg\mathtt{clear}(x),\mathtt{clear}(y),\neg\mathtt{handempty},\mathtt{holding}(x)$ \\
+$\mathtt{stack}(x,y)$ & $\mathtt{holding}(x),\mathtt{clear}(y)$ & $\neg\mathtt{holding}(x),\neg\mathtt{clear}(y),\mathtt{on}(x,y),\mathtt{clear}(x),\mathtt{handempty}$ \\
+$\mathtt{pickup}(x)$ & $\mathtt{ontable}(x),\mathtt{clear}(x),\mathtt{handempty}$ & $\neg\mathtt{ontable}(x),\neg\mathtt{clear}(x),\neg\mathtt{handempty},\mathtt{holding}(x)$ \\
+$\mathtt{putdown}(x)$ & $\mathtt{holding}(x)$ & $\neg\mathtt{holding}(x),\mathtt{ontable}(x),\mathtt{clear}(x),\mathtt{handempty}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Dosazením konstant vznikne akce, např. $\mathtt{unstack}(a,c)$: použitelná, je-li $a$ na $c$, $a$ je volná a~ruka prázdná; efektem ruka uchopí $a$ a~$c$ se uvolní.
+\end{priklad}
+
+\subsection{Použitelnost akce, výsledek a relevance}
+
+\begin{definice}[Použitelnost a výsledek akce]
+Akce $a$ je \textbf{použitelná} ve stavu $s$ právě tehdy, když
+\[ \mathrm{precond}^{+}(a)\subseteq s \quad\wedge\quad \mathrm{precond}^{-}(a)\cap s = \emptyset, \]
+tj. všechny kladné předpoklady ve stavu jsou a~žádný záporný v~něm není. \emph{Výsledek} aplikace použitelné akce $a$ na stav $s$ je stav
+\[ \gamma(s,a) = \bigl(s\setminus \mathrm{effects}^{-}(a)\bigr)\cup \mathrm{effects}^{+}(a): \]
+nejprve odstraníme atomy, které mají přestat platit, pak přidáme ty, které mají začít. (Pořadí dává smysl: nejdřív „vymaž``, pak „připiš``.)
+\end{definice}
+
+Použitelnost a~výsledek řídí pohyb \emph{vpřed}: ze stavu $s$ generujeme nástupce $\gamma(s,a)$ pro každou použitelnou akci. Pro pohyb \emph{vzad} (od cíle) potřebujeme duální pojmy -- které akce mohly vést k~danému cíli a~jaký stav jim musel předcházet.
+
+\begin{definice}[Relevance akce a regresní množina]
+Akce $a$ je \textbf{relevantní} pro cíl $g$ právě tehdy, když:
+\begin{itemize}
+  \item \emph{přispívá k~cíli}: $\,g\cap \mathrm{effects}(a)\neq\emptyset$ (aspoň jeden efekt je v~cíli žádaný), a~zároveň
+  \item \emph{efekty nejsou v~rozporu s~cílem}: $\,g^{-}\cap \mathrm{effects}^{+}(a)=\emptyset \ \wedge\ g^{+}\cap \mathrm{effects}^{-}(a)=\emptyset$ (akce neudělá pravdivým nic zakázaného ani nezruší nic žádaného).
+\end{itemize}
+Pro relevantní akci $a$ je \textbf{regresní množina} cíle $g$ množina (pod)cílů, které musely platit \emph{před} provedením $a$, aby po něm platil $g$:
+\[ \gamma^{-1}(g,a) = \bigl(g\setminus \mathrm{effects}(a)\bigr)\cup \mathrm{precond}(a). \]
+(Z~cíle odebereme to, co $a$ sama zařídí, a~přidáme předpoklady, které $a$ vyžaduje.)
+\end{definice}
+
+\subsection{Plánovací doména, problém a plán}
+
+\begin{definice}[Plánovací doména, problém, plán]
+Sada operátorů $O$ tvoří \emph{doménový model} (popisuje schopnosti agenta i~použité predikáty). \textbf{Plánovací problém} je trojice
+\[ P=(O,\,s_0,\,g), \]
+kde $O$ je doménový model, $s_0$ je \emph{počáteční stav} (dodává konkrétní konstanty -- objekty) a~$g$ je \emph{cíl} (množina konkretizovaných literálů). \textbf{Plán} je posloupnost akcí $\langle a_1,a_2,\dots,a_k\rangle$. Plán $p$ je \textbf{řešením} problému $P$ právě tehdy, když je celý proveditelný z~$s_0$ (každá akce je použitelná v~okamžiku své aplikace) a~výsledný stav $\gamma^{*}(s_0,p)$ splňuje cíl $g$, kde $\gamma^{*}(s_0,p)=\gamma(\dots\gamma(\gamma(s_0,a_1),a_2)\dots,a_k)$.
+\end{definice}
+
+\subsection{Dopředné a zpětné plánování}
+
+Plánovací problém řešíme \emph{prohledáváním stavového prostoru} (sekce~1) -- jen stavy a~přechody teď nejsou atomické, nýbrž dané faktorovou reprezentací. Dva základní směry:
+
+\begin{definice}[Dopředné (progrese) a zpětné (regrese) plánování]
+\begin{itemize}
+  \item \textbf{Dopředné plánování (progrese)}: prohledáváme \emph{od počátečního stavu $s_0$ k~cíli}. V~každém uzlu (stavu $s$) generujeme nástupce $\gamma(s,a)$ pro všechny akce $a$ \emph{použitelné} v~$s$; končíme, jakmile stav splní $g$.
+  \item \textbf{Zpětné plánování (regrese)}: prohledáváme \emph{od cíle $g$ zpět k~$s_0$}. V~každém uzlu (pod)cíli generujeme předchůdce $\gamma^{-1}(g,a)$ pro akce $a$ \emph{relevantní} pro $g$; končíme, jakmile počáteční stav $s_0$ splňuje dosažený podcíl.
+\end{itemize}
+\end{definice}
+
+\begin{intuice}
+\textbf{Dopředné} plánování pracuje s~konkrétními (úplnými) stavy, ale často má velký \emph{faktor větvení}: ve stavu může být použitelných mnoho akcí, z~nichž většina k~cíli vůbec nesměřuje. Neinformované prohledávání proto zvládne jen malé úlohy; v~praxi se nasazuje \emph{informované} (A${}^\ast$) s~dobrou heuristikou.
+
+\textbf{Zpětné} plánování zkoumá jen akce \emph{relevantní} pro cíl, takže má obvykle \emph{menší faktor větvení}. Daní je, že pracuje s~\emph{množinami stavů} (částečnými podcíli), ne s~jednotlivými stavy -- je proto těžší pro ně vymýšlet dobré heuristiky. Oba směry jsou korektní; volba je věcí toho, kde je prostor užší.
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0, every node/.style={font=\small}]
+% --- dopředné: zleva s0 vpřed ---
+\node[stav] (s0) at (0,0) {$s_0$};
+\node[uzel] (s1) at (2,0.9) {$s$};
+\node[uzel] (s2) at (2,-0.9) {$s'$};
+\node[stavg] (g1) at (4,0) {$g$};
+\draw[sip] (s0) -- node[above,sloped,font=\footnotesize]{$a_1$} (s1);
+\draw[sip] (s0) -- node[below,sloped,font=\footnotesize]{$a_2$} (s2);
+\draw[sip] (s1) -- node[above,sloped,font=\footnotesize]{$a_3$} (g1);
+\node[font=\bfseries] at (2,-2.2) {dopředné (progrese)};
+\node[font=\footnotesize] at (2,-2.8) {$s\to\gamma(s,a)$, akce \emph{použitelné}};
+% --- zpětné: zprava od cíle vzad ---
+\begin{scope}[xshift=8.2cm]
+\node[stavg] (gg) at (4,0) {$g$};
+\node[uzel] (g1b) at (2,0.9) {$g_1$};
+\node[uzel] (g2b) at (2,-0.9) {$g_2$};
+\node[stav] (s0b) at (0,0) {$s_0$};
+\draw[sip] (gg) -- node[above,sloped,font=\footnotesize]{$a_3$} (g1b);
+\draw[sip] (gg) -- node[below,sloped,font=\footnotesize]{$a_4$} (g2b);
+\draw[sip] (g1b) -- node[above,sloped,font=\footnotesize]{$a_1$} (s0b);
+\node[font=\bfseries] at (2,-2.2) {zpětné (regrese)};
+\node[font=\footnotesize] at (2,-2.8) {$g\to\gamma^{-1}(g,a)$, akce \emph{relevantní}};
+\end{scope}
+\end{tikzpicture}
+\obrpopis{Dva směry plánování. \emph{Vlevo} dopředné: z~konkrétního počátečního stavu $s_0$ aplikujeme \emph{použitelné} akce ($s\mapsto\gamma(s,a)$) a~hledáme stav splňující cíl $g$. \emph{Vpravo} zpětné: od cíle $g$ aplikujeme \emph{relevantní} akce regresí ($g\mapsto\gamma^{-1}(g,a)$), čímž vznikají postupně podcíle, dokud nějaký nesplní $s_0$. Větvení vpravo bývá menší (jen relevantní akce), ale uzly jsou \emph{množiny} stavů.}
+\end{center}
+
+\subsection{Plánovací heuristiky}
+
+Aby informované prohledávání (A${}^\ast$) bylo efektivní, potřebuje heuristiku $h(s)$ odhadující „vzdálenost`` stavu $s$ k~cíli. Síla faktorové reprezentace je v~tom, že heuristiku lze odvodit \emph{automaticky a~doménově nezávisle} -- vyřešením \emph{relaxovaného} problému (z~původního odebereme některá omezení, čímž se zjednoduší). Délka řešení relaxace je dolním odhadem délky skutečného řešení, tedy \emph{přípustnou} heuristikou pro A${}^\ast$.
+
+\begin{definice}[Relaxace: ignoruj předpoklady / ignoruj záporné efekty]
+\begin{itemize}
+  \item \textbf{Ignoruj předpoklady} (ignore preconditions): každá akce je vždy použitelná (vypustíme $\mathrm{precond}$). Úloha se redukuje na výběr \emph{nejmenší množiny akcí pokrývající cílové atomy} (problém množinového pokrytí, set cover). Pozor: tato relaxace zanedbává i~to, že akce mohou rušit efekty jiných akcí.
+  \item \textbf{Ignoruj záporné efekty} (ignore delete lists): z~akcí vypustíme záporné efekty ($\mathrm{effects}^{-}$). Žádná akce pak neničí předpoklady jiné, takže množina pravdivých atomů jen \emph{monotónně roste}. Lze tedy postupně přidávat všechny použitelné akce, dokud nejsou pokryty všechny cílové atomy; nejmenší taková množina dá heuristiku.
+\end{itemize}
+\end{definice}
+
+\begin{intuice}
+Obě relaxace činí úlohu snáz řešitelnou, a~protože odebrání omezení nemůže řešení \emph{prodloužit}, dávají \emph{přípustný} (nikdy nenadhodnocující) odhad. To je přesně podmínka, za níž A${}^\ast$ najde optimální plán (sekce~1). Klíčové je, že tytéž recepty fungují pro \emph{libovolnou} doménu popsanou operátory -- proto „doménově nezávislé`` heuristiky. (Plánovací heuristiky požadavky okruhu výslovně nejmenují; uvádíme princip a~obě základní relaxace.)
+\end{intuice}
+
+\subsection{Řešený příklad SZZ}
+
+\begin{priklad}[SZZ jaro 2023 č.~5: Plánování (robot a~krabice)]
+\szzotazka{jaro 2023}{5}{Plánování (robot, krabice)}\par
+\textbf{Zadání.} Robot v~mřížce $4\times4$ umí akce \textbf{Jdi} (na sousední volné políčko; nese-li krabici, navíc nesmí na políčko s~jinou krabicí), \textbf{Seber} (krabici na své pozici, jen nedrží-li už jinou) a~\textbf{Polož} (nesenou krabici na svou pozici). Stav popisují predikáty $\mathtt{soused}(X,Y)$ (z~$X$ lze přejít na $Y$, na~$Y$ není zeď), $\mathtt{na}(X,K)$ (na políčku $X$ je krabice $K$) a~$\mathtt{robot}(X)$ (robot je na~$X$). Zdi (neprůchozí pole): \textbf{B1, B3, B4, C3}. Počátek: robot $R$ na \textbf{C1}, krabice $A$ na \textbf{A1}, krabice $B$ na \textbf{C2}. Cíl: dostat krabici $A$ na pole \textbf{D4} (hvězdička). Úkoly: (1)~formalizovat jako plánovací problém (operátory, počáteční a~cílový stav); (2)~popsat dopředné a~zpětné plánování; (3)~napsat konkrétní řešící plán.
+
+\medskip
+\textbf{(1) Formalizace.}
+
+\emph{Konstanty.} Políčka $\mathtt{A1},\dots,\mathtt{D4}$ (16~jmen), krabice $A,B$. \emph{Predikáty (fluenty):} $\mathtt{robot}(X)$, $\mathtt{na}(X,K)$, navíc pomocné $\mathtt{nese}(K)$ („robot nese krabici $K$``), $\mathtt{volno}(X)$ („na políčku $X$ neleží žádná krabice``) a~$\mathtt{volnaruka}$ („robot nic nenese``); pomáhají vyjádřit, kam smí robot s~krabicí vstoupit a~zda může sbírat. \emph{Rigidní predikát} $\mathtt{soused}(X,Y)$ kóduje mapu (sousední dvojice obou volných polí); v~počátečním stavu ho podle zadání nevypisujeme.
+
+\emph{Operátory.} Podle nápovědy potřebujeme \emph{dvě} verze pohybu -- robot bez krabice smí na libovolné volné sousední pole, robot s~krabicí navíc jen na pole bez jiné krabice:
+\begin{center}\small
+\begin{tabular}{@{}p{3.0cm}p{4.6cm}p{6.4cm}@{}}
+\toprule
+operátor & precond & effects \\
+\midrule
+$\mathtt{Jdi}(X,Y)$ \par\footnotesize(bez krabice) & $\mathtt{robot}(X),\mathtt{soused}(X,Y),$ $\mathtt{volnaruka}$ & $\neg\mathtt{robot}(X),\mathtt{robot}(Y)$ \\[2pt]
+$\mathtt{JdiSK}(X,Y,K)$ \par\footnotesize(nese $K$) & $\mathtt{robot}(X),\mathtt{soused}(X,Y),$ $\mathtt{nese}(K),\mathtt{volno}(Y)$ & $\neg\mathtt{robot}(X),\mathtt{robot}(Y)$ \\[2pt]
+$\mathtt{Seber}(X,K)$ & $\mathtt{robot}(X),\mathtt{na}(X,K),$ $\mathtt{volnaruka}$ & $\neg\mathtt{na}(X,K),\mathtt{nese}(K),$ $\neg\mathtt{volnaruka},\mathtt{volno}(X)$ \\[2pt]
+$\mathtt{Poloz}(X,K)$ & $\mathtt{robot}(X),\mathtt{nese}(K),$ $\mathtt{volno}(X)$ & $\neg\mathtt{nese}(K),\mathtt{na}(X,K),$ $\mathtt{volnaruka},\neg\mathtt{volno}(X)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Pomocný fluent $\mathtt{volnaruka}$ nahrazuje záporný předpoklad „nedrží žádnou krabici`` (faktorová reprezentace tak vystačí s~kladnými předpoklady, jako $\mathtt{handempty}$ ve~světě kostek). $\mathtt{Seber}(X,K)$ uvolní pole $X$ (efekt $\mathtt{volno}(X)$, krabice z~něj odešla do ruky); $\mathtt{JdiSK}$ jen přesune robota -- nesená krabice $K$ zůstává „v~ruce`` přes fluent $\mathtt{nese}(K)$ a~na podlahu ji položí teprve $\mathtt{Poloz}$ (atom $\mathtt{na}$ tedy mění jen $\mathtt{Seber}$ a~$\mathtt{Poloz}$, ne pohyb). Předpoklad $\mathtt{volno}(Y)$ u~$\mathtt{JdiSK}$ brání vstupu s~krabicí na pole, kde už leží jiná krabice.
+
+\emph{Počáteční stav} $s_0$ (vypisujeme jen měnící se fluenty, $\mathtt{soused}$ ne):
+\[ s_0=\{\,\mathtt{robot}(\mathtt{C1}),\ \mathtt{volnaruka},\ \mathtt{na}(\mathtt{A1},A),\ \mathtt{na}(\mathtt{C2},B)\,\}\cup\{\,\mathtt{volno}(X)\ :\ X\ \text{volné},\ X\neq \mathtt{A1},\mathtt{C2}\,\}. \]
+\emph{Cíl} $g=\{\,\mathtt{na}(\mathtt{D4},A)\,\}$ (jediný požadovaný literál; $g^{+}=\{\mathtt{na}(\mathtt{D4},A)\}$, $g^{-}=\emptyset$).
+
+\medskip
+\textbf{(2) Dopředné a~zpětné plánování.} \emph{Dopředné (progrese):} začneme v~$s_0$, generujeme nástupce $\gamma(s,a)$ jen pro akce \emph{použitelné} v~$s$ (splněné předpoklady), prohledáváme stavový prostor vpřed (A${}^\ast$ s~heuristikou, např. manhattanská vzdálenost krabice $A$ k~D4 plus vzdálenost robota ke krabici) a~končíme ve stavu, kde platí $\mathtt{na}(\mathtt{D4},A)$. \emph{Zpětné (regrese):} začneme cílem $g=\{\mathtt{na}(\mathtt{D4},A)\}$; relevantní je akce, jejíž efekt $\mathtt{na}(\mathtt{D4},A)$ přidává -- to je $\mathtt{Poloz}(\mathtt{D4},A)$. Regresní množina
+\[ \gamma^{-1}(g,\mathtt{Poloz}(\mathtt{D4},A))=(g\setminus\mathrm{effects})\cup\mathrm{precond}=\{\mathtt{robot}(\mathtt{D4}),\ \mathtt{nese}(A),\ \mathtt{volno}(\mathtt{D4})\}. \]
+Z~tohoto podcíle pokračujeme vzad (co muselo platit, aby tu robot s~$A$ stál na D4 -- musel sem dojít akcí $\mathtt{JdiSK}$ apod.), dokud podcíl nesplní $s_0$.
+
+\medskip
+\textbf{(3) Konkrétní plán.} Topologie mřížky je zde klíčová. Volná pole jsou jen $\mathtt{A1,A2,A3,A4,B2,C1,C2,C4,D1,D2,D3,D4}$ a~kvůli zdem B1,B3,B4,C3 se mapa rozpadá na \emph{dvě oblasti} -- horní levou \{A1,A2,A3,A4,B2\} a~dolní \{C1,C2,D1,D2,D3,D4,C4\} -- spojené \textbf{jediným} přechodem B2$\leftrightarrow$C2. Jenže na C2 leží krabice $B$, takže robot \emph{s~krabicí $A$} přes tento jediný most projít nemůže. Naivní plán „seber $A$ a~odnes ji do D4`` proto \textbf{neexistuje}. Robot musí nejdřív \emph{uvolnit most}: krabici $B$ z~C2 odnést do horní oblasti, položit ji stranou, vrátit se pro $A$ a~teprve pak ji volným C2 pronést dolů k~D4. Validní plán (ověřeno prohledáním stavového prostoru, je to nejkratší řešení, 16~akcí):
+\begin{enumerate}[nosep]
+  \item $\mathtt{Jdi}(\mathtt{C1},\mathtt{C2})$
+  \item $\mathtt{Seber}(\mathtt{C2},B)$
+  \item $\mathtt{JdiSK}(\mathtt{C2},\mathtt{B2},B)$
+  \item $\mathtt{JdiSK}(\mathtt{B2},\mathtt{A2},B)$
+  \item $\mathtt{JdiSK}(\mathtt{A2},\mathtt{A3},B)$
+  \item $\mathtt{Poloz}(\mathtt{A3},B)$
+  \item $\mathtt{Jdi}(\mathtt{A3},\mathtt{A2})$
+  \item $\mathtt{Jdi}(\mathtt{A2},\mathtt{A1})$
+  \item $\mathtt{Seber}(\mathtt{A1},A)$
+  \item $\mathtt{JdiSK}(\mathtt{A1},\mathtt{A2},A)$
+  \item $\mathtt{JdiSK}(\mathtt{A2},\mathtt{B2},A)$
+  \item $\mathtt{JdiSK}(\mathtt{B2},\mathtt{C2},A)$
+  \item $\mathtt{JdiSK}(\mathtt{C2},\mathtt{D2},A)$
+  \item $\mathtt{JdiSK}(\mathtt{D2},\mathtt{D3},A)$
+  \item $\mathtt{JdiSK}(\mathtt{D3},\mathtt{D4},A)$
+  \item $\mathtt{Poloz}(\mathtt{D4},A)$
+\end{enumerate}
+Krabici $B$ jsme odložili na A3 (stačilo by kterékoli volné pole horní oblasti mimo trasu). Výsledný stav obsahuje $\mathtt{na}(\mathtt{D4},A)$, cíl je splněn.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0, every node/.style={font=\small}]
+% mřížka 4x4: sloupce 1..4 (x=1..4), řádky A nahoře..D dole (A->y=4, B->y=3, C->y=2, D->y=1)
+\def\wall#1#2{\fill[black!70] (#1-0.5,#2-0.5) rectangle (#1+0.5,#2+0.5);}
+% pozadí volných polí
+\foreach \x/\y in {1/4,2/4,3/4,4/4, 2/3, 1/2,2/2,4/2, 1/1,2/1,3/1,4/1}{
+  \fill[black!4] (\x-0.5,\y-0.5) rectangle (\x+0.5,\y+0.5);
+}
+% zdi: B1(x1,y3) B3(x3,y3) B4(x4,y3) C3(x3,y2)
+\wall{1}{3}\wall{3}{3}\wall{4}{3}\wall{3}{2}
+% mřížka
+\draw[step=1,thin,black!55] (0.5,0.5) grid (4.5,4.5);
+% jména polí v pravém horním rohu každé buňky
+\foreach \x/\y/\nm in {1/4/A1,2/4/A2,3/4/A3,4/4/A4, 1/3/B1,2/3/B2,3/3/B3,4/3/B4,
+  1/2/C1,2/2/C2,3/2/C3,4/2/C4, 1/1/D1,2/1/D2,3/1/D3,4/1/D4}{
+  \node[font=\tiny,anchor=north east,inner sep=1pt] at (\x+0.48,\y+0.48) {\nm};
+}
+% nalezená trasa: fáze 1 (nese B): C1->C2->B2->A2->A3 ; fáze 2 (nese A): A1->A2->B2->C2->D2->D3->D4
+\draw[sip,red!75!black,thick,rounded corners=2pt]
+  (1,2)--(2,2)--(2,3)--(2,4)--(3,4);
+\draw[sip,blue!70!black,thick,dashed,rounded corners=2pt]
+  (1,4)--(2,4)--(2,3)--(2,2)--(2,1)--(4,1);
+% obsah: robot R v C1(x1,y2), krabice A v A1(x1,y4), krabice B v C2(x2,y2), hvězda v D4(x4,y1)
+\node[font=\bfseries] at (1,2) {$R$};
+\node[draw,thick,fill=blue!15,minimum size=4.5mm,inner sep=0pt] at (1,4) {$A$};
+\node[draw,thick,fill=orange!25,minimum size=4.5mm,inner sep=0pt] at (2,2) {$B$};
+\node[star,star points=5,star point ratio=2.3,draw,fill=yellow!75,minimum size=5mm,inner sep=0pt] at (4,1) {};
+\end{tikzpicture}
+\obrpopis{Mapa úlohy ($4\times4$, řádky A nahoře po D dole). Tmavé buňky jsou zdi (B1,B3,B4,C3). Robot $R$ startuje v~C1, krabice $A$ v~A1, krabice $B$ v~C2, cílová hvězdička je v~D4. Volná pole tvoří dvě oblasti spojené jediným mostem B2$\leftrightarrow$C2, na němž stojí krabice $B$. \emph{Červeně}: robot nejprve odklidí $B$ z~mostu do horní oblasti (C1$\to$C2$\to$B2$\to$A2$\to$A3). \emph{Modře čárkovaně}: pak odnese $A$ z~A1 už volným mostem dolů do D4 (A1$\to$A2$\to$B2$\to$C2$\to$D2$\to$D3$\to$D4). (Schéma obou fází; proběhnou postupně, ne současně.)}
+\end{center}
+\end{priklad}
+
+\begin{poznamka}[Past v~zadání]
+Tato otázka nemá v~PDF oficiální náčrt řešení. Naivní „seber $A$, jdi do D4`` selže -- jediná spojnice obou oblastí (B2--C2) je blokovaná krabicí $B$, kterou robot s~nákladem nesmí minout. Validitu plánu (každá akce použitelná, žádný vstup s~krabicí na obsazené pole, dosažení cíle) i~jeho \emph{minimalitu} (16~akcí) jsme ověřili prohledáním stavového prostoru. Bez tohoto kroku by „odnes $A$ rovnou`` znělo věrohodně, ale bylo by chybné.
+\end{poznamka}
+
+\noindent V~\texttt{priklady/} je u~této otázky původní oříznutý obrázek mřížky z~PDF (zadání bez oficiálního náčrtu řešení).

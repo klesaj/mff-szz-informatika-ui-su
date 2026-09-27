@@ -1,0 +1,40 @@
+% Zdroj: PDF priklady-leto-2023.pdf, fyzická str. 1. Značka: starší neznačená sada. Zařazeno: M2.
+\section{Lineární algebra}
+\szzotazka{léto 2023}{3}{Lineární algebra}
+
+\noindent\textbf{Zadání.}\par
+Uvažujme dvě matice
+\[
+  A = \begin{pmatrix} 1 & 2 \\ 1 & 1 \end{pmatrix}, \quad
+  B = \begin{pmatrix} 0 & 1 \\ 1 & 2 \end{pmatrix}.
+\]
+\begin{enumerate}
+  \item Najděte vektor $x \in \mathbb{R}^2$ takový, aby vektory $Ax$, $Bx$ byly na sebe kolmé (při standardním skalárním součinu).
+  \item Najděte matici lineárního zobrazení, které vektor $Ax$ zobrazuje na vektor $Bx$ pro libovolné $x \in \mathbb{R}^2$.
+  \item Rozhodněte, zda lineární zobrazení $x \mapsto B^{-1} A^3 B^{-1} x$ plochy geometrických útvarů zvětšuje či zmenšuje.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textit{(V originálním PDF bez náčrtu; doplněno vzorové řešení.)}
+\begin{enumerate}
+  \item Spočítáme $Ax=(x_1+2x_2,\ x_1+x_2)^T$ a $Bx=(x_2,\ x_1+2x_2)^T$. Jejich standardní skalární součin je
+    \[
+      (Ax)^T(Bx)=(x_1+2x_2)x_2+(x_1+x_2)(x_1+2x_2)=x_1^2+4x_1x_2+4x_2^2=(x_1+2x_2)^2.
+    \]
+    Vektory jsou kolmé právě tehdy, když $(x_1+2x_2)^2=0$, tj.\ $x_1=-2x_2$. Hledané vektory jsou tedy $x=t\,(-2,1)^T$, $t\in\mathbb{R}$ (např.\ $x=(-2,1)^T$).
+  \item Hledáme matici $M$ s~$M(Ax)=Bx$ pro \emph{všechna} $x$. Protože $A$ je regulární ($\det A=1\cdot1-2\cdot1=-1\neq0$), prochází $Ax$ celé $\mathbb{R}^2$ a~podmínka je ekvivalentní $MA=B$, odkud $M=BA^{-1}$. Z
+    \[
+      A^{-1}=\frac{1}{-1}\begin{pmatrix}1&-2\\-1&1\end{pmatrix}=\begin{pmatrix}-1&2\\1&-1\end{pmatrix}
+    \]
+    dostáváme
+    \[
+      M=BA^{-1}=\begin{pmatrix}0&1\\1&2\end{pmatrix}\begin{pmatrix}-1&2\\1&-1\end{pmatrix}=\begin{pmatrix}1&-1\\1&0\end{pmatrix}.
+    \]
+    Ověření: $MA=\begin{psmallmatrix}1&-1\\1&0\end{psmallmatrix}\begin{psmallmatrix}1&2\\1&1\end{psmallmatrix}=\begin{psmallmatrix}0&1\\1&2\end{psmallmatrix}=B$.
+  \item Faktor změny obsahu při zobrazení $x\mapsto Cx$ je $|\det C|$. Z~multiplikativnosti determinantu
+    \[
+      |\det(B^{-1}A^3B^{-1})|=\frac{|\det A|^3}{|\det B|^2}.
+    \]
+    Zde $\det A=-1$ a $\det B=0\cdot2-1\cdot1=-1$, takže faktor je $\dfrac{1^3}{1^2}=1$. Obsahy se tedy \emph{nemění} (zobrazení je zachovává; protože $\det(B^{-1}A^3B^{-1})=(-1)^3/(-1)^2=-1<0$, mění jen orientaci).
+\end{enumerate}

@@ -1,0 +1,87 @@
+% !TeX program = lualatex
+\documentclass[11pt,a4paper]{article}
+\usepackage{szzmaterial}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc,fit,backgrounds,shapes.geometric,shapes.misc,matrix,automata,chains,decorations.pathreplacing}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\setlist[enumerate]{nosep,leftmargin=2.1em}
+\setlist[itemize]{nosep,leftmargin=1.8em}
+
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+
+% --- Box pro algoritmy (pseudokód). Lokální doplněk preambule okruhu. ---
+\newtcolorbox{algo}[1][]{enhanced,breakable,colback=teal!4,colframe=teal!55!black,
+  boxrule=0.6pt,arc=2pt,left=6pt,right=8pt,top=3pt,bottom=4pt,
+  fonttitle=\bfseries,coltitle=white,colbacktitle=teal!55!black,
+  title={\faCogs\enspace Algoritmus \textemdash\ #1}}
+% Komentář v pseudokódu
+\newcommand{\cmt}[1]{\hfill{\footnotesize\itshape\textcolor{black!55}{$\triangleright$ #1}}}
+
+% --- Společné značení v obrázcích ---
+\tikzset{
+  stav/.style={circle,draw=blue!55!black,fill=blue!8,thick,minimum size=8mm,inner sep=1pt,font=\small},
+  stavc/.style={circle,draw=red!55!black,fill=red!10,thick,minimum size=8mm,inner sep=1pt,font=\small},
+  stavg/.style={circle,draw=green!50!black,fill=green!12,thick,minimum size=8mm,inner sep=1pt,font=\small},
+  uzel/.style={circle,draw=blue!55!black,fill=blue!8,thick,minimum size=7mm,inner sep=1pt,font=\small},
+  bnnode/.style={circle,draw=blue!55!black,fill=blue!8,thick,minimum size=9mm,inner sep=1pt,font=\small},
+  hrana/.style={thick},
+  sip/.style={->,>=Stealth,thick},
+  sipp/.style={->,>=Stealth,semithick},
+  maxn/.style={regular polygon,regular polygon sides=3,draw,thick,fill=red!12,inner sep=0pt,minimum size=6.5mm,shape border rotate=0,font=\small},
+  minn/.style={regular polygon,regular polygon sides=3,draw,thick,fill=blue!12,inner sep=0pt,minimum size=6.5mm,shape border rotate=180,font=\small},
+  listn/.style={circle,draw,thick,fill=black!5,inner sep=1pt,minimum size=6mm,font=\small},
+}
+
+\szztitul{Základy umělé inteligence}{S1}{NAIL120 (Úvod do umělé inteligence)}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\bigskip
+
+% ============================================================
+\section*{Úvod}
+\addcontentsline{toc}{section}{Úvod}
+
+Tento materiál pokrývá okruh \textbf{S1 -- Základy umělé inteligence} (předmět NAIL120 \emph{Úvod do umělé inteligence}). Výklad stojí na slidech přednášejícího \textbf{Romana Bartáka} (stránka kurzu \url{https://ktiml.mff.cuni.cz/~bartak/ui_intro/}); kurz oficiálně staví na učebnici Russella a Norviga \emph{Artificial Intelligence: A Modern Approach} (AIMA), z níž pochází i~standardní pseudokód algoritmů a~jednotné značení. Okruh je v~podstatě „celá umělá inteligence v~kostce``: prochází hlavní paradigmata -- prohledávání, splňování podmínek, logické a~pravděpodobnostní uvažování, uvažování v~čase, plánování, rozhodování za nejistoty, hry a~strojové učení.
+
+\medskip
+\noindent\textbf{Role důkazů.} Požadavky okruhu jmenují pojmy, algoritmy a~jejich vlastnosti, ne formální důkazy. Těžiště je ve formalizaci úlohy, v~simulaci algoritmu na konkrétním vstupu, ve výpočtu pravděpodobnosti či užitku a~v~protipříkladech. Věty a~vlastnosti proto uvádíme se zněním, intuicí a~krátkým \emph{odvozením} tam, kde pomáhá pochopení -- například optimalita A${}^\ast$ slouží jako \emph{argument} (proč přípustná heuristika zaručí optimální řešení).
+
+Do výkladu je zařazeno všech třináct reálných otázek SZZ k~okruhu z~let 2022--2026 jako řešené příklady; jejich originální zadání (a~diagramy oříznuté z~PDF) jsou i~v~samostatném dokumentu \emph{Příklady otázek}. Použité zdroje jsou uvedeny na konci.
+
+\medskip
+\noindent\textbf{Značení.} \emph{Stav} značíme $s$, \emph{akci} $a$, množinu stavů $S$, množinu akcí použitelných ve stavu $s$ jako $A(s)$. \emph{Cena} (krok) akce je $c(s,a,s')$, \emph{cesta z~kořene} do uzlu $n$ má cenu $g(n)$, \emph{heuristika} $h(n)$ odhaduje cenu z~$n$ do cíle, hodnoticí funkce $f(n)=g(n)+h(n)$. \emph{Náhodné veličiny} píšeme velkými písmeny ($X$, $E$), jejich hodnoty malými ($x$, $e$); $\mathbf{P}(X)$ je \emph{rozdělení} (vektor), $P(x)$ konkrétní pravděpodobnost. Sdružené rozdělení $\mathbf{P}(X,Y)$, podmíněné $\mathbf{P}(X\mid Y)$; $\alpha$ je normalizační konstanta. V~uvažování v~čase je $X_t$ skrytý stav v~čase $t$, $E_t$ pozorování, $X_{a:b}$ posloupnost $X_a,\dots,X_b$. V~rozhodování je $P(s'\mid s,a)$ přechodový model, $R(s)$ odměna, $\gamma\in[0,1]$ diskontní faktor, $U(s)$ užitek stavu, $\pi(s)$ strategie. Logaritmus $\log$ bez základu je $\log_2$ (entropie v~bitech).
+
+% ============================================================
+\input{s1_prohledavani}
+\input{s2_csp}
+\input{s3_logika}
+\input{s4_pravdepodobnost}
+\input{s5_markov_hmm}
+\input{s6_planovani}
+\input{s7_mdp}
+\input{s8_hry}
+\input{s9_strojove_uceni}
+
+% ============================================================
+\section*{Shrnutí}
+\addcontentsline{toc}{section}{Shrnutí}
+\input{s99_shrnuti}
+
+% ============================================================
+\section*{Zdroje}
+\addcontentsline{toc}{section}{Zdroje}
+
+{\raggedright
+\begin{itemize}
+  \item R.~Barták: slidy přednášek předmětu NAIL120 \emph{Úvod do umělé inteligence} (Introduction to Artificial Intelligence), MFF UK, anglická verze (primární zdroj výkladu).\\ \url{https://ktiml.mff.cuni.cz/~bartak/ui_intro/}
+  \item S.~Russell, P.~Norvig: \emph{Artificial Intelligence: A~Modern Approach}, 3.~vyd.\ 2010 a~4.~vyd.\ 2020, Pearson (učebnice, na níž kurz stojí; značení a~standardní příklady).\\ \url{https://aima.cs.berkeley.edu/}
+  \item S.~Russell, P.~Norvig: \emph{Pseudocode for the Algorithms in AIMA} (kanonický pseudokód algoritmů; kontrola správnosti).\\ \url{https://aima.cs.berkeley.edu/algorithms.pdf}
+  \item MFF UK: požadavky ke státní závěrečné zkoušce (Informatika, Bc.) a~zadání otázek z~minulých termínů.\\ \url{https://www.mff.cuni.cz/cs/studenti/bakalarske-studium/statni-zaverecne-zkousky/bakalarske-statni-zkousky-studijniho-programu-informatika}
+\end{itemize}
+\par}
+
+\end{document}

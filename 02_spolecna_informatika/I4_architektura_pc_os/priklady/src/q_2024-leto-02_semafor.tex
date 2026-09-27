@@ -1,0 +1,123 @@
+% Zdroj: PDF priklady-leto-2024.pdf, fyzická str. 2-3. Značka: společné okruhy. Zařazeno: I4.
+\section{Semafor}
+\szzotazka{léto 2024}{2}{Semafor (P/V, race condition, deadlock)}
+
+\noindent\textbf{Zadání.}\par
+Knihovna \texttt{System.Threading} jazyka C\# obsahuje třídu \texttt{Semaphore}
+s~metodami odpovídajícími operacím klasického semaforu, $P$ (\texttt{WaitOne})
+a~$V$ (\texttt{Release}). Objekt vytvořený pomocí \texttt{new Semaphore(0, 1)} odpovídá
+binárnímu semaforu inicializovanému nulou. Pokud více než jedno vlákno čeká na tentýž
+semafor, pořadí, ve kterém budou vlákna spouštěna po uvolnění semaforu, není specifikováno.
+
+Program vpravo má produkovat výstup \texttt{OneTwoThreeFourFive}, přitom liché části
+výstupu mají být vypisovány funkcí \texttt{f1} a~sudé části funkcí \texttt{f2}, přičemž
+tyto funkce běží v~různých vláknech.
+
+Synchronizace, implementovaná pomocí semaforu, téměř funguje, ale obsahuje časově závislé
+chyby (race conditions).
+
+\begin{lstlisting}[language={[Sharp]C},numbers=left]
+class Program
+{
+    private static Semaphore sem;
+
+    private static void f1()
+    {
+        Console.Write("One");
+        sem.Release();
+        sem.WaitOne();
+        Console.Write("Three");
+        sem.Release();
+        sem.WaitOne();
+        Console.Write("Five");
+    }
+
+    private static void f2()
+    {
+        sem.WaitOne();
+        Console.Write("Two");
+        sem.Release();
+        sem.WaitOne();
+        Console.Write("Four");
+        sem.Release();
+    }
+
+    static void Main(string[] args)
+    {
+        sem = new Semaphore(0, 1);
+        Thread t1 = new Thread(f1);
+        Thread t2 = new Thread(f2);
+        t1.Start();
+        t2.Start();
+        t1.Join();
+        t2.Join();
+    }
+}
+\end{lstlisting}
+
+\begin{enumerate}
+\item Popište scénář, který vede k~jinému výstupu než \texttt{OneTwoThreeFourFive}, nebo
+  končí uváznutím (deadlock). Scénář zapište jako posloupnost čísel řádek, přičemž každé
+  číslo reprezentuje \textit{ukončení} příkazu na dané řádce. Pouze vnitřky funkcí
+  \texttt{f1} a~\texttt{f2} jsou relevantní.
+\item Existovaly by v~tomto kódu časově závislé chyby i~v~případě, že by knihovna C\#
+  garantovala FIFO pořadí spouštění vláken čekajících ve \texttt{WaitOne}?
+\item Napište řešení, které neobsahuje časově závislé chyby a~spolehlivě vypisuje
+  požadovaný výstup \texttt{OneTwoThreeFourFive}. Použijte přitom dva semafory a~pouze
+  jejich funkce \texttt{Release()} a~\texttt{WaitOne()}. Řešení nesmí používat žádné jiné
+  proměnné nebo objekty sdílené mezi vlákny kromě těchto dvou semaforů. Volání
+  \texttt{Console.Write} musejí samozřejmě zůstat tam, kde jsou.
+\end{enumerate}
+
+\noindent(Jazyk C\# je v~této otázce použitý pouze jako generický zástupce běžných
+programovacích jazyků, otázka ani řešení s~jazykem C\# jako takovým nesouvisí.)
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+\item Všechny scénáře, v~lexikografickém pořadí:
+\begin{enumerate}
+\item \texttt{7-8-9-10-11-12-13-deadlock(18+34): OneThreeFive}
+\item \texttt{7-8-9-10-11-18-19-20-12-13-deadlock(21+34): OneThreeTwoFive}
+\item \texttt{7-8-9-10-11-18-19-20-21-22-23-12-13: OneThreeTwoFourFive}
+\item \texttt{7-8-18-19-20-9-10-11-12-13-deadlock(21+34): OneTwoThreeFive}
+\item \textit{\texttt{7-8-18-19-20-9-10-11-21-22-23-12-13: OneTwoThreeFourFive} -- The expected program behavior}
+\item \texttt{7-8-18-19-20-21-22-23-9-10-11-12-13: OneTwoFourThreeFive}
+\end{enumerate}
+Postačující odpovědí je kterýkoli z~výše uvedených scénářů kromě (e).
+
+\item Ano. Všechny výše uvedené scénáře fungují i~pro FIFO čekání.
+
+\item Viz kód níže:
+\begin{lstlisting}[language={[Sharp]C}]
+private static void f1()
+{
+    Console.Write("One");
+    semA.Release();
+    semB.WaitOne();
+    Console.Write("Three");
+    semA.Release();
+    semB.WaitOne();
+    Console.Write("Five");
+}
+
+private static void f2()
+{
+    semA.WaitOne();
+    Console.Write("Two");
+    semB.Release();
+    semA.WaitOne();
+    Console.Write("Four");
+    semB.Release();
+}
+\end{lstlisting}
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Kořen chyby je v~tom, že
+jediný semafor nerozlišuje, \emph{komu} je signál určen: \texttt{f1} po \texttt{Release} (ř.~8)
+pokračuje hned \texttt{WaitOne} (ř.~9) a~může si svůj vlastní token vzít dřív, než \texttt{f2}
+vůbec dojde na ř.~18. Proto nepomůže ani FIFO pořadí probouzení: ve scénáři (a) na semaforu v~tu
+chvíli nikdo nečeká, takže není koho probouzet ve frontě. Se dvěma semafory \texttt{f1} signalizuje
+jen do \texttt{semA} a~čeká jen na \texttt{semB}, \texttt{f2} naopak; žádné vlákno tak nemůže
+spotřebovat token, který samo vydalo, a~výpisy se střídají v~pevném pořadí.

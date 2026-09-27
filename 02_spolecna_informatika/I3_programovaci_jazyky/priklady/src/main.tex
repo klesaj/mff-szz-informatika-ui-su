@@ -1,0 +1,43 @@
+% !TeX program = lualatex
+% Agregátor reálných otázek SZZ pro okruh I3. Jednotlivé otázky jsou v souborech q_*.tex.
+% Sestavení: ./build.sh 02_spolecna_informatika/I3_programovaci_jazyky/priklady   (nebo cd .../priklady && latexmk)
+\documentclass[11pt,a4paper]{article}
+\usepackage{szzpriklady}
+% Build běží z adresáře priklady/ (CWD), obrázky jsou v src/fig/.
+\graphicspath{{src/fig/}{fig/}}
+
+\title{Příklady otázek -- Programovací jazyky\\[0.3em]\large Reálné otázky ze SZZ 2022--2025 (I3)}
+\author{Jakub Klesa}
+\date{Pokryté předměty: NPRG013 (Java) / NPRG035 (C\#) / NPRG041 (C++) - dle volby jazyka}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\bigskip
+
+\begin{poznamka}
+Tento dokument obsahuje reálné otázky z minulých termínů SZZ (2022--2025) zařazené do
+okruhu I3. U otázek s obrázkem je grafika oříznutá z originálního PDF (viz odkaz na
+zdroj). Text, číselná data a tabulky jsou přepsané věrně.
+Zadání i oficiální náčrty řešení pocházejí ze sad zveřejněných na webu MFF UK:\par
+{\raggedright\url{https://www.mff.cuni.cz/cs/studenti/bakalarske-studium/statni-zaverecne-zkousky/bakalarske-statni-zkousky-studijniho-programu-informatika}\par}
+Náčrty označené jako doplněné jsou vlastní, oficiální sada je k~dané otázce neobsahuje;
+vlastní řešení jsou v~C++ (u~otázky podzim 2022 v~Javě) a~jejich kód byl ověřen překladem.
+Pojmy odpovídají přednáškám D.~Bednárka \emph{Programování v~C++} a~\emph{Pokročilé programování v~C++}
+(\url{https://teaching.mff.cuni.cz/nprg041-web/}). Fialové rámečky \emph{Lehčí v~C\#} ukazují
+kratší odpověď v~C\#, který zadání také dovolují.
+\end{poznamka}
+\bigskip
+
+% === Otázky (chronologicky). Doplň \input řádky a soubory q_*.tex do src/. ===
+% Příklad: \input{q_2024-leto-28_bayesovske-site}
+% ZACATEK-OTAZEK
+\input{src/q_2022-leto-02_preklad-konstrukci}
+\input{src/q_2022-podzim-01_programovani-rozhrani-grafu}
+\input{src/q_2023-jaro-02_objektovy-navrh-bitmapovy-editor}
+\input{src/q_2023-leto-18_komponentovy-system}
+\input{src/q_2024-podzim-02_reprezentace-typu}
+\input{src/q_2025-jaro-02_knihovna-matice}
+% KONEC-OTAZEK
+
+\end{document}

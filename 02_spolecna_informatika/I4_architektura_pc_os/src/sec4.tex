@@ -1,0 +1,247 @@
+% ============================================================
+\section{Rozhraní periferií a jejich obsluha}
+% ============================================================
+
+Periferní zařízení (disk, myš, síťová karta) jsou výrazně pomalejší a~rozmanitější než procesor a~paměť, a~přitom s~nimi procesor musí umět komunikovat jednotně. Tato sekce vysvětluje, jak je zařízení připojeno (přes \emph{řadič}), jak s~ním procesor mluví (I/O porty vs.\ paměťově mapované registry), jak vypadá \emph{programem řízená obsluha} s~aktivním čekáním a~jak funguje alternativa -- \emph{přerušení} -- včetně přesné reakce hardwaru a~operačního systému na žádost o~přerušení. To přímo pokrývá oba doslovné požadavky okruhu: implementovat obsluhu zadaného zařízení pro dané porty a~popsat reakci na přerušení na úrovni instrukcí.
+
+\subsection{Zařízení, řadič a ovladač}
+
+\begin{definice}[Zařízení, řadič, ovladač]
+\emph{Zařízení} (device) je hardwarová komponenta určená pro konkrétní účel (disk, myš, klávesnice, síťová karta). \emph{Řadič zařízení} (device controller) je hardware, který zařízení elektricky obsluhuje -- pracuje se signály „na drátech``, převádí mezi analogovým a~digitálním světem a~spravuje jedno či více zařízení připojených v~nějaké topologii (sběrnice, hvězda, strom). Navenek vystavuje sadu \emph{registrů}, přes které procesor zadává příkazy a~čte stav. \emph{Ovladač zařízení} (device driver) je naopak \emph{softwarová} komponenta -- část jádra OS (typicky modul, často zaváděný dynamicky) -- která řadič ovládá zápisem/čtením jeho registrů a~vyšší vrstvě OS nabízí \emph{abstraktní rozhraní} (např.\ „přečti blok``, „pošli paket``). Ovladač je specifický pro konkrétní řadič nebo třídu řadičů.
+\end{definice}
+
+\begin{intuice}
+Řadič je „hardwarová strana`` a~ovladač „softwarová strana`` téhož rozhraní. Procesor sám neví, jak roztočit ploténku disku nebo přečíst pozici myši; ví jen, jak číst a~zapisovat čísla do registrů řadiče. Řadič je tlumočník mezi tímto jednoduchým registrovým rozhraním a~fyzikou konkrétního zařízení. Ovladač tuto registrovou „abecedu`` zná a~překládá ji na pojmy, kterým rozumí zbytek jádra. Díky této dvojici vrstev může zbytek OS pracovat se všemi disky stejně, bez ohledu na výrobce.
+\end{intuice}
+
+\begin{poznamka}
+Při startu počítače se zařízení \emph{vyjmenují a~inicializují} přes základní HW rozhraní \textbf{BIOS}/\textbf{UEFI} (firmware na základní desce): zjistí se, která zařízení jsou připojena a~na jakých adresách jsou jejich registry, a~předá se řízení zavaděči OS. Teprve potom převezme zařízení do správy jádro se svými ovladači.
+\end{poznamka}
+
+\subsection{Jak procesor komunikuje se zařízením}
+
+Procesor čte a~zapisuje registry řadiče jedním ze dvou způsobů:
+
+\begin{itemize}
+\item \textbf{Speciální I/O instrukce.} Procesor má zvláštní (privilegované) instrukce pro vstup a~výstup, které adresují zařízení \emph{číslem portu} v~odděleném \emph{I/O adresovém prostoru}. Na x86 jsou to instrukce \cd!in! a~\cd!out! (např.\ \texttt{in al, dx} přečte bajt z~portu, jehož číslo je v~registru \texttt{dx}). Port je tedy „adresa registru řadiče`` v~tomto zvláštním prostoru.
+\item \textbf{Paměťově mapovaná zařízení} (memory-mapped I/O). Registry řadiče jsou namapovány na pevné adresy v~\emph{běžném} adresovém prostoru. Procesor pak se zařízením komunikuje obyčejnými instrukcemi load/store (čtení a~zápis do paměti), které hardware podle adresy přesměruje na řadič místo do RAM.
+\end{itemize}
+
+\begin{definice}[Paměťově mapované I/O]
+\emph{Paměťově mapované I/O} přiřazuje řídicím a~stavovým registrům zařízení pevné adresy v~adresovém prostoru procesoru. Běžné čtení (load) z~takové adresy hardware přeloží na čtení registru zařízení a~běžný zápis (store) na zápis do registru; zápis na určitý \emph{offset} přitom typicky funguje jako \emph{příkaz} pro zařízení (např.\ zápis čísla do registru \emph{Command} spustí čtení sektoru). Pro program tak ovládání zařízení vypadá jako práce s~pamětí, jen na vyhrazených adresách.
+\end{definice}
+
+\begin{intuice}
+U~paměťově mapovaného I/O je klíčové, že \emph{zápis sám o~sobě něco udělá} -- nejde o~uložení hodnoty „na později``, ale o~povel. Proto se takové registry v~jazyce~C deklarují jako \cd!volatile! (viz též rozbor u~řešeného příkladu níže): překladač nesmí čtení/zápisy slučovat, přeskakovat ani přehazovat, i~když se mu „opakované čtení téže adresy`` zdá zbytečné. Pro každé čtení stavového registru totiž může řadič vrátit jinou hodnotu, aniž by do něj cokoli v~programu zapsalo.
+\end{intuice}
+
+\subsection{Programem řízená obsluha (PIO) s aktivním čekáním}
+
+\begin{definice}[Programem řízená obsluha (PIO), aktivní čekání]
+\emph{Programem řízená obsluha} (Programmed I/O, PIO) je způsob obsluhy zařízení, při kterém \emph{celou} operaci řídí instrukce procesoru čtením a~zápisem registrů řadiče. Řadič vystavuje \emph{řídicí} registry (kam procesor zapisuje příkazy a~parametry) a~\emph{stavové} registry (odkud procesor čte aktuální stav, typicky příznaky jako „zaneprázdněn`` a~„chyba``). Při \emph{aktivním čekání} (polling, busy-waiting) procesor po zadání příkazu v~cyklu opakovaně čte stavový registr, dokud zařízení operaci nedokončí.
+\end{definice}
+
+Typický průběh čtení sektoru z~disku v~PIO s~aktivním čekáním (pro daný řadič s~danými offsety/funkcemi portů) má tyto kroky:
+
+\begin{enumerate}[label=(\arabic*)]
+\item \textbf{Zkontroluj stav.} Přečti stavový/chybový registr a~ujisti se, že řadič je připraven (není zaneprázdněn, nehlásí chybu).
+\item \textbf{Nastav parametry.} Zapiš do parametrových registrů, co a~kam: číslo bloku (LBA, případně sektor/cylindr/hlava), počet bloků, cílovou adresu v~paměti.
+\item \textbf{Pošli příkaz.} Zápisem do \emph{příkazového} registru (např.\ kódu „čtení``) spusť operaci. Tím se zařízení rozběhne a~nastaví příznak „zaneprázdněn``.
+\item \textbf{Čekej na dokončení.} Opakovaně čti stavový registr, dokud nezmizí příznak „zaneprázdněn`` (nebo dokud se neobjeví příznak „chyba``). To je ono aktivní čekání.
+\item \textbf{Přeber data.} Po dokončení přečti data (u~jednoduchých řadičů z~datového registru, u~moderních je už přenesl do paměti řadič sám, viz DMA níže) a~zkontroluj, zda nenastala chyba.
+\end{enumerate}
+
+Stejný princip (cyklické čtení stavového a~datového registru) platí pro libovolné zařízení obsluhované PIO. Třeba u~\emph{myši} program čeká, až stavový registr ohlásí nová data, a~pak z~datového registru přečte relativní pohyb a~stav tlačítek; liší se jen význam jednotlivých registrů a~portů.
+
+\begin{intuice}
+Aktivní čekání je jednoduché, ale plýtvavé: procesor v~kroku~(4) jen dokola čte tutéž adresu a~nic užitečného nedělá, zatímco pomalé zařízení pracuje. Pro krátké operace nebo v~situaci, kdy stejně nemáme co počítat (např.\ inicializace ovladače při bootu), je to v~pořádku. Pro běžný provoz se polling nahrazuje \emph{přerušením} -- procesor zadá příkaz a~věnuje se jiné práci, dokud ho zařízení samo neupozorní, že je hotovo.
+\end{intuice}
+
+\subsection{Přerušení}
+
+\begin{definice}[Přerušení (interrupt)]
+\emph{Přerušení} je mechanismus, kterým je tok instrukcí procesoru \emph{asynchronně} přesměrován na zvláštní \emph{obslužnou rutinu} (interrupt handler). Místo aby procesor stav zařízení sám zjišťoval pollingem, zařízení samo signalizuje procesoru, že vyžaduje pozornost -- typicky vystavením signálu na vyhrazeném vstupu procesoru (\emph{IRQ pin}, žádost o~přerušení). Procesor po dokončení (nebo zrušení) právě prováděné instrukce přeruší běžný tok, vykoná obsluhu a~poté se vrátí tam, kde byl přerušen.
+\end{definice}
+
+Přerušení se podle zdroje dělí na tři typy:
+
+\begin{itemize}
+\item \textbf{Externí (hardwarové) přerušení} -- pochází od zařízení přes IRQ pin (dokončení diskové operace, příchod paketu, stisk klávesy, tik časovače). Tato přerušení lze dočasně \emph{maskovat} (zakázat), když jádro provádí citlivou operaci, která nesmí být přerušena.
+\item \textbf{Výjimka} (exception) -- vyvolá ji \emph{instrukce} sama během svého provádění. Architektura má pevně daný seznam výjimek. \emph{Trap} (past) se vyvolá \emph{po} instrukci (např.\ krokování při ladění), \emph{fault} (chyba) \emph{před} dokončením, instrukce se zruší (rollback) a~po obsluze se může zopakovat (typicky výpadek stránky -- page fault, dále dělení nulou, neplatný opkód, výpadek ochrany).
+\item \textbf{Softwarové přerušení} -- vyvolá je speciální instrukce (na x86 \cd!int!). Hodí se mj.\ jako mechanismus \emph{systémového volání} (starší x86 používaly \cd!int 0x80!, viz sekce~3).
+\end{itemize}
+
+\begin{poznamka}
+Na architektuře x86 je celkem \textbf{256} přerušení očíslovaných $0$ až $255$; \emph{prvních 32} je vyhrazeno architekturou pro výjimky (např.\ $0$ = dělení nulou, $\texttt{0x0E}$ = výpadek stránky, $\texttt{0x0D}$ = výpadek ochrany), zbytek slouží pro IRQ od zařízení a~softwarová přerušení. Číslo přerušení slouží jako index do \emph{tabulky vektorů přerušení} (na x86 tzv.\ IDT), která pro každé číslo udává adresu příslušné obslužné rutiny.
+\end{poznamka}
+
+\subsection{Reakce na žádost o přerušení (hardware + software)}
+
+Toto je jádro druhého požadavku okruhu: na úrovni vykonávání instrukcí popsat, co dělá \emph{procesor} (hardware) a~co \emph{jádro OS} (software), když přijde žádost o~přerušení. Reakce probíhá v~následujících krocích; je užitečné je rozdělit podle toho, kdo je provádí.
+
+\smallskip
+\noindent\textbf{Hardware (procesor) automaticky:}
+\begin{enumerate}[label=(\arabic*)]
+\item \textbf{Dokončí (nebo zruší) aktuální instrukci.} Přerušení se zpracuje \emph{mezi} instrukcemi -- právě běžící instrukce se buď doběhne (u~externích přerušení, traps), nebo se zruší a~stav se vrátí před ni (u~faultů, aby ji šlo po obsluze zopakovat). Procesor tak nikdy nezůstane v~„půlce`` instrukce.
+\item \textbf{Zjistí zdroj přerušení.} Z~čísla přerušení (předaného IRQ řadičem nebo daného typem výjimky) určí, o~jaké přerušení jde.
+\item \textbf{Najde adresu obsluhy.} Číslem přerušení indexuje \emph{tabulku vektorů přerušení} (pole ukazatelů na obslužné rutiny) a~získá adresu příslušné rutiny.
+\item \textbf{Uloží kritickou část stavu a~přepne oprávnění.} Uloží aspoň ukazatel instrukce \emph{IP} (a~příznaky), aby se měl kam vrátit, a~přepne procesor do \emph{privilegovaného režimu} -- obslužná rutina je součást jádra.
+\item \textbf{Skočí na obsluhu.} Nastaví IP na adresu z~kroku~(3); od této chvíle běží kód obslužné rutiny.
+\end{enumerate}
+
+\noindent\textbf{Software (obslužná rutina jádra) pak:}
+\begin{enumerate}[label=(\arabic*),start=6]
+\item \textbf{Uloží zbytek stavu.} Rutina uschová (typicky na zásobník) ostatní registry, které bude přepisovat, aby je na konci mohla obnovit netknuté.
+\item \textbf{Vykoná vlastní obsluhu.} Udělá, co dané přerušení vyžaduje: přebere data ze zařízení / potvrdí dokončení operace, u~výpadku stránky doplní mapování, u~softwarového přerušení obslouží systémové volání atd.
+\item \textbf{Obnoví uložený stav} z~kroku~(6).
+\item \textbf{Vrátí se} instrukcí návratu z~přerušení (na x86 \cd!iret!). Ta obnoví kritický stav z~kroku~(4) -- IP a~příznaky -- a~přepne zpět do původního (uživatelského) režimu.
+\end{enumerate}
+
+\smallskip
+Procesor pak pokračuje v~přerušeném toku instrukcí přesně tam, kde byl, jako by se nic nestalo (u~faultu se zopakuje zrušená instrukce). Dělicí čára je tedy: \emph{hardware} zajistí přepnutí kontextu na obsluhu (uloží IP, přepne režim, skočí přes tabulku vektorů) a~přepnutí zpět; \emph{software} (obslužná rutina) odvede vlastní práci a~uschová/obnoví zbytek registrů.
+
+\begin{center}
+\scalebox{1.2}{%
+\begin{tikzpicture}[x=1cm,y=1cm]
+% --- dve vodorovne drahy: horni = uzivatelsky program (HW tok), dolni = obsluha (SW) ---
+\fill[blue!5] (0,2.0) rectangle (12,3.4);
+\fill[red!5]  (0,0)   rectangle (12,1.4);
+\draw[black!30] (0,2.0) rectangle (12,3.4);
+\draw[black!30] (0,0)   rectangle (12,1.4);
+\node[anchor=west,font=\small\bfseries,blue!55!black] at (0.15,3.15)
+  {uživatelský program};
+\node[anchor=west,font=\small\bfseries,red!55!black]  at (0.15,1.15)
+  {obsluha přerušení (jádro)};
+% --- instrukce uzivatelskeho programu (horni draha) ---
+\node[komp,fill=blue!8,minimum width=10mm] (i1) at (1.1,2.6) {I$_1$};
+\node[komp,fill=blue!8,minimum width=10mm] (i2) at (2.4,2.6) {I$_2$};
+\node[komp,fill=blue!8,minimum width=10mm] (i3) at (3.7,2.6) {I$_3$};
+\node[komp,fill=blue!8,minimum width=10mm] (i4) at (9.7,2.6) {I$_4$};
+\node[komp,fill=blue!8,minimum width=10mm] (i5) at (11.0,2.6){I$_5$};
+\draw[flow] (i1) -- (i2);
+\draw[flow] (i2) -- (i3);
+\draw[flow] (i4) -- (i5);
+% --- IRQ od zarizeni dorazi mezi I3 a I4 ---
+\node[komp,fill=black!6,minimum width=14mm,font=\scriptsize] (dev) at (4.7,3.9) {zařízení};
+\draw[flow,red!60!black,thick] (dev) -- (4.7,3.0) node[midway,anchor=west,font=\scriptsize]{IRQ};
+% --- obsluha (dolni draha) ---
+\node[komp,fill=red!8,minimum width=46mm,align=center] (h) at (6.7,0.7)
+  {obslužná rutina:\\ {\scriptsize ulož registry $\to$ obsluha $\to$ obnov}};
+% prechod dolu: HW reakce
+\draw[flow,red!60!black,very thick] (4.7,2.2) -- (4.7,1.05);
+\node[font=\scriptsize,anchor=west,red!60!black,align=left] at (4.95,2.62)
+  {HW: dokonči I$_3$, ulož IP,\\ přepni do jádra (tab.\ vektorů)};
+% prechod nahoru: iret
+\draw[flow,red!60!black,very thick] (8.9,1.05) -- (8.9,2.2);
+\node[font=\scriptsize\ttfamily,anchor=south west] at (8.95,1.5) {iret};
+\node[font=\scriptsize,anchor=north west,red!60!black] at (8.95,1.48)
+  {obnov IP, režim};
+% casova osa
+\draw[->,black!55] (0,-0.45) -- (12,-0.45) node[anchor=west,font=\scriptsize]{čas};
+\end{tikzpicture}}%
+\obrpopis{Časová osa obsluhy přerušení. Uživatelský program vykonává instrukce $\mathrm{I}_1,\mathrm{I}_2,\dots$ (horní dráha). Mezi $\mathrm{I}_3$ a~$\mathrm{I}_4$ vystaví zařízení žádost \texttt{IRQ}. \textbf{Hardwarová} reakce (procesor): dokončí $\mathrm{I}_3$, uloží IP, přepne do jádra a~přes tabulku vektorů přerušení skočí na obslužnou rutinu (dolní dráha). \textbf{Softwarová} reakce (rutina v~jádře): uloží registry, provede vlastní obsluhu, obnoví registry a~instrukcí \texttt{iret} se vrátí (obnova IP a~režimu). Program pak pokračuje instrukcí $\mathrm{I}_4$, jako by se nic nestalo.}
+\end{center}
+
+\begin{poznamka}
+\textbf{DMA} (Direct Memory Access, přímý přístup do paměti) je doplňkový mechanismus přenosu \emph{dat} bez zatěžování procesoru: místo aby data mezi zařízením a~pamětí kopíroval po slovech procesor, zadá řadiči (resp.\ DMA řadiči) cílovou fyzickou adresu a~ten přenese celý blok sám. Procesor se mezitím věnuje jiné práci a~o~dokončení přenosu se dozví přerušením. DMA tak typicky doplňuje obsluhu přerušením; v~následujícím příkladu disk přenáší přečtený blok do paměti právě přes DMA, takže ovladač jen nastaví cílovou adresu a~čeká na dokončení.
+\end{poznamka}
+
+\subsection{Řešený příklad: ovladač pro řadič disku}
+
+\begin{priklad}[SZZ jaro 2024 č.~2: Ovladač pro řadič disku]
+\szzotazka{jaro 2024}{2}{Ovladač pro řadič disku}\par
+\textbf{Zadání.}\par
+Napište implementaci funkce ovladače disku pro načtení jednoho bloku. Disk je řízen pěti \emph{paměťově mapovanými} registry (zápis příkazů a~parametrů, čtení stavu); zařízení nepodporuje přerušení, obsluha je s~aktivním čekáním. Registry (offsety v~bajtech od základní adresy):
+
+\begin{center}\small
+\begin{tabular}{rlll}
+\toprule
+Offset & Registr & Typ & Popis \\
+\midrule
+0  & Status  & R & Bitové pole aktuálního stavu řadiče (zápisy ignorovány). \\
+4  & Size    & R & Velikost disku v~blocích (zápisy ignorovány). \\
+8  & Command & W & Zápis spustí příkaz (1 = čtení, 2 = zápis). \\
+12 & LBA     & W & Logická adresa bloku pro příkaz v~\textit{Command}. \\
+16 & DMA     & W & Fyzická adresa paměti pro uložení čtených dat. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Stavový registr (offset 0) je bitové pole; bit~0 = \textbf{ERR} (1 = chyba), bit~1 = \textbf{BUSY} (nastaven po zadání příkazu, vynulován po dokončení operace), ostatní bity nuly. Blok má 512~B, přenos dat zařizuje DMA (stačí nastavit fyzickou cílovou adresu). Systém je 32-bitový, disk max.\ 2\,TB. Dopište těla funkcí a~navrhněte strukturu \texttt{disk\_t} pro uchování informací o~disku (k~systému může být připojeno více disků, rozlišených různými instancemi). Obě funkce vracejí \texttt{true} při úspěchu, jinak \texttt{false}. \texttt{disk\_init} se volá jednou při inicializaci (parametr \texttt{register\_address} je virtuální adresa mapovaných registrů, tj.\ adresa stavového registru). \texttt{disk\_read\_block\_waiting} přečte jeden blok na fyzickou adresu \texttt{data\_phys\_addr}; návrat až po dokončení (aktivní čekání povoleno). Implementace musí aspoň triviálně ošetřit současný přístup z~více procesů.
+
+\medskip
+\textbf{Řešení.}\par
+\textbf{(1)~Struktura dat a~mapování registrů.} Registry řadiče popíšeme jako \cd!struct!, jejíž členy padnou přesně na dané offsety (pět 32-bitových slov \cd!uint32_t! za sebou: Status@0, Size@4, Command@8, LBA@12, DMA@16). Tuto strukturu deklarujeme \cd!volatile!, protože jde o~paměťově mapované registry: čtení stavu musí proběhnout \emph{pokaždé} znovu (řadič hodnotu mění „zvenčí``) a~zápisy se nesmějí slučovat ani přehazovat -- jsou to povely. Ovladač si o~disku pamatuje ukazatel na registry, velikost disku a~\emph{zámek} (mutex):
+\begin{lstlisting}[language=C]
+typedef volatile struct {
+    uint32_t status;    // offset 0:  bit0 = ERR, bit1 = BUSY
+    uint32_t size;      // offset 4:  disk size in blocks
+    uint32_t command;   // offset 8:  1 = read, 2 = write
+    uint32_t lba;       // offset 12: block address for the command
+    uint32_t dma;       // offset 16: physical target address (DMA)
+} disk_regs_t;
+
+typedef struct {
+    size_t max_lba;        // disk size (for range checking)
+    disk_regs_t *ctl;      // pointer to the memory-mapped registers
+    mutex_t mutex;         // serializes access from multiple processes
+} disk_t;
+\end{lstlisting}
+
+\textbf{(2)~Čtení stavu a~aktivní čekání.} Stav řadiče testují dvě pomocné funkce: \texttt{disk\_is\_ok} ověří, že není nastaven příznak ERR (bit~0), \texttt{disk\_is\_ready} že není nastaven příznak BUSY (bit~1). Aktivní čekání pak v~cyklu čte stav, dokud řadič není připraven; když se po cestě objeví chyba, čekání skončí neúspěchem:
+\begin{lstlisting}[language=C]
+static bool disk_is_ok(disk_t *disk)    { return (disk->ctl->status & 1) == 0; }
+static bool disk_is_ready(disk_t *disk) { return (disk->ctl->status & 2) == 0; }
+
+static bool disk_wait_for_ready(disk_t *disk) {
+    while (!disk_is_ready(disk)) {     // busy-wait while BUSY bit is set
+        if (!disk_is_ok(disk)) {       // ERR bit appeared -> give up
+            return false;
+        }
+    }
+    return true;
+}
+\end{lstlisting}
+
+\textit{Pozn.\ k~závorkování:} oficiální náčrt SZZ má v~těchto testech \cd!disk->ctl->status & 1 == 0! \emph{bez} vnitřních závorek. V~jazyce~C má ale operátor \cd!==! \emph{vyšší} prioritu než bitové \cd!&!, takže výraz se vyhodnotí jako \cd!status & (1 == 0)! ${}=$ \cd!status & 0! ${}=0$, tj.\ vždy \texttt{false} -- to je chyba. Zamýšlené je \cd!(status & 1) == 0!. Závorky proto doplňujeme; jde o~klasickou past s~prioritou operátorů (bitové operátory mají v~C nižší prioritu než relační).
+
+\textbf{(3)~Inicializace.} \texttt{disk\_init} uloží (přetypuje) virtuální adresu registrů do struktury, přečte velikost disku, inicializuje zámek a~počká, až je řadič připraven:
+\begin{lstlisting}[language=C]
+bool disk_init(disk_t *disk, uint32_t register_address) {
+    disk->ctl = (disk_regs_t *) register_address;
+    disk->max_lba = disk->ctl->size;
+    mutex_init(&disk->mutex);
+    return disk_wait_for_ready(disk);
+}
+\end{lstlisting}
+
+\textbf{(4)~Čtení bloku s~aktivním čekáním.} Funkce nejprve ověří rozsah LBA, pak \emph{zamkne} mutex (kvůli více procesům), počká na připravenost řadiče, nastaví parametry (LBA, cílovou DMA adresu) a~zápisem do \emph{Command} spustí čtení (kód 1). Poté znovu aktivně čeká na dokončení (zhasnutí BUSY) a~zámek uvolní:
+\begin{lstlisting}[language=C]
+bool disk_read_block_waiting(disk_t *disk, size_t lba, uint32_t data_phys_addr) {
+    if (lba >= disk->max_lba) {        // out-of-range block
+        return false;
+    }
+    mutex_lock(&disk->mutex);          // only one process drives the disk
+    bool ok = disk_wait_for_ready(disk);
+    if (!ok) {
+        mutex_unlock(&disk->mutex);
+        return false;
+    }
+    disk->ctl->lba = lba;              // set parameters ...
+    disk->ctl->dma = data_phys_addr;
+    disk->ctl->command = 1;            // ... then issue READ -> sets BUSY
+
+    ok = disk_wait_for_ready(disk);    // busy-wait until the read completes
+    mutex_unlock(&disk->mutex);
+    return ok;
+}
+\end{lstlisting}
+
+\textbf{Rozbor.} Proč je řešení takové, jaké je:
+\begin{enumerate}[label=(\arabic*)]
+\item \textbf{Proč \cd!volatile!.} Registry jsou paměťově mapované. Bez \cd!volatile! by překladač viděl smyčku, která jen čte tutéž adresu, aniž do ní cokoli zapisuje, a~mohl by čtení „vytknout`` mimo cyklus -- pak by se BUSY/ERR nikdy nepřečetlo znovu a~smyčka by se zacyklila. \cd!volatile! říká: každý přístup proveď skutečně a~v~daném pořadí.
+\item \textbf{Proč zámek (mutex).} Řadič má jedinou sadu registrů a~zvládne jen jednu operaci naráz. Kdyby dva procesy současně nastavily LBA/DMA a~oba zapsaly Command, povely by se proložily a~data by skončila zpřeházená (nebo by jedna operace zničila parametry druhé). Mutex obě kritické sekce \emph{serializuje}: druhý proces počká, než první dočte a~odemkne. To je ono „aspoň triviální ošetření současného přístupu``. Důležité je odemknout zámek \emph{na všech} návratových cestách (i~při chybě), jinak by vznikl deadlock.
+\item \textbf{Jak funguje aktivní čekání na BUSY.} Po zápisu příkazu řadič nastaví bit~BUSY a~rozběhne se. Smyčka \texttt{disk\_wait\_for\_ready} čte stavový registr a~točí se, dokud je BUSY nastaven. Procesor přitom „nic užitečného`` nedělá -- to je daň za jednoduchost a~za to, že zařízení nepodporuje přerušení (jinak by tu bylo blokující čekání místo aktivního).
+\item \textbf{Kontrola ERR.} Uvnitř čekací smyčky se navíc testuje bit~ERR: objeví-li se chyba (ERR$=1$) ještě \emph{v~době, kdy řadič drží BUSY}, čekání skončí a~funkce vrátí \texttt{false}, aby chyba neuvázla v~nekonečném čekání. (Rohový případ, kdy by řadič v~témže stavovém slově zhasl BUSY a~\emph{zároveň} rozsvítil ERR, tato jednoduchá smyčka -- stejně jako oficiální náčrt -- neošetří a~vyhodnotí jako úspěch; reálné řadiče ale BUSY drží až do dokončení operace.) DMA přenos dat do paměti při úspěchu zařizuje řadič sám, ovladač jen předal cílovou adresu.
+\end{enumerate}
+\end{priklad}

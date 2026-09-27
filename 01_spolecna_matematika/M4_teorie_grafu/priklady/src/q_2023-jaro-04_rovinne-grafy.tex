@@ -1,0 +1,30 @@
+% Zdroj: PDF priklady-jaro-2023.pdf, fyzická str. 2--3. Neznačená starší sada (2023). Zařazeno: M4.
+\section{Rovinné grafy}
+\szzotazka{jaro 2023}{4}{Rovinné grafy}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Uveďte Eulerovu formuli pro rovinné grafy (o počtu vrcholů, hran a stěn).
+  \item Rozhodněte, zdali může existovat rovinný graf $G$ na 40 vrcholech s 80 hranami a 5 komponentami souvislosti takový, že neobsahuje $C_3$ jako podgraf.
+  \item Určete, jaký nejvyšší možný počet hran může mít rovinný graf, který má 40 vrcholů, 5 komponent souvislosti a neobsahuje $C_3$ jako podgraf.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textit{(V PDF bez náčrtu řešení; náčrt níže je doplněný, vlastní.)}
+
+\begin{enumerate}
+  \item Pro souvislý rovinný graf $G=(V,E)$ s libovolným rovinným nakreslením a $s$ stěnami platí Eulerova formule
+  \[ |V| - |E| + s = 2. \]
+  Pro nesouvislý rovinný graf s $c$ komponentami souvislosti platí zobecněná verze
+  \[ |V| - |E| + s = 1 + c, \]
+  protože každá komponenta přidá svou „jedničku", vnější stěnu si komponenty sdílí.
+
+  \item Použijeme nerovnost $|E|\leq 2|V|-4$, která platí pro každou souvislou komponentu rovinného grafu \emph{bez trojúhelníků} na $n_i\geq 3$ vrcholech (důsledek Eulerovy formule: každá stěna je ohraničena alespoň 4 hranami, takže $4s\leq 2|E|$, dosazením do $|V|-|E|+s=2$ dostáváme $|E|\leq 2|V|-4$). Pro komponentu na $n_i\in\{1,2\}$ vrcholech je $|E_i|\leq n_i-1\leq 1$.
+
+  Obě meze shrneme jako $|E_i|\leq 2n_i-2$ pro každou komponentu a $|E_i|\leq (2n_i-2)-2$, má-li komponenta aspoň 3 vrcholy. Komponent s~aspoň 3 vrcholy je $t\geq 1$ (pět komponent po nejvýše 2 vrcholech by pokrylo jen 10 vrcholů). Sečtením přes všech 5 komponent
+  \[ |E| \leq \sum_{i=1}^{5}(2n_i-2)-2t = 80-10-2t = 70-2t \leq 68. \]
+  Hodnota $|E|=80$ tedy \emph{nemůže} být dosažena -- takový graf \textbf{neexistuje}.
+
+  \item Z bodu (2) plyne, že maximální možný počet hran je $\boxed{68}$. Mez je dosažitelná: 4 izolované vrcholy + úplný bipartitní graf $K_{2,34}$ (36 vrcholů, $2\cdot 34=68$ hran), který je rovinný (dva vrcholy nakreslíme nad a pod řadou 34 vrcholů) a jako bipartitní neobsahuje $C_3$.
+\end{enumerate}

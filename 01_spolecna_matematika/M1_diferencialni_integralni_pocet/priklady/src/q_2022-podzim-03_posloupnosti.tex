@@ -1,0 +1,38 @@
+% Zdroj: PDF priklady-podzim-2022.pdf, fyzická str. 2. Značka: společné okruhy. Zařazeno: M1.
+\section{Posloupnosti}
+\szzotazka{podzim 2022}{3}{Posloupnosti (limita, omezenost)}
+
+\noindent\textbf{Zadání.}\par
+Nechť $(a_n) = (a_1, a_2, \dots)$ je posloupnost reálných čísel.
+\begin{enumerate}
+  \item Definujte, co znamená, že $(a_n)$ je \emph{konvergentní} (má vlastní limitu).
+  \item Definujte, co znamená, že $(a_n)$ je \emph{neomezená}.
+  \item Dokažte, že když $(a_n)$ je neomezená, pak není konvergentní.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Posloupnost $(a_n)$ konverguje (má vlastní limitu $L \in \mathbb{R}$) právě tehdy, když
+    \[
+      \forall \varepsilon > 0 \ \exists n_0 \ \forall n \geq n_0 : \ |a_n - L| < \varepsilon.
+    \]
+  \item Posloupnost $(a_n)$ je \emph{omezená} právě tehdy, když existuje $K > 0$ takové, že $|a_n| \leq K$ pro všechna $n$. \emph{Neomezená} znamená, že omezená není, tj.
+    \[
+      \forall K > 0 \ \exists n : \ |a_n| > K.
+    \]
+  \item Dokážeme obměnou (kontrapozicí): ukážeme, že každá konvergentní posloupnost je omezená; neomezená posloupnost tedy nemůže konvergovat.
+
+    Nechť $a_n \to L$. Pro $\varepsilon = 1$ existuje $n_0$ takové, že pro všechna $n \geq n_0$ platí $|a_n - L| < 1$, a tedy
+    \[
+      |a_n| = |a_n - L + L| \leq |a_n - L| + |L| < |L| + 1.
+    \]
+    Mimo těchto členů zbývá jen konečně mnoho prvních členů $a_1, \dots, a_{n_0 - 1}$. Položíme
+    \[
+      K = \max\{\, |a_1|, \dots, |a_{n_0 - 1}|,\ |L| + 1 \,\}.
+    \]
+    Pak $|a_n| \leq K$ pro všechna $n$, takže posloupnost je omezená. Je-li tedy $(a_n)$ neomezená, nemůže být konvergentní. \qed
+\end{enumerate}
+
+\medskip
+\noindent\textit{(V~PDF bez náčrtu řešení; náčrt doplněn k~výkladu okruhu.)}

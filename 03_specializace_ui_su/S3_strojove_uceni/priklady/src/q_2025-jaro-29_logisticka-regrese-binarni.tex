@@ -1,0 +1,40 @@
+% Zdroj: PDF priklady-jaro-2025.pdf, fyzická str. 26. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S3.
+\section{Logistická regrese pro binární klasifikaci}
+\szzotazka{jaro 2025}{29}{Logistická regrese pro binární klasifikaci}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+  \item Popište, jakým způsobem můžeme použít logistickou regresi pro binární klasifikaci. Máme
+    k dispozici dataset se vstupními příznaky $\boldsymbol{X} = (\boldsymbol{x}_1, \dots, \boldsymbol{x}_N)$
+    a s cílovými hodnotami $\boldsymbol{t} = (t_1, \dots, t_N)$.
+
+    Jak vypadá predikce modelu? Jak budeme postupovat, abychom mohli nezávisle určit očekávanou
+    chybu modelu na neviděných datech?
+  \item Jak je definována ztrátová funkce? Odvoďte její derivaci a ukažte, jakým způsobem lze
+    použít gradientní metodu (stochastic gradient descent) pro trénování.
+  \item Jakým způsobem zabráníte přeučení při stochastic gradient descentu?
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Model: $p(C_1) = \sigma(\boldsymbol{x}^T \boldsymbol{w})$, predikce: if ($y > 0.5$) 1 else 0.
+
+    Postup pro odhad chyby: Rozdělíme si data na trénovací, validační a testovací část. Validační
+    data použijeme pro ladění hyperparametrů, testovací pro reportování výsledku na neviděných datech.
+  \item Chybová funkce: negative log-likelihood
+    $E(\boldsymbol{w}) = \frac{1}{N} \sum_i -\log(p(C_{t_i} \mid \boldsymbol{x}_i; \boldsymbol{w}))$,
+    dále rozepíšeme podle Bernoulliho distribuce a můžeme derivovat podle $\boldsymbol{w}$.
+
+    Derivace vyjde $\nabla_{\boldsymbol{w}} E(\boldsymbol{w}) = (\sigma(\boldsymbol{x}^T \boldsymbol{w}) - t)\boldsymbol{x}$.
+
+    SGD: Inicializujeme váhy (buď náhodně nebo nulami), iterujeme přes dataset, v každém kroku
+    odečteme $\alpha \cdot \nabla E(\boldsymbol{w})$.
+  \item Přeučení můžeme bránit: $L^2$ regularizací, pomocí early stopping (sledujeme validační
+    chybu a přestaneme s trénováním, když začne růst), vhodným learning rate schedule.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Odvození derivace pro jeden příklad, $z=\boldsymbol{x}^T\boldsymbol{w}$, $y=\sigma(z)$: Bernoulliho model dává $p(t\mid\boldsymbol{x};\boldsymbol{w})=y^t(1-y)^{1-t}$, tedy $E=-t\log\sigma(z)-(1-t)\log(1-\sigma(z))$. Derivace sigmoidy je $\sigma'(z)=\sigma(z)(1-\sigma(z))$, takže
+\[ \frac{\partial E}{\partial z}=-t\,\frac{\sigma'(z)}{\sigma(z)}+(1-t)\,\frac{\sigma'(z)}{1-\sigma(z)}=-t(1-\sigma(z))+(1-t)\sigma(z)=\sigma(z)-t, \]
+a~protože $\nabla_{\boldsymbol{w}}z=\boldsymbol{x}$, je $\nabla_{\boldsymbol{w}}E=(\sigma(\boldsymbol{x}^T\boldsymbol{w})-t)\,\boldsymbol{x}$. Krok SGD na minibatchi $\mathbb{B}$: $\boldsymbol{w}\leftarrow\boldsymbol{w}-\alpha\frac{1}{|\mathbb{B}|}\sum_{i\in\mathbb{B}}(\sigma(\boldsymbol{x}_i^T\boldsymbol{w})-t_i)\,\boldsymbol{x}_i$. S~$L^2$ regularizací $\frac{\lambda}{2}\|\boldsymbol{w}\|^2$ přibude ke gradientu člen $\lambda\boldsymbol{w}$.

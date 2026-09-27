@@ -1,0 +1,58 @@
+% Zdroj: PDF priklady-leto-2025.pdf, fyzická str. 1. Značka: společné okruhy. Zařazeno: I1.
+% Obrázek: stavový diagram automatu A oříznut z PDF str. 1 (src/fig/dfa-podslovo.png).
+\section{Deterministické konečné automaty}
+\szzotazka{léto 2025}{1}{Deterministické konečné automaty (jazyk DFA, rozšířená přechodová funkce)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+\item Uveďte definici jazyka $L(A)$ přijímaného daným deterministickým konečným
+  automatem $A = (Q, \Sigma, \delta, q_0, F)$ včetně definice jeho rozšířené přechodové
+  funkce $\delta^*$.
+\item Nechť $S \subseteq \Sigma^*$ je neprázdná konečná množina slov, $Q$ je množina
+  všech prefixů slov z~$S$ (včetně prázdného slova $\varepsilon$ a~slov z~$S$)
+  a~$A = (Q, \Sigma, \delta, \varepsilon, S)$ je deterministický konečný automat
+  s~množinou stavů $Q$. Definujte jeho přechodovou funkci $\delta$ tak, aby přijímal
+  jazyk
+  \[ L(A) = \{w \in \Sigma^* \mid w \text{ obsahuje nějaké } s \in S \text{ (jako podslovo)}\}. \]
+\item Sestrojte deterministický konečný automat přijímající jazyk
+  \[ \{w \in \{0,1\}^* \mid w \text{ obsahuje } 010 \text{ nebo končí na } \underline{10}\}. \]
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+\item $L(A) := \{w \in \Sigma^* \mid \delta^*(q_0, w) \in F\}$, kde $\delta^*\colon
+  Q \times \Sigma^* \to Q$ je definována induktivně
+  \begin{align*}
+    \delta^*(q, \varepsilon) &:= q,\\
+    \delta^*(q, wx) &:= \delta(\delta^*(q, w), x)
+  \end{align*}
+  pro každé $q \in Q$, $w \in \Sigma^*$ a~$x \in \Sigma$.
+
+\item Pro každé $w \in Q$ a~$x \in \Sigma$,
+  \[ \delta(w, x) := \begin{cases}
+     w, & \text{pokud } w \in S,\\
+     s, & \text{pokud } w \notin S \text{ a~} wx \text{ končí na nějaké } s \in S \text{ (vezmi např.\ nejkratší)},\\
+     v, & \text{kde } v \text{ je nejdelší sufix slova } wx, \text{ který je v~} Q, \text{ v~ostatních případech.}
+     \end{cases} \]
+
+
+  \textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Dokud automat
+  nenašel žádné $s \in S$, je ve stavu $v$ = nejdelší sufix dosud přečteného slova,
+  který leží v~$Q$ (je prefixem nějakého slova z~$S$). Tento invariant se přenáší:
+  jakýkoli neprázdný sufix prodlouženého textu, který leží v~$Q$, má tvar $tx$, kde $t$ je opět prefix
+  slova z~$S$ a~sufix předchozího textu; podle invariantu je tedy $|t| \leq |w|$ a~$t$ je
+  sufixem $w$, takže stačí hledat mezi sufixy $wx$. Ze stejného důvodu každý výskyt nějakého $s \in S$ končící právě
+  čteným znakem je sufixem $wx$, takže ho zachytí druhý případ. Jakmile je $s$
+  nalezeno, automat zůstane v~přijímajícím stavu (první případ), protože podslovo
+  už ze slova nezmizí.
+
+\item Automat $A = (\{\varepsilon, 0, 1, 01, 10, 010\}, \{0, 1\}, \delta, \varepsilon,
+  \{10, 010\})$ je na obrázku níže.
+  \begin{center}\includegraphics[width=0.8\linewidth]{dfa-podslovo.png}\end{center}
+
+  \textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Stav $010$ je
+  absorbující (podslovo $010$ nalezeno), kdežto ze stavu $10$ automat po dalším
+  znaku odejde (na $0$ do stavu $0$, na $1$ do $01$), takže přes stav $10$ přijme
+  jen slovo, které na $10$ skutečně končí.
+\end{enumerate}

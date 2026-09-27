@@ -1,0 +1,91 @@
+% Zdroj: PDF priklady-jaro-2026.pdf, fyzická str. 2-3. Značka: společné okruhy. Zařazeno: I4.
+\section{Semafor mezi procesy}
+\szzotazka{jaro 2026}{2}{Semafor mezi procesy (FIFO buffer)}
+
+\noindent\textbf{Zadání.}\par
+Implementujte dvojici funkcí s~tímto rozhraním:
+
+\begin{lstlisting}[language=C]
+void send(byte ch);
+byte receive();
+\end{lstlisting}
+
+Účelem těchto funkcí je realizace jednosměrného proudu bajtů mezi dvěma procesy. Součástí
+proudu je FIFO-buffer s~kapacitou $N$ bajtů. Funkce \texttt{receive}, volaná procesem
+příjemce, čeká, dokud v~bufferu není alespoň jeden platný bajt, poté tento bajt odebere
+a~vrátí jej. Funkce \texttt{send}, volaná z~procesu odesilatele, čeká, dokud v~bufferu
+není alespoň jedna volná pozice, poté do bufferu vloží parametr \texttt{ch}.
+
+Vaším úkolem je implementovat funkce \texttt{send} a~\texttt{receive} pouze pomocí těchto součástí:
+\begin{itemize}
+\item Semafory (pracující přes hranice procesů)
+\item Implementace bufferu s~kapacitou $N$, která poskytuje následující rozhraní:
+\end{itemize}
+
+\begin{lstlisting}[language=C]
+void buffer_push(byte ch);
+byte buffer_pop();
+\end{lstlisting}
+
+Funkce \texttt{buffer\_push} (volaná procesem odesilatele) a~funkce \texttt{buffer\_pop}
+(volaná procesem příjemce) jsou atomické (tj. mohou být bezpečně volány současně)
+a~umožňují předávání bajtů přes hranice procesů (např. pomocí sdílené paměti a~atomických
+instrukcí). Tyto funkce však neposkytují synchronizaci (vždy se vracejí okamžitě). Funkce
+\texttt{buffer\_push} nesmí být volána, pokud je buffer plný, a~funkce \texttt{buffer\_pop}
+nesmí být volána, pokud je buffer prázdný.
+
+Vaším úkolem není řešit vytvoření semaforů a~bufferu, předpokládejte, že oba procesy mohou
+přistupovat k~těmto objektům, jako by existovaly uvnitř těchto procesů.
+
+\begin{enumerate}
+\item Napište implementaci funkcí \texttt{send} a~\texttt{receive} v~některém z~jazyků C,
+  C++, C\# nebo Java. Implementace nesmí používat žádné statické nebo globální proměnné
+  ani žádné další knihovny kromě semaforů a~výše popsaného bufferu. Implementace nesmí
+  využívat aktivní čekání (polling). Specifikujte také počáteční stav(y) semaforu/ů
+  (v~závislosti na kapacitě bufferu $N$); buffer je na počátku prázdný.
+\item Definujte invariant(y) platné pro stav(y) semaforu/ů ve vztahu k~počtu platných
+  elementů v~bufferu (a~jeho kapacitě $N$). Všechny tyto invarianty musí být platné po
+  celou dobu mezi voláními funkcí \texttt{send} nebo \texttt{receive}.
+\item Vysvětlete, jak se platnost invariantů mění uvnitř funkcí \texttt{send}
+  a~\texttt{receive} (např. pomocí pozměněných invariantů platných mezi jednotlivými
+  příkazy uvnitř těchto funkcí). Pro jednoduchost předpokládejte, že tyto funkce nejsou
+  volány zároveň.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{lstlisting}[language=C]
+// capacity_semaphore initialized to N
+// content_semaphore initialized to 0
+//
+// Invariant 1: capacity_semaphore = N - elements_in_buffer
+// Invariant 2: content_semaphore = elements_in_buffer
+
+void send(char ch)
+{
+  capacity_semaphore.down();
+  // Inv 1 skewed by +1, Inv 2 valid
+  buffer_push(ch);
+  // Inv 1 valid, Inv 2 skewed by -1
+  content_semaphore.up();
+}
+
+char receive()
+{
+  content_semaphore.down();
+  // Inv 1 valid, Inv 2 skewed by +1
+  char ch = buffer_pop();
+  // Inv 1 skewed by -1, Inv 2 valid
+  capacity_semaphore.up();
+}
+\end{lstlisting}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} V~náčrtu funkce
+\texttt{receive} chybí na konci \texttt{return ch;}. Komentáře „skewed by $\pm1$`` říkají, o~kolik
+se invariant mezi příkazy rozchází: po \texttt{capacity\_semaphore.down()} je hodnota semaforu o~1
+menší, než by odpovídalo počtu prvků (jedno místo je už rezervované, ale ještě nezaplněné);
+\texttt{buffer\_push} invariant~1 srovná a~invariant~2 je naopak o~1 pozadu, dokud ho
+\texttt{content\_semaphore.up()} nesrovná. Funkce \texttt{receive} je symetrická. Další zámek není
+potřeba, protože \texttt{buffer\_push} a~\texttt{buffer\_pop} jsou podle zadání atomické
+a~semafory zaručují, že se push nevolá na plný a~pop na prázdný buffer.

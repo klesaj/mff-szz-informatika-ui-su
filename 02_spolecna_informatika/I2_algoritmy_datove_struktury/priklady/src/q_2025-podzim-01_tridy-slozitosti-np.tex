@@ -1,0 +1,22 @@
+% Zdroj: PDF priklady-podzim-2025.pdf, fyzická str. 1. Značka: společné okruhy. Zařazeno: I2.
+\section{Třídy složitosti}
+\szzotazka{podzim 2025}{1}{Třídy složitosti (P/NP, redukce, NP-úplnost)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+\item Definujte \textit{třídy složitosti} \textbf{P} a \textbf{NP}.
+\item Definujte \textit{převod} (redukci) mezi rozhodovacími problémy (jazyky).
+\item Definujte \textbf{NP}-\textit{úplnost} rozhodovacího problému.
+\item Rozhodněte, zda následující problém leží v~třídě \textbf{NP}, a~odpověď zdůvodněte:
+  Je dáno přirozené číslo $x$ zapsané v~desítkové soustavě. Existují přirozená čísla $a$
+  a~$b$ taková, že $1 < a, b < x$, $x = a \cdot b$ a~desítkové zápisy $a$ i~$b$ bez
+  počátečních nul jsou stejně dlouhé?
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+Definice viz Průvodce labyrintem algoritmů, kapitoly 19.1 a~19.3. Problém leží v~třídě
+\textbf{NP}, jako certifikát stačí použít číslo $a$. Verifikátor pak vypočte $b = x/a$
+(pokud by při dělení vyšel zbytek, zamítne) a~zkontroluje, že $1 < a, b < x$ a~desítkové
+zápisy $a$ a~$b$ jsou stejně dlouhé. Délka certifikátu je lineární a~časová složitost
+verifikátoru polynomiální, obojí vzhledem k~délce vstupu (počtu číslic $x$).

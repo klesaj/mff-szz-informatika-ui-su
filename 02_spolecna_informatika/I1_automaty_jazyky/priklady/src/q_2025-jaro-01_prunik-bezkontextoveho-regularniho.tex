@@ -1,0 +1,70 @@
+% Zdroj: PDF priklady-jaro-2025.pdf, fyzická str. 1. Značka: společné okruhy. Zařazeno: I1.
+% Obrázek: stavový diagram DFA A oříznut z PDF (src/fig/prunic-cfg-dfa.png).
+\section{Průnik bezkontextového a~regulárního jazyka}
+\szzotazka{jaro 2025}{1}{Průnik bezkontextového a~regulárního jazyka (PDA, CFG $\cap$ DFA)}
+
+\noindent\textbf{Zadání.}\par
+\begin{enumerate}
+\item Uveďte formální definici \textit{zásobníkového automatu}.
+\item Uvažme následující jazyky nad abecedou $\Sigma = \{0, 1\}$:
+  \begin{itemize}
+  \item $L_1$ je jazyk generovaný bezkontextovou gramatikou $G = (\{S\}, \Sigma,
+    \mathcal{P}, S)$ s~množinou pravidel $\mathcal{P} = \{S \to SS \mid 0S1 \mid
+    \epsilon\}$ (kde $\epsilon$ značí prázdné slovo),
+  \item $L_2$ je jazyk rozpoznávaný deterministickým konečným automatem $A =
+    (\{q_0, q_1, q_2, q_3\},\allowbreak \Sigma, \delta_A,\allowbreak q_0,\allowbreak \{q_0, q_1, q_2, q_3\})$, jehož
+    přechodová funkce $\delta_A$ je dána následujícím stavovým diagramem:
+  \end{itemize}
+  \begin{center}\includegraphics[width=0.8\linewidth]{prunic-cfg-dfa.png}\end{center}
+\end{enumerate}
+Sestrojte zásobníkový automat rozpoznávající průnik $L = L_1 \cap L_2$ jazyků $L_1$
+a~$L_2$.
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+\item Zásobníkový automat je sedmice $(Q, \Sigma, \Gamma, \delta, q_0, Z_0, F)$, kde
+  \begin{itemize}
+  \item $Q$ je konečná, neprázdná množina stavů,
+  \item $\Sigma$ je konečná, neprázdná množina znaků vstupní abecedy,
+  \item $\Gamma$ je konečná množina znaků zásobníkové abecedy,
+  \item $\delta$ je přechodová funkce $Q \times (\Sigma \cup \{\epsilon\}) \times
+    \Gamma \to P_{FIN}(Q \times \Gamma^*)$, kde $P_{FIN}(.)$ značí konečnou
+    podmnožinu prvků,
+  \item $q_0 \in Q$ je počáteční stav,
+  \item $Z_0 \in \Gamma$ je počáteční zásobníkový symbol,
+  \item $F \subseteq Q$ množina přijímajících stavů.
+  \end{itemize}
+  V~případě přijímání prázdným zásobníkem lze vynechat množinu přijímajících stavů $F$.
+
+\item Můžeme použít standardní konstrukci. Přijímání automatem $A$ simulujeme pomocí
+  stavů, generování gramatikou $G$ pomocí zásobníku stejně jako při převodu gramatiky
+  na jednostavový PDA. Výsledný zásobníkový automat, přijímající prázdným zásobníkem,
+  je $P = (\{q_0, q_1, q_2, q_3\}, \{0, 1\}, \{0, 1, S\}, \delta_P, q_0, S)$ kde
+  $\delta_P$ je definována následovně:
+  \begin{align*}
+    \delta_P(q_i, a, a) &= \{(\delta_A(q_i, a), \epsilon)\} \text{ pro } a \in \{0, 1\},\ i \in \{0, 1, 2, 3\}\\
+    \delta_P(q_i, \epsilon, S) &= \{(q_i, SS), (q_i, 0S1), (q_i, \epsilon)\} \text{ pro } i \in \{0, 1, 2, 3\}
+  \end{align*}
+  První pravidlo představuje čtení vstupního symbolu automatem $A$ a~kontrolu
+  s~vrcholem zásobníku, druhé pravidlo simuluje jeden krok derivace gramatiky $G$.
+
+  (Alternativně lze přímo sestrojit zásobníkový automat rozpoznávající $L_1 \cap L_2$,
+  nebo sestrojit bezkontextovou gramatiku generující $L_1 \cap L_2$ a~následně ji
+  převést na zásobníkový automat.)
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Stav $q_1$
+znamená, že přečtené slovo končí na $0$, stav $q_2$ na $01$ a~stav $q_3$ na $010$.
+Ze stavu $q_3$ \emph{nevede} přechod na $1$, takže $A$ na každém slově s~podslovem
+$0101$ uvízne. Protože jsou všechny stavy přijímající, je
+$L_2 = \{w \in \{0,1\}^* \mid w \text{ neobsahuje } 0101\}$ a~$L$ tvoří vyvážená slova
+bez podslova $0101$ (např.\ $0011 \in L$, ale $0101 \in L_1 \setminus L_2$).
+Automat $P$ vyprázdní zásobník právě tehdy, když $S \Rightarrow^* w$, tj.\ $w \in L_1$;
+chybějící přechod $\delta_A(q_3, 1)$ se v~$P$ projeví tak, že $P$ nemůže přečíst další
+znak a~výpočet skončí neúspěchem. Každý stav, do kterého se $P$ dostane, je přitom
+přijímající stav $A$, proto při přijímání prázdným zásobníkem kontrola koncového stavu
+není potřeba. Kdyby některý stav $A$ přijímající nebyl, vložili bychom pod $S$ nové dno
+$Z_0$ a~dovolili ho odebrat přechodem $\delta_P(q, \epsilon, Z_0) = \{(q, \epsilon)\}$
+jen ve stavech $q \in F_A$.

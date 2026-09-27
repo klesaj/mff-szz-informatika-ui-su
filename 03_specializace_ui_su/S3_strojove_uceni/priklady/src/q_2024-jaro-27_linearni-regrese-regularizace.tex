@@ -1,0 +1,48 @@
+% Zdroj: PDF priklady-jaro-2024.pdf, fyzická str. 21-22. Značka: specializace UI-SU. Zařazeno: S3.
+\section{Lineární regrese a regularizace}
+\szzotazka{jaro 2024}{27}{Lineární regrese a regularizace}
+
+\noindent\textbf{Zadání.}\par
+Chceme natrénovat lineární model tvaru $y = \beta_1 x_1 + \beta_2 x_2 + \beta_0$ na datech níže.
+Při trénování chceme použít gradientní metodu a L2 regularizaci. Použijeme učící konstantu
+$\alpha = 0.1$ a regularizační konstantu $\lambda = 0.5$.
+
+\begin{center}
+\begin{tabular}{cc|c}
+\toprule
+$x_1$ & $x_2$ & $y$ \\
+\midrule
+0 & 2 & 3 \\
+2 & 3 & 9 \\
+1 & 1 & 2 \\
+2 & 0 & 2 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{enumerate}
+  \item Definujte chybovou funkci pro model zadaný podle parametrů nahoře (součet čtverců
+    s L2 regularizačním členem).
+  \item Předpokládejme, že aktuální odhad koeficientů modelu je $\beta_1 = 1$, $\beta_2 = 3$,
+    $\beta_0 = -1$. Proveďte jeden krok gradientní metody pro nastavení koeficientů. Jaké jsou
+    jejich nové hodnoty?
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+  \item Chybová funkce je typicky $\mathrm{RSS} = \sum_{i=1}^{N} (y_i - \hat{y}_i)^2$, pro L2
+    regularizaci přičteme ještě člen $\lambda \sum_{i=1}^{m} \beta_i^2$ ($N$ je počet trénovacích
+    vzorů, $m+1$ je počet koeficientů modelu, $\hat{y}_i$ je výstup modelu pro $i$-tý vstup).
+    Koeficient $\beta_0$ se většinou v regularizaci neuvažuje.
+  \item Je potřeba spočítat gradient chybové funkce podle jednotlivých parametrů. Spočítáme ho
+    pro jeden trénovací vzor, pro všechny vzory to bude jen součet. Derivace
+    $\frac{d\,\mathrm{RSS}}{d\beta_0} = -2(y_i - \hat{y}_i)$, derivace
+    $\frac{d\,\mathrm{RSS}}{d\beta_i} = -2(y_i - \hat{y}_i) x_i$. Nesmíme zapomenout také na
+    derivaci regularizačního členu podle $\beta_i$ -- ta je $\lambda 2 \beta_i = \beta_i$.
+    Dosazením dostaneme, že derivace RSS podle $\beta_0$ je $4 + 2 + 2 + (-2) = 6$, derivace
+    podle $\beta_1$ je 2 a derivace podle $\beta_2$ je 16. Přičtením regularizačního členu
+    dostaneme, že derivace chybové funkce podle $\beta_1$ je 3 a podle $\beta_2$ je 19. Hodnoty
+    v dalším kroku tedy jsou $\beta_0 = \beta_0 - \alpha \cdot 6 = -1.6$,
+    $\beta_1 = \beta_1 - \alpha \cdot 3 = 0.7$ a $\beta_2 = \beta_2 - \alpha \cdot 19 = 1.1$.
+\end{enumerate}

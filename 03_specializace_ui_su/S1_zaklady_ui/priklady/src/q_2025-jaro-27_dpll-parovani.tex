@@ -1,0 +1,28 @@
+% Zdroj: PDF priklady-jaro-2025.pdf, fyzická str. 24-25. Značka: specializace UI-SU, UI-ZPJ. Zařazeno: S1 (DPLL / logické uvažování).
+\section{DPLL a párování}
+\szzotazka{jaro 2025}{27}{DPLL a párování}
+
+\noindent\textbf{Zadání.}\par
+Nechť $G = (V, E)$ je neorientovaný graf s $n$ vrcholy. Perfektní párování v grafu $G$ je podmnožina hran $M \subseteq E$ taková, že každý vrchol je incidentní s právě jednou hranou z $M$.
+\begin{enumerate}[nosep]
+  \item Navrhněte formuli ve výrokové logice, která je splnitelná, právě když graf $G$ má perfektní párování. Formuli popište obecně v konjunktivní normální formě (CNF) pro libovolný graf $G$.
+  \item Vysvětlete pojmy \textit{čistý literál} (Pure symbol heuristics) a \textit{jednotková klauzule} (Unit clause heuristics) a jejich použití v rámci algoritmu DPLL pro hledání splnitelných ohodnocení CNF formulí.
+  \item Napište formuli z bodu 1. pro cestu na čtyřech vrcholech $a, b, c, d$. Na této formuli demonstrujte použití heuristik z předchozího bodu k nalezení splňujícího ohodnocení.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}[nosep]
+  \item Formule používá výrokové proměnné $m_e$ pro $e \in E$, které vyjadřují, že hrana $e$ je v perfektním párování. Pro každý vrchol $u$ a jeho incidentní hrany $e_1, \dots, e_k$ klauzule:
+  \begin{itemize}[nosep]
+    \item Každý vrchol je incidentní s alespoň jednou hranou $m_{e_1} \vee \cdots \vee m_{e_k}$.
+    \item Pro každé dvě různé hrany $e_i, e_j$ máme klauzuli: $\neg m_{e_i} \vee \neg m_{e_j}$.
+  \end{itemize}
+  \item Jednotková klauzule je klauzule s jednou proměnnou a tato klauzule vynucuje ohodnocení dané proměnné, které můžeme dosadit do zbytku formule. Čistá proměnná má buď všechny výskyty pozitivní nebo všechny výskyty negativní, a proto můžeme tuto proměnnou též z formule eliminovat.
+  \item Stačí zapsat formuli výše pro danou cestu. Z čistých klauzulí $m_{ab}$ a $m_{cd}$ musí být hrany $ab$ a $cd$ v párování a z klauzule $\neg m_{ab} \vee \neg m_{bc}$ po eliminaci $m_{ab}$ dostáváme, že $bc$ není v párování.
+\end{enumerate}
+
+\medskip
+\noindent\textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Klauzule $m_{ab}$ a~$m_{cd}$ (vrcholy $a$ a~$d$ mají jedinou incidentní hranu) jsou \emph{jednotkové} klauzule, ne čisté; náčrt je tak míní. Celá formule pro cestu $a-b-c-d$:
+\[ m_{ab}\wedge(m_{ab}\vee m_{bc})\wedge(\neg m_{ab}\vee\neg m_{bc})\wedge(m_{bc}\vee m_{cd})\wedge(\neg m_{bc}\vee\neg m_{cd})\wedge m_{cd}. \]
+Jednotková propagace: $m_{ab}=\mathrm{true}$ a~$m_{cd}=\mathrm{true}$; klauzule $\neg m_{ab}\vee\neg m_{bc}$ se tím zkrátí na jednotkovou $\neg m_{bc}$, takže $m_{bc}=\mathrm{false}$, a~všechny klauzule jsou splněny bez větvení. Po dosazení $m_{ab},m_{cd}$ se navíc $m_{bc}$ vyskytuje v~nesplněných klauzulích už jen negativně, je tedy \emph{čistý literál} a~pravidlo čistého literálu by ho nastavilo na $\mathrm{false}$ také. Výsledek: perfektní párování $\{ab,cd\}$.

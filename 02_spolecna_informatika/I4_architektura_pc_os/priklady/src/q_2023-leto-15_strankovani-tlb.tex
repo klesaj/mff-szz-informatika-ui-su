@@ -1,0 +1,75 @@
+% Zdroj: PDF priklady-leto-2023.pdf, fyzická str. 5. Značka: otázka studijního zaměření. Zařazeno: I4.
+\section{Stránkování}
+\szzotazka{léto 2023}{15}{Stránkování (TLB)}
+\noindent\textit{(Pozn.: v~rámci současné akreditace nešlo o~společnou otázku (q1--q4), ale o~otázku jiné specializace (specializační sekce, systémové zaměření, ne UI). Do společného okruhu I4 tedy formálně nepatří; tematicky sem ovšem spadá a~je výborná k~procvičení.)}\par
+
+\noindent\textbf{Zadání.}\par
+Předpokládejte procesor s~virtuálními a~fyzickými adresami velikosti 4\,B, který pro
+překlad virtuálních adres používá softwarově plněný TLB s~pevnou velikostí stránky 4\,MB.
+
+Položka v~TLB má velikost 4\,B a~obsahuje (po řadě od nejvyšších bitů) potřebnou část
+virtuální a~fyzické adresy, operačním systémem přiřazený ASID (identifikátor adresového
+prostoru) a~bity dirty a~valid. Zbylé dva nejnižší bity jsou rezervované jako 0.
+
+\begin{enumerate}
+\item Načrtněte formát položky TLB včetně počtu bitů jednotlivých polí.
+\item Předpokládejte následující obsah TLB:
+
+\begin{lstlisting}
+0x35C0C124
+0x35C0613C
+0x35C08120
+0x36005134
+0x36009128
+0x3600D12C
+0x3640E124
+0x3640A120
+0x3640413C
+\end{lstlisting}
+
+Předpokládejte, že aktuální ASID je nastaven na hodnotu \texttt{0x12} a~dále se nemění.
+
+Co se stane při přístupech na následující virtuální adresy? V~případě, že dojde
+k~úspěšnému překladu, napište konkrétní fyzickou adresu, ke které procesor přistoupí.
+V~případě, že překlad nebude moci procesor provést, ve stručnosti popište činnost
+procesoru a~případnou (typickou) reakci operačního systému pro napravení situace.
+
+Jednotlivé přístupy uvažujte izolovaně, tedy vycházejte vždy z~obsahu TLB uvedeného výše,
+i~kdyby v~některém kroku případná reakce operačního systému mohla vést ke změně TLB.
+
+\begin{itemize}
+\item zápis na \texttt{0x35803580}
+\item čtení z~\texttt{0x35CD35CD}
+\item čtení z~\texttt{0x36003600}
+\item zápis na \texttt{0x36403640}
+\end{itemize}
+
+Odpovědi přiměřeně komentujte tak, aby bylo možné vidět, jak jste dospěli k~výsledku.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\textbf{(1)~Formát položky.} Stránka má $4\,\text{MB}=2^{22}$\,B, takže offset je $22$ bitů a~číslo
+stránky i~rámce má $32-22=10$ bitů. Položka (32~b) je od nejvyšších bitů: VPN $[31{:}22]$ (10~b),
+PFN $[21{:}12]$ (10~b), ASID $[11{:}4]$ ($32-10-10-1-1-2=\mathbf{8}$~b), \emph{dirty} $[3]$,
+\emph{valid} $[2]$, rezervované $[1{:}0]$. (Např.\ \texttt{0x35C0C124} $\to$ VPN~\texttt{0x0D7},
+PFN~\texttt{0x00C}, ASID~\texttt{0x12}, $D{=}0$, $V{=}1$.)
+
+\textbf{(2)~Přístupy.} U~každé adresy je VPN horních 10~bitů; položka platí, jen když má \emph{shodné
+VPN}, $V{=}1$ a~\emph{shodný ASID} \texttt{0x12}. Fyzická adresa $=\text{PFN}\cdot 2^{22}+\text{offset}$,
+offset jsou dolní 22~bity.
+\begin{itemize}
+\item \texttt{0x35803580} (zápis): VPN~\texttt{0x0D6} -- v~TLB \emph{není} $\Rightarrow$ \textbf{minutí}.
+  Softwarově plněný TLB: procesor vyvolá výjimku TLB miss, obslužná rutina OS dohledá překlad ve
+  stránkovací tabulce a~doplní TLB (a~instrukci zopakuje), případně vyvolá výpadek stránky.
+\item \texttt{0x35CD35CD} (čtení): VPN~\texttt{0x0D7}; platná shoda je \texttt{0x35C0C124}
+  (PFN~\texttt{0x00C}; ostatní mají ASID~\texttt{0x13} nebo $V{=}0$). FA~$=\boxed{\texttt{0x030D35CD}}$.
+\item \texttt{0x36003600} (čtení): VPN~\texttt{0x0D8}; platná shoda \texttt{0x3600D12C}
+  (PFN~\texttt{0x00D}; \texttt{0x36009128} má $V{=}0$). FA~$=\boxed{\texttt{0x03403600}}$.
+\item \texttt{0x36403640} (zápis): VPN~\texttt{0x0D9}; platná shoda \texttt{0x3640E124}
+  (PFN~\texttt{0x00E}, $D{=}0$), překlad vede na FA~$=\boxed{\texttt{0x03803640}}$. Jde ale o~zápis
+  na stránku s~$D{=}0$: zápis hned neproběhne, procesor vyvolá výjimku (u~MIPS „TLB modified``).
+  OS ověří, že stránka je zapisovatelná, nastaví $D{=}1$ a~instrukci zopakuje; zápis pak proběhne
+  na uvedenou FA. Není-li stránka zapisovatelná, jde o~porušení ochrany.
+\end{itemize}
+\textit{(Náčrt doplněn k~výkladu okruhu; otázka nemá v~PDF řešení, dekódování i~překlady ověřeny skriptem \texttt{verify\_szz.py}.)}

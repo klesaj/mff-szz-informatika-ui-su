@@ -1,0 +1,309 @@
+\section{Metoda podpůrných vektorů (SVM)}\label{sec:svm}
+
+\textbf{Metoda podpůrných vektorů} (support vector machines, SVM) je lineární klasifikátor, který mezi všemi oddělujícími nadrovinami vybere tu s~\emph{největším marginem} (margin, odstup od dat). Ve spojení s~\emph{kernel trikem} zvládne i~nelineárně oddělitelná data a~patří k~nejúspěšnějším klasifikátorům „z~krabice``. Tato sekce jde do hloubky, kterou S1 (sekce \emph{Strojové učení}) výslovně přenechává S3.
+
+\begin{poznamka}[Vztah k~S1]
+Okruh S1 zavádí SVM \emph{přehledově}: maximální margin, podpůrné vektory a~jádrovou transformaci jako hlavní myšlenku, s~dvoupanelovým obrázkem. Zde to nezdvojujeme. Stavíme na tom a~jdeme do detailu: jak přesně vypadá optimalizační úloha (QP), proč závisí jen na skalárních součinech, soft margin a~hinge loss, konkrétní jádra a~klasifikace do více tříd.
+\end{poznamka}
+
+\subsection{Lineárně separabilní třídy: maximální margin}
+
+Mějme binární klasifikaci s~daty $(\mathbf{x}_i,t_i)$, kde cíle značíme \textbf{symetricky} $t_i\in\{-1,+1\}$ (ne $\{0,1\}$ jako u~logistické regrese -- u~SVM se to vyplatí). Lineární model je
+\[ y(\mathbf{x}) = \mathbf{w}^{\!\top}\mathbf{x} + b, \qquad \text{predikce} = \sign\,y(\mathbf{x}). \]
+Rovnice $\mathbf{w}^{\!\top}\mathbf{x}+b=0$ určuje \emph{oddělující nadrovinu} (v~rovině přímku); vektor $\mathbf{w}$ je na ni kolmý. Předpokládejme, že data jsou \textbf{lineárně separabilní}, tj.\ existuje nadrovina, která bezchybně oddělí obě třídy. Takových nadrovin je obecně nekonečně mnoho; SVM mezi nimi volí jednu konkrétní.
+
+\begin{definice}[Margin, podpůrné vektory]
+\textbf{Margin} (margin, šíře odstupu) oddělující nadroviny je vzdálenost od nadroviny k~nejbližšímu trénovacímu bodu (na obě strany). \textbf{Maximálně marginový (max-margin) klasifikátor} je nadrovina s~\emph{největším možným marginem}. Trénovací body ležící \emph{nejblíž} k~nadrovině (přesně na marginu) se nazývají \textbf{podpůrné vektory} (support vectors); právě ony nadrovinu určují -- ostatní body lze odebrat, aniž se hranice změní.
+\end{definice}
+
+\begin{intuice}
+Mezi mnoha přímkami, které data oddělí, vybere SVM tu „nejodvážnější`` -- s~co největší rezervou na obě strany. Široký margin zlepšuje \emph{generalizaci}: malé posuny dat hranici nepřekročí, takže model je robustní vůči šumu. Tomuto principu se říká \emph{maximalizace marginu} a~lze ho chápat jako jistou formu regularizace.
+\end{intuice}
+
+\subsubsection*{Od marginu k~optimalizační úloze}
+
+Vzdálenost bodu $\mathbf{x}_i$ od nadroviny je $\dfrac{|y(\mathbf{x}_i)|}{\|\mathbf{w}\|}$. Klasifikuje-li model všechny body správně, je $t_i\,y(\mathbf{x}_i)>0$, takže $|y(\mathbf{x}_i)| = t_i\,y(\mathbf{x}_i)$ a~vzdálenost je $\dfrac{t_i\,y(\mathbf{x}_i)}{\|\mathbf{w}\|}$. Chceme maximalizovat margin, tj.\ vzdálenost \emph{nejbližšího} bodu:
+\[ \argmax_{\mathbf{w},b}\ \frac{1}{\|\mathbf{w}\|}\min_i\big[t_i(\mathbf{w}^{\!\top}\mathbf{x}_i+b)\big]. \]
+Takto se úloha optimalizuje špatně. Pomůže pozorování, že model je \emph{invariantní vůči přeškálování}: vynásobíme-li $\mathbf{w}$ i~$b$ stejnou konstantou, nadrovina (ani znaménko $y$) se nezmění. Můžeme proto škálu \uv{ukotvit} tak, aby pro nejbližší body platilo $t_i\,y(\mathbf{x}_i)=1$. Pak pro \emph{všechny} body platí $t_i\,y(\mathbf{x}_i)\ge 1$ a~maximalizace $1/\|\mathbf{w}\|$ je totéž co minimalizace $\tfrac12\|\mathbf{w}\|^2$.
+
+\begin{veta}[Primární úloha hard-margin SVM (kvadratické programování)]
+Pro lineárně separabilní data je max-margin nadrovina řešením úlohy
+\[ \boxed{\ \min_{\mathbf{w},b}\ \tfrac12\|\mathbf{w}\|^2 \quad\text{za podmínek}\quad t_i(\mathbf{w}^{\!\top}\mathbf{x}_i+b)\ge 1\ \text{pro všechna }i.\ } \]
+Účelová funkce je \emph{kvadratická} a~podmínky \emph{lineární} (afinní) v~$\mathbf{w},b$, jde tedy o~úlohu \textbf{kvadratického programování} (QP). Účelová funkce je navíc \emph{konvexní}, takže optimum je jednoznačné (globální). Při této normalizaci je margin roven
+\[ \text{margin} = \frac{1}{\|\mathbf{w}\|},\qquad \text{tj.\ celková šíře pásu mezi marginy} = \frac{2}{\|\mathbf{w}\|}. \]
+\end{veta}
+
+\begin{intuice}[Proč $2/\|\mathbf{w}\|$]
+Body s~$t_i\,y(\mathbf{x}_i)=1$ leží na dvou rovnoběžných nadrovinách $\mathbf{w}^{\!\top}\mathbf{x}+b=+1$ a~$\mathbf{w}^{\!\top}\mathbf{x}+b=-1$ (kladný a~záporný margin). Vzdálenost mezi dvěma rovnoběžkami $\mathbf{w}^{\!\top}\mathbf{x}+b=\pm1$ je $\dfrac{2}{\|\mathbf{w}\|}$. Minimalizovat $\|\mathbf{w}\|$ tedy znamená \emph{rozšiřovat} pás mezi marginy.
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.3]
+  % decision boundary: x1 + x2 = 3  (w = (1,1))
+  % positive margin: x1+x2 = 4 ; negative margin: x1+x2 = 2
+  \draw[osa] (0,0) -- (5,0) node[right,font=\scriptsize]{$x_1$};
+  \draw[osa] (0,0) -- (0,5) node[above,font=\scriptsize]{$x_2$};
+  % margin band fill (between x1+x2=2 and x1+x2=4)
+  \fill[blue!7] (0.0,4.0) -- (4.0,0.0) -- (2.0,0.0) -- (0.0,2.0) -- cycle;
+  % margin lines (dashed): x1+x2=4 and x1+x2=2
+  \draw[margin] (0.0,4.0) -- (4.0,0.0);
+  \draw[margin] (0.0,2.0) -- (2.0,0.0);
+  % decision boundary (solid): x1+x2=3
+  \draw[hranice] (0.0,3.0) -- (3.0,0.0);
+  \node[font=\scriptsize,black!75,anchor=west] at (3.15,0.35) {$\mathbf{w}^{\!\top}\mathbf{x}+b=0$};
+  % positive class (cls2 = red squares) above the band
+  \node[cls2] (p1) at (3.4,2.2) {};
+  \node[cls2] (p2) at (4.2,1.4) {};
+  \node[cls2,podpora] (sp) at (2.6,1.4) {}; % support vector on positive margin (x1+x2=4)
+  \node[font=\scriptsize,red!65!black,anchor=south west] at (3.5,2.25) {třída $+1$};
+  % negative class (cls1 = blue circles) below the band
+  \node[cls1] (n1) at (0.5,0.5) {};
+  \node[cls1] (n2) at (1.3,0.2) {};
+  \node[cls1,podpora] (sn) at (1.0,1.0) {}; % support vector on negative margin (x1+x2=2)
+  \node[font=\scriptsize,blue!60!black,anchor=north east] at (1.25,0.1) {třída $-1$};
+  % normal vector w (perpendicular to boundary, direction (1,1)) -- v prazdne casti vlevo nahore
+  \draw[->,>=Stealth,thick,black] (0.9,2.1) -- (1.45,2.65) node[midway,above left,font=\scriptsize]{$\mathbf{w}$};
+  % margin arrow (perpendicular distance between boundary and pos margin) -- vpravo dole, mimo body
+  \draw[<->,>=Stealth,blue!55!black,thick] (2.5,0.5) -- (3.0,1.0);
+  \node[font=\scriptsize,blue!55!black,anchor=west] at (3.05,0.9) {margin $=\tfrac{1}{\|\mathbf{w}\|}$};
+  % label support vectors (umisteno tak, aby nekolidovalo s w ani se sebou)
+  \node[font=\scriptsize,anchor=north] at (2.6,1.2) {p.\,v.};
+  \node[font=\scriptsize,anchor=west] at (1.2,1.05) {p.\,v.};
+\end{tikzpicture}
+\obrpopis{Max-margin separátor: plná čára je rozhodovací hranice $\mathbf{w}^{\!\top}\mathbf{x}+b=0$, čárkované čáry jsou dva marginy $\mathbf{w}^{\!\top}\mathbf{x}+b=\pm1$. Zakroužkované body leží přesně na marginu -- to jsou \emph{podpůrné vektory} (p.\,v.), které hranici určují. Vektor $\mathbf{w}$ je na hranici kolmý; šíře pásu je $2/\|\mathbf{w}\|$.}
+\end{center}
+
+\subsubsection*{Duální tvar a~role skalárních součinů}
+
+Úloha s~nerovnostními podmínkami se řeší přes \emph{Lagrangeovy multiplikátory} $a_i\ge 0$ (jeden na každou podmínku; podmínky optimality KKT -- Karush--Kuhn--Tucker). Plnou derivaci vynecháváme; klíčové je, jak vypadá výsledek. Po dosazení optimálních $\mathbf{w}=\sum_i a_i t_i\,\mathbf{x}_i$ vznikne ekvivalentní \textbf{duální úloha}
+\[ \max_{\mathbf{a}}\ \sum_i a_i - \tfrac12\sum_i\sum_j a_i a_j\,t_i t_j\,\underbrace{\mathbf{x}_i^{\!\top}\mathbf{x}_j}_{\text{skalární součin}}\quad\text{za podmínek}\quad a_i\ge 0,\ \sum_i a_i t_i = 0. \]
+
+\begin{intuice}[Dvě zásadní pozorování]
+\begin{itemize}
+  \item \textbf{Závislost jen na skalárních součinech.} V~duální úloze se data objevují \emph{výhradně} přes skalární součiny $\mathbf{x}_i^{\!\top}\mathbf{x}_j$. To je brána ke kernel triku (níže): stačí umět počítat skalární součiny, samotné vektory nepotřebujeme.
+  \item \textbf{Řídkost: jen podpůrné vektory.} Z~podmínek KKT plyne $a_i\,\big(t_i y(\mathbf{x}_i)-1\big)=0$ pro každé $i$. Tedy buď je bod přesně na marginu ($t_i y(\mathbf{x}_i)=1$), nebo $a_i=0$. Body s~$a_i=0$ se v~predikci $y(\mathbf{x})=\sum_i a_i t_i\,\mathbf{x}_i^{\!\top}\mathbf{x}+b$ neuplatní. Stačí tedy uchovat jen \emph{podpůrné vektory} (body s~$a_i>0$). SVM je sice neparametrický model (počet podpůrných vektorů roste s~daty), ale paměťově úsporný.
+\end{itemize}
+\end{intuice}
+
+\subsection{Lineárně neseparabilní třídy: soft margin}
+
+Reálná data bývají \emph{zašuměná} a~oddělit je beze zbytku přímkou nelze (hard-margin úloha pak nemá řešení). \textbf{Soft margin} (měkký margin) povolí, aby některé body byly \emph{uvnitř} marginu, nebo i~na \emph{špatné straně} hranice, ale za pokutu.
+
+\begin{definice}[Slack proměnné, soft-margin SVM]
+Pro každý bod zavedeme \textbf{slack proměnnou} $\xi_i\ge 0$ měřící porušení marginu. Podmínku $t_i y(\mathbf{x}_i)\ge 1$ uvolníme na $t_i y(\mathbf{x}_i)\ge 1-\xi_i$. Optimalizujeme
+\[ \boxed{\ \min_{\mathbf{w},b,\boldsymbol{\xi}}\ \tfrac12\|\mathbf{w}\|^2 + C\sum_i \xi_i \quad\text{za podmínek}\quad t_i(\mathbf{w}^{\!\top}\mathbf{x}_i+b)\ge 1-\xi_i,\ \ \xi_i\ge 0.\ } \]
+Hodnota slacku rozlišuje polohu bodu: $\xi_i=0$ bod \emph{vně} marginu (správně, s~rezervou), $0<\xi_i<1$ bod \emph{uvnitř} marginu (správně, ale bez rezervy), $\xi_i=1$ bod \emph{na} hranici a~$\xi_i>1$ bod na \emph{špatné straně} hranice (chyba klasifikace).
+\end{definice}
+
+\begin{intuice}[Význam konstanty $C$]
+Konstanta $C>0$ je \emph{kompromis} mezi šíří marginu a~chybami: penalizuje součet slacků $\sum_i\xi_i$.
+\begin{itemize}
+  \item \textbf{Velké $C$} -- chyby jsou drahé, model se snaží klasifikovat vše správně (úzký margin, blíž k~hard-margin; riziko \emph{overfittingu}, tj.\ přeučení).
+  \item \textbf{Malé $C$} -- chyby jsou levné, model upřednostní široký margin a~toleruje porušení (víc \emph{regularizace}, hladší hranice).
+\end{itemize}
+$C$ je hyperparametr; ladí se křížovou validací (viz sekce~\ref{sec:evaluace}).
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.4]
+  % geometrie: hranice x1+x2=3, kladny margin x1+x2=4, zaporny margin x1+x2=2
+  % smer kolmy na primky = (1,1)/sqrt2; krok (0.5,0.5) posune x1+x2 o 1
+  \draw[osa] (0,0) -- (5.2,0) node[right,font=\scriptsize]{$x_1$};
+  \draw[osa] (0,0) -- (0,5.2) node[above,font=\scriptsize]{$x_2$};
+  % vyplň pásu mezi marginy x1+x2=2 a x1+x2=4
+  \fill[blue!6] (0.0,4.0) -- (4.0,0.0) -- (2.0,0.0) -- (0.0,2.0) -- cycle;
+  % marginy (čárkované)
+  \draw[margin] (0.4,3.6) -- (3.6,0.4);
+  \draw[margin] (0.2,1.8) -- (1.8,0.2);
+  \node[font=\scriptsize,black!55,anchor=west] at (3.55,0.5) {margin $+1$};
+  \node[font=\scriptsize,black!55,anchor=west] at (1.75,0.3) {margin $-1$};
+  % rozhodovaci hranice x1+x2=3 (plna)
+  \draw[hranice] (0.3,2.7) -- (3.0,0.0);
+  \node[font=\scriptsize,black!75,anchor=west] at (2.65,0.55) {hranice};
+  % --- spravne klasifikovane kladne (cervene ctverce), xi=0 ---
+  \node[cls2] at (3.3,1.5) {};   % x1+x2=4.8
+  \node[cls2] at (4.2,1.0) {};   % x1+x2=5.2
+  \node[cls2,podpora] at (2.2,1.8) {}; % podpurny vektor na kladnem marginu (x1+x2=4)
+  % --- kladny bod UVNITR marginu (spravna strana, 0<xi<1): x1+x2=3.5 ---
+  \node[cls2] (pin) at (2.6,0.9) {};
+  % slack: kolma usecka od kladneho marginu k bodu, foot na x1+x2=4 -> (2.85,1.15)
+  \draw[<->,>=Stealth,orange!80!black,thick] (2.85,1.15) -- (2.6,0.9);
+  \node[font=\scriptsize,orange!70!black,anchor=west] at (2.9,1.0) {$0<\xi_i<1$};
+  % --- spravne klasifikovane zaporne (modra kolecka), xi=0 ---
+  \node[cls1] at (0.5,0.5) {};   % x1+x2=1.0
+  \node[cls1] at (0.9,0.4) {};   % x1+x2=1.3
+  \node[cls1,podpora] at (0.8,1.2) {}; % podpurny vektor na zapornem marginu (x1+x2=2)
+  % --- zaporny bod na SPATNE strane (xi>1, chyba): x1+x2=3.4 ---
+  \node[cls1] (nwr) at (1.2,2.2) {};
+  % slack: kolma usecka od zaporneho marginu k bodu, foot na x1+x2=2 -> (0.5,1.5)
+  \draw[<->,>=Stealth,red!75!black,thick] (0.5,1.5) -- (1.2,2.2);
+  \node[font=\scriptsize,red!70!black,anchor=south east] at (1.15,2.25) {$\xi_j>1$};
+  % legenda
+  \node[font=\scriptsize,red!65!black,anchor=west] at (3.4,2.2) {třída $+1$ (čtverce)};
+  \node[font=\scriptsize,blue!60!black,anchor=west] at (1.9,2.9) {třída $-1$ (kolečka)};
+\end{tikzpicture}
+\obrpopis{Soft margin: většina bodů leží správně vně marginu ($\xi=0$, zakroužkované jsou podpůrné vektory přesně na marginu). Oranžová úsečka -- kladný bod uvnitř pásu na správné straně hranice ($0<\xi_i<1$). Červená úsečka -- bod záporné třídy zabloudil na kladnou stranu hranice ($\xi_j>1$, chyba). Slack $\xi_i$ je (škálovaná) kolmá vzdálenost od příslušného marginu k bodu; jeho součet $\sum_i\xi_i$ pokutuje konstanta $C$.}
+\end{center}
+
+\subsubsection*{Hinge loss: SVM jako regularizovaná ztráta}
+
+Z~podmínek lze slack vyjádřit explicitně: $\xi_i=\max\big(0,\,1-t_i y(\mathbf{x}_i)\big)$ (je-li bod správně s~rezervou, je $1-t_iy\le 0$ a~slack je $0$; jinak je kladný). Dosazením dostaneme \emph{bezpodmínkovou} formulaci přes \textbf{hinge loss} (závěsovou ztrátu):
+\[ \mathcal{L}_{\text{hinge}}(t,y) = \max(0,\,1-t\,y),\qquad \min_{\mathbf{w},b}\ \underbrace{C\sum_i \mathcal{L}_{\text{hinge}}\big(t_i,y(\mathbf{x}_i)\big)}_{\text{datová ztráta}} + \underbrace{\tfrac12\|\mathbf{w}\|^2}_{\text{regularizace}}. \]
+
+\begin{intuice}
+Hinge loss penalizuje bod, dokud není správně klasifikován \emph{s~rezervou} ($t_i y\ge 1$); za touto hranicí je ztráta nulová (proto „závěs``). To je rozdíl oproti logistické regresi (sekce~\ref{sec:logisticka}), jejíž ztráta $-\log\sigma(ty)$ klesá k~nule jen asymptoticky a~odměňuje i~body daleko za hranicí. Formulace ukazuje, že \textbf{$C$ je \emph{inverzní} síla regularizace}: $C\to\infty$ znamená žádnou regularizaci (hard-margin), $C\to 0$ ignoruje data. SVM tak zapadá do téhož rámce „datová ztráta $+$ regularizace`` jako lineární a~logistická regrese; liší se jen volbou ztrátové funkce.
+\end{intuice}
+
+\subsection{Jádrové funkce: kernel trick}
+
+Lineární SVM zvládne jen lineárně (téměř) oddělitelná data. Trik, jak ho zmocnit pro nelineární hranice: data nejprve \emph{transformovat} zobrazením $\boldsymbol{\varphi}\colon\mathbb{R}^D\to\mathbb{R}^{F}$ do prostoru \emph{vyšší dimenze}, kde se stanou lineárně separabilní. Lineární hranice v~novém prostoru odpovídá \emph{zakřivené} hranici v~původním.
+
+\begin{intuice}[Proč vyšší dimenze pomáhá]
+Body, které v~rovině nejdou oddělit přímkou (např.\ jedna třída uvnitř kruhu, druhá kolem), se přidáním vhodných příznaků (např.\ $x_1^2,\,x_2^2,\,x_1x_2$) v~prostoru vyšší dimenze \uv{rozestoupí} tak, že je oddělí nadrovina. Vzdálenost od počátku ($x_1^2+x_2^2$) je nový příznak, podle nějž se vnitřní a~vnější kruh liší.
+\end{intuice}
+
+\begin{center}
+\begin{tikzpicture}[scale=1.05]
+  % --- levy panel: v R^2 nelze oddelit primkou (vnitrni shluk vs prstenec) ---
+  \begin{scope}
+    \draw[osa] (-2.3,0) -- (2.3,0) node[right,font=\scriptsize]{$x_1$};
+    \draw[osa] (0,-2.3) -- (0,2.5) node[above,font=\scriptsize]{$x_2$};
+    % vnitrni trida (cervene ctverce) v malem shluku kolem pocatku
+    \foreach \x/\y in {0/0, 0.45/0.25, {0-0.4}/0.3, 0.3/{0-0.4}, {0-0.35}/{0-0.3}}{
+      \node[cls2] at (\x,\y) {};}
+    % vnejsi trida (modra kolecka) rovnomerne na kruznici (8 bodu po 45 stupnich)
+    \foreach \a in {0,45,...,315}{
+      \node[cls1] at ({1.8*cos(\a)},{1.8*sin(\a)}) {};}
+    \node[font=\scriptsize] at (0,-2.85) {(a) v~$\mathbb{R}^2$: nejde oddělit přímkou};
+  \end{scope}
+  % sipka phi
+  \draw[->,>=Stealth,thick,black!70] (2.7,0.1) -- (3.9,0.1) node[midway,above,font=\scriptsize]{$\boldsymbol{\varphi}$};
+  % --- pravy panel: po transformaci oddelitelne (osa y = x1^2+x2^2) ---
+  \begin{scope}[xshift=6.7cm]
+    \draw[osa] (-2.3,0) -- (2.3,0) node[right,font=\scriptsize]{$x_1$};
+    \draw[osa] (0,0) -- (0,3.6) node[above,font=\scriptsize]{$x_1^2+x_2^2$};
+    % vnitrni trida: maly polomer -> mala vyska (kolem 0.2-0.3)
+    \foreach \x/\h in {0/0.0, 0.45/0.27, {0-0.4}/0.25, 0.3/0.25, {0-0.35}/0.21}{
+      \node[cls2] at (\x,\h) {};}
+    % vnejsi trida: polomer 1.8 -> stejna vyska; x rozprostreno, aby se markery neprekryvaly
+    \foreach \x in {-1.9,-1.35,-0.8,-0.25,0.3,0.85,1.4,1.95}{
+      \node[cls1] at (\x,3.05) {};}
+    % oddelujici nadrovina (vodorovna primka mezi shluky)
+    \draw[hranice] (-2.1,1.6) -- (2.1,1.6);
+    \node[font=\scriptsize,black!75,anchor=south] at (0,1.65) {nadrovina};
+    \node[font=\scriptsize] at (0,-0.85) {(b) po transformaci: oddělí vodorovná nadrovina};
+  \end{scope}
+\end{tikzpicture}
+\obrpopis{Kernel trik. (a)~Vnitřní třída (červené čtverce, malý shluk kolem počátku) a~vnější třída (modrá kolečka rovnoměrně na kružnici) nejdou v~rovině oddělit přímkou. (b)~Po transformaci do prostoru vyšší dimenze, kde je novým příznakem vzdálenost od počátku $x_1^2+x_2^2$, se třídy rozdělí a~oddělí obyčejnou (vodorovnou) nadrovinou; ta v~původní rovině odpovídá kružnici.}
+\end{center}
+
+Transformace do vysoké (i~nekonečné) dimenze by byla výpočetně drahá. Tady se uplatní, že duální SVM závisí na datech \emph{jen přes skalární součiny}: stačí umět spočítat $\boldsymbol{\varphi}(\mathbf{x})^{\!\top}\boldsymbol{\varphi}(\mathbf{x}')$, transformaci samotnou nikdy nepotřebujeme.
+
+\begin{definice}[Jádro, kernel trick]
+\textbf{Jádro} (kernel) odpovídající transformaci $\boldsymbol{\varphi}$ je funkce
+\[ K(\mathbf{x},\mathbf{x}') \;\stackrel{\text{def}}{=}\; \boldsymbol{\varphi}(\mathbf{x})^{\!\top}\boldsymbol{\varphi}(\mathbf{x}'). \]
+\textbf{Kernel trick}: v~duální úloze i~v~predikci $y(\mathbf{x})=\sum_i a_i t_i\,K(\mathbf{x},\mathbf{x}_i)+b$ všude nahradíme skalární součin $\mathbf{x}_i^{\!\top}\mathbf{x}_j$ jádrem $K(\mathbf{x}_i,\mathbf{x}_j)$. Pracujeme tak ve vysokodimenzionálním prostoru, \emph{aniž bychom $\boldsymbol{\varphi}$ kdy explicitně vyčíslili}.
+\end{definice}
+
+\begin{definice}[Nejčastější jádra]
+\begin{itemize}
+  \item \textbf{Polynomiální jádro} stupně (nejvýše) $d$:
+    \[ K(\mathbf{x},\mathbf{x}') = (\gamma\,\mathbf{x}^{\!\top}\mathbf{x}' + 1)^d. \]
+    Odpovídá transformaci na všechny součiny až $d$ vstupních příznaků (interakce do stupně $d$). Pro $d=2$ a~$\gamma=1$ je $\boldsymbol{\varphi}(x_1,x_2)=(1,\sqrt2\,x_1,\sqrt2\,x_2,x_1^2,\sqrt2\,x_1x_2,x_2^2)$.
+  \item \textbf{Gaussovo (RBF) jádro} (radial basis function):
+    \[ K(\mathbf{x},\mathbf{x}') = \exp\!\big(-\gamma\,\|\mathbf{x}-\mathbf{x}'\|^2\big),\qquad \gamma>0. \]
+    Odpovídá skalárnímu součinu v~prostoru \emph{nekonečné} dimenze (kombinaci polynomiálních jader všech stupňů).
+\end{itemize}
+\end{definice}
+
+\begin{intuice}[Kdy jádra pomohou a~jak se chová RBF]
+Jádra pomohou, když hranice mezi třídami \emph{není lineární}. RBF jádro je funkcí \emph{vzdálenosti}: $K(\mathbf{x},\mathbf{x}')$ je velké pro blízké body a~klesá k~nule pro vzdálené. SVM s~RBF tak vlastně váží „svědectví`` trénovacích bodů podle vzdálenosti -- je to chytřejší varianta $k$-NN (sekce~\ref{sec:knn}), která bere v~úvahu všechny body, každý vážený podobností. Parametr $\gamma$ řídí \emph{dosah}: velké $\gamma$ = úzké špičky kolem bodů (riziko \emph{overfittingu}), malé $\gamma$ = široký vliv (hladší hranice). Na \emph{lineárně oddělitelných} datech jádro nepomůže -- naopak může vést k~\emph{overfittingu}; tam stačí lineární SVM.
+\end{intuice}
+
+\subsection{Klasifikace do více tříd}
+
+SVM je ze své podstaty \emph{binární}. Pro $K>2$ tříd se skládá z~více binárních klasifikátorů dvěma standardními způsoby.
+
+\begin{definice}[One-vs-rest a~one-vs-one]
+\begin{itemize}
+  \item \textbf{One-versus-rest} (jeden proti zbytku, OvR): natrénuje se $K$ binárních klasifikátorů; $i$-tý odděluje třídu $i$ od \emph{všech ostatních}. Při predikci vybereme třídu, jejíž klasifikátor dá nejvyšší skóre (vyžaduje \emph{srovnatelná} skóre, ideálně kalibrované pravděpodobnosti -- což SVM přímo nedává).
+  \item \textbf{One-versus-one} (každý s~každým, OvO): natrénuje se $\binom{K}{2}$ klasifikátorů, jeden pro každou dvojici tříd $(i,j)$. Při predikci každý hlasuje pro jednu ze své dvojice a~vítězí třída s~\emph{nejvíce hlasy}. (Tuto variantu používá pro SVM např.\ knihovna \texttt{libsvm}/scikit-learn.)
+\end{itemize}
+\end{definice}
+
+\begin{intuice}[Kompromis OvR vs.\ OvO]
+OvR trénuje jen $K$ klasifikátorů (méně modelů), ale každý na \emph{nevyvážených} datech (jedna třída proti $K-1$) a~vyžaduje porovnatelná skóre. OvO trénuje $\binom{K}{2}=\tfrac{K(K-1)}{2}$ klasifikátorů (kvadraticky mnoho), zato každý na malé, vyvážené dvojici tříd; proto se hodí pro SVM, jehož trénink škáluje nadlineárně s~počtem bodů. Nevýhoda hlasování: vznikají \emph{nerozhodné} oblasti, kde víc tříd dostane stejně hlasů.
+\end{intuice}
+
+\begin{poznamka}[Nad rámec požadavků]
+Jen pro úplnost a~bez detailu: duální úlohu SVM v~praxi řeší algoritmus \textbf{SMO} (Sequential Minimal Optimization), což je souřadnicový sestup optimalizující vždy dvojici multiplikátorů $a_i,a_j$ najednou (kvůli podmínce $\sum_i a_i t_i=0$). SVM lze upravit i~na \emph{regresi} (SVR) s~$\varepsilon$-necitlivou ztrátou. Tyto detaily požadavky nevyžadují.
+\end{poznamka}
+
+\subsection{Řešený příklad}
+
+\begin{priklad}[SZZ léto 2024 č.~30: Metoda podpůrných vektorů (SVM)]
+\szzotazka{léto 2024}{30}{Metoda podpůrných vektorů (SVM)}\par
+\textbf{Zadání.} Data se dvěma příznaky, dvě třídy. Třída A (křížky, $t=+1$): $(1,1),(2,2),(2,0)$. Třída B (kolečka, $t=-1$): $(0,0),(1,0),(0,1)$. (1)~Popište, jak fungují a~trénují se lineární SVM pro lineárně separabilní data. (2)~Zakreslete přibližnou rozhodovací hranici lineárního SVM. (3)~Jak ovlivní hranici přidání bodu $(3,3)$ do třídy A? (4)~Pomohlo by na těchto datech RBF jádro? Nakreslete dataset, kde RBF pomohou.
+
+\smallskip
+\textbf{Řešení.}
+
+\emph{(1)~Princip.} Viz výklad výše: SVM hledá oddělující přímku s~\emph{maximálním marginem}, tj.\ řeší QP úlohu $\min\tfrac12\|\mathbf{w}\|^2$ za podmínek $t_i(\mathbf{w}^{\!\top}\mathbf{x}_i+b)\ge 1$. Hranici určují \emph{podpůrné vektory} (body s~$a_i>0$); ty leží přesně na marginu, obráceně to platit nemusí.
+
+\emph{(2)~Hranice.} Geometrie dat: třída B je v~„levém dolním`` rohu, třída A nad ní. Nejbližší body třídy A leží na přímce $x_1+x_2=2$, nejbližší body třídy B na $x_1+x_2=1$; separátor kolmý na směr $(1,1)$ uprostřed mezi nimi je zároveň maximálně marginový. Lepší být nemůže: bod $(1,1)$ třídy A má od úsečky $(1,0)$--$(0,1)$, která leží v~konvexním obalu třídy B, vzdálenost $1/\sqrt2$, a~každá oddělující přímka musí ležet mezi nimi, takže žádná nemá margin větší než $1/(2\sqrt2)$. Tento separátor ho dosahuje (ověřeno i~řešičem, viz níže). Je to přímka
+\[ \boxed{x_1+x_2 = 1{,}5},\qquad \text{tj.\ } \mathbf{w}=(1,1),\ b=-1{,}5 \]
+(v~kanonické normalizaci $\mathbf{w}=(2,2),\ b=-3$, aby nejbližší body měly $|y|=1$). Na marginu leží $(1,1)$ a~$(2,0)$ z~A a~$(1,0),(0,1)$ z~B. Jako \textbf{podpůrné vektory} (s~$a_i>0$) vrátí řešič $(1,1)$, $(1,0)$ a~$(0,1)$; bod $(2,0)$ je na marginu také, ale k~určení optima už není potřeba (degenerovaný případ). Při kanonické normalizaci $\mathbf{w}=(2,2)$ je $\|\mathbf{w}\|=2\sqrt2$, takže margin (vzdálenost separátoru k~nejbližšímu bodu) je $\dfrac{1}{\|\mathbf{w}\|}=\dfrac{1}{2\sqrt2}\approx 0{,}354$ a~celková šíře pásu mezi marginy $\dfrac{2}{\|\mathbf{w}\|}=\dfrac{1}{\sqrt2}\approx 0{,}707$.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.25]
+  \draw[osa] (-0.4,0) -- (3.1,0) node[right,font=\scriptsize]{$x_1$};
+  \draw[osa] (0,-0.4) -- (0,3.1) node[above,font=\scriptsize]{$x_2$};
+  \foreach \t in {1,2,3}{\draw[black!25] (\t,-0.05)--(\t,0.05); \node[font=\tiny,anchor=north] at (\t,-0.05){\t};
+                          \draw[black!25] (-0.05,\t)--(0.05,\t); \node[font=\tiny,anchor=east] at (-0.05,\t){\t};}
+  % decision boundary x1+x2=1.5
+  \draw[hranice] (-0.2,1.7) -- (1.7,-0.2);
+  % popisek hranice v otevrene casti nad pasem, mimo body i osove popisky
+  \node[font=\scriptsize,black!75,anchor=south west] at (1.15,1.55) {$x_1{+}x_2{=}1{,}5$};
+  % margins: x1+x2=2 (A side) and x1+x2=1 (B side)
+  \draw[margin] (0.0,2.0) -- (2.0,0.0);
+  \draw[margin] (0.0,1.0) -- (1.0,0.0);
+  % class A: crosses (use cls2 = squares to match preamble; mark with x via node text)
+  \node[cls2,podpora] at (1,1) {}; % support vector (on margin x1+x2=2)
+  \node[cls2] at (2,2) {};
+  \node[cls2] at (2,0) {};         % lies ON margin x1+x2=2 but not chosen as SV (degenerate)
+  % class B: circles
+  \node[cls1] at (0,0) {};
+  \node[cls1,podpora] at (1,0) {}; % support vector (on margin x1+x2=1)
+  \node[cls1,podpora] at (0,1) {}; % support vector
+  % labels
+  \node[font=\scriptsize,red!65!black,anchor=south west] at (2.05,2.0) {A ($t{=}{+}1$)};
+  \node[font=\scriptsize,blue!60!black,anchor=north east] at (-0.05,-0.05) {B ($t{=}{-}1$)};
+\end{tikzpicture}
+\obrpopis{Skutečný max-margin separátor pro data ze zadání (ověřeno \texttt{sklearn}): plná čára $x_1+x_2=1{,}5$, čárkované marginy $x_1+x_2=2$ (strana A) a~$x_1+x_2=1$ (strana B). Zakroužkované podpůrné vektory: $(1,1)$ z~A a~$(1,0),(0,1)$ z~B. Body $(2,2)$ a~$(0,0)$ leží daleko a~hranici neovlivňují; $(2,0)$ leží sice na marginu, ale optimum je určeno už třemi vektory.}
+\end{center}
+
+\emph{(3)~Přidání bodu $(3,3)$ do A.} Bod $(3,3)$ leží \emph{hluboko} na správné straně (pro něj $x_1+x_2=6\gg 2$), daleko od marginu. Není to podpůrný vektor, jeho odebrání či přidání hranici nezmění: \textbf{separátor i~margin zůstanou stejné} ($\mathbf{w}=(1,1),\ b=-1{,}5$). To je klíčová vlastnost SVM -- hranici určují jen body na marginu, ne vzdálené body (na rozdíl třeba od lineární regrese, kterou by odlehlý bod „přitáhl``). \emph{(Ověřeno numericky: po přidání $(3,3)$ vrací \texttt{sklearn} týž separátor a~$(3,3)$ mezi podpůrnými vektory není.)}
+
+\emph{(4)~RBF na těchto datech.} Data \emph{jsou} lineárně separabilní (právě jsme našli přímku), takže RBF jádro by zde \textbf{nepomohlo} -- spíš by hrozil \emph{overfitting} (přeučení). RBF se vyplatí, až když lineární hranice nestačí. Příklad takových dat -- \emph{soustředné kruhy}:
+
+\begin{center}
+\begin{tikzpicture}[scale=1.0]
+  \draw[osa] (-2.4,0) -- (2.4,0) node[right,font=\scriptsize]{$x_1$};
+  \draw[osa] (0,-2.4) -- (0,2.6) node[above,font=\scriptsize]{$x_2$};
+  % vnitrni trida (cervene ctverce) -- maly shluk kolem pocatku (stejny vzor jako u kernel triku)
+  \foreach \x/\y in {0/0, 0.45/0.25, {0-0.4}/0.3, 0.3/{0-0.4}, {0-0.35}/{0-0.3}}{
+    \node[cls2] at (\x,\y) {};}
+  % vnejsi trida (modra kolecka) -- rovnomerne na kruznici (8 bodu po 45 stupnich)
+  \foreach \a in {0,45,...,315}{
+    \node[cls1] at ({1.8*cos(\a)},{1.8*sin(\a)}) {};}
+  % carkovana RBF hranice (kruznice mezi shlukem a prstencem)
+  \draw[margin] (0,0) circle (1.15);
+  \node[font=\scriptsize,black!70,anchor=south west] at (0.82,0.82) {hranice (RBF)};
+\end{tikzpicture}
+\obrpopis{Dataset, kde RBF jádro pomáhá: jedna třída uvnitř (čtverce, malý shluk kolem počátku), druhá v~prstenci kolem (kolečka rovnoměrně na kružnici). Žádná přímka je neoddělí, RBF jádro ano, kruhovou hranicí. (Na vygenerovaných datech tohoto typu dosáhne lineární SVM jen $\approx 63\,\%$ správnosti, RBF $100\,\%$; ověřeno \texttt{sklearn}.)}
+\end{center}
+\end{priklad}
+
+\begin{poznamka}[Numerické ověření]
+Skutečný separátor, podpůrné vektory, neměnnost při přidání $(3,3)$ i~rozdíl lineární vs.\ RBF na kruzích jsou ověřeny skriptem \texttt{src/fig/gen\_s7\_svm\_verify.py} (\texttt{sklearn.svm.SVC}). Výsledek: $\mathbf{w}=(2,2),\ b=-3$ (kanonicky), margin $1/(2\sqrt2)\approx0{,}354$ (šíře pásu $1/\sqrt2$), podpůrné vektory $(1,1),(1,0),(0,1)$; lineární SVM na soustředných kruzích $63\,\%$, RBF $100\,\%$.
+\end{poznamka}

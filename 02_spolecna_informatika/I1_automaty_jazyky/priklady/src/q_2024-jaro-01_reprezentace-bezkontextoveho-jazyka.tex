@@ -1,0 +1,54 @@
+% Zdroj: PDF priklady-jaro-2024.pdf, fyzická str. 1. Značka: společné okruhy. Zařazeno: I1.
+\section{Reprezentace bezkontextového jazyka}
+\szzotazka{jaro 2024}{1}{Reprezentace bezkontextového jazyka (CFG, zásobníkový automat)}
+
+\noindent\textbf{Zadání.}\par
+Uvažme následující jazyk nad abecedou $\{0, 1, \#\}$:
+\[ L = \{w \# s^R \mid w, s \in \{0,1\}^* \text{ a~slovo } s \text{ je podslovem slova } w\}. \]
+(Poznámka: $s^R$ označuje slovo $s$ napsané pozpátku; podslovo je souvislý podřetězec,
+vč.\ prázdného a~celého slova.)
+\begin{enumerate}
+\item Uveďte formální definici bezkontextové gramatiky a~formální definici zásobníkového
+  automatu.
+\item Sestrojte nějakou bezkontextovou gramatiku generující jazyk $L$.
+\item Sestrojte nějaký zásobníkový automat přijímající jazyk $L$.
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Náčrt řešení.}\par
+\begin{enumerate}
+\item \textit{Bezkontextová gramatika} je $G = (V, T, \mathcal{P}, S)$, kde $V$ a~$T$
+  jsou konečné neprázdné disjunktní množiny, $S \in V$, a~$\mathcal{P}$ je konečná
+  množina přepisovacích pravidel tvaru $H \to \beta$, kde $H \in V$ a~$\beta \in
+  (V \cup T)^*$.
+
+  \textit{Zásobníkový automat} je $(Q, \Sigma, \Gamma, \delta, q_0, Z_0, F)$, kde $Q$,
+  $\Sigma$ a~$\Gamma$ jsou konečné neprázdné množiny, $\delta\colon Q \times (\Sigma
+  \cup \{\lambda\}) \times \Gamma \to P_{FIN}(Q \times \Gamma^*)$, $q_0 \in Q$,
+  $Z_0 \in \Gamma$, a~$F \subseteq Q$ ($P_{FIN}$ značí konečné podmnožiny; $F$ lze
+  vynechat, přijímáme-li prázdným zásobníkem).
+
+\item Jazyk $L$ generuje například bezkontextová gramatika $G = (\{S, X, A\},
+  \{0, 1, \#\}, \mathcal{P}, S)$ s~pravidly $\mathcal{P} = \{S \to AX,\ X \to
+  0X0 \mid 1X1 \mid A\#,\ A \to 0A \mid 1A \mid \lambda\}$ (kde proměnná $A$ generuje
+  libovolné slovo nad $\{0, 1\}$).
+
+  \textit{Doplňující vysvětlení (nad rámec oficiálního náčrtu):} Každá derivace má
+  tvar $S \Rightarrow AX \Rightarrow^* p\,X \Rightarrow^* p\,u\,X\,u^R \Rightarrow
+  p\,u\,A\#\,u^R \Rightarrow^* p\,u\,q\,\#\,u^R$, kde $p, q, u \in \{0,1\}^*$ jsou
+  libovolná. Vygenerované slovo je tedy $w\#s^R$ s~$w = puq$ a~$s = u$, tj.\ $s$ je
+  podslovem $w$. Naopak každé slovo z~$L$ má takový rozklad $w = puq$, takže ho
+  gramatika vygeneruje.
+
+\item Lze sestrojit převodem gramatiky $G$. Výsledkem je zásobníkový automat
+  $(\{q_0\},\allowbreak \{0, 1, \#\},\allowbreak \{0, 1, \#, S, X, A\},\allowbreak \delta, q_0, S)$ přijímající jazyk
+  $L$ prázdným zásobníkem, kde přechodová funkce sestává z~přechodů odpovídajících
+  přepisovacím pravidlům a~z~přechodů pro čtení písmen:
+  \[ \delta = \{((q_0, \lambda, H), \beta) \mid H \to \beta \in \mathcal{P}\} \cup
+     \{((q_0, a, a), \lambda) \mid a \in \{0, 1, \#\}\}. \]
+  Alternativně lze automat zkonstruovat přímo. Při čtení slova $w$ si jeho znaky
+  ukládáme na zásobník, po přečtení $\#$ nejprve smažeme libovolný počet znaků ze
+  zásobníku, poté čteme $s^R$ a~kontrolujeme, zda souhlasí s~písmeny na zásobníku,
+  a~následně vyprázdníme zásobník. Lze také sestrojit automat přijímající koncovým
+  stavem.
+\end{enumerate}

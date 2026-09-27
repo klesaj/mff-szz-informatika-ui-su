@@ -1,0 +1,222 @@
+% ============================================================
+\section{Paralelismus a synchronizace}
+% ============================================================
+
+Vlákna téhož procesu sdílejí adresový prostor (sekce~6), takže mohou současně sahat na stejná data. Bez koordinace vznikají \emph{časově závislé chyby}. Požadavky chtějí umět rozpoznat race condition, vymezit kritickou sekci a~vzájemné vyloučení a~použít základní synchronizační primitiva (zámky, semafory) včetně rozdílu aktivního a~pasivního čekání. Řešené příklady na konci sekce procvičují obojí: \emph{nalezení chyby} i~\emph{správnou konstrukci} synchronizace.
+
+\subsection{Paralelismus a souběžnost}
+
+\begin{definice}[Paralelní vs.\ souběžný výpočet]
+\emph{Paralelní} (parallel) výpočet probíhá fyzicky současně na více jádrech. \emph{Souběžný} (concurrent) výpočet znamená, že více činností je „rozpracováno`` zároveň, ale nemusí běžet fyzicky současně (na jednom jádru se prokládají multitaskingem). Problémy synchronizace vznikají v~obou případech, kdykoli více vláken \emph{sdílí} data.
+\end{definice}
+
+\subsection{Časově závislé chyby (race conditions)}
+
+\begin{definice}[Race condition]
+\emph{Časově závislá chyba} (race condition) nastane, když výsledek výpočtu závisí na \emph{pořadí} nebo \emph{časování} prokládání vláken, která přistupují (a~zapisují) ke sdíleným datům. Typickým zdrojem je operace „přečti -- uprav -- zapiš`` (např.\ \cd!x = x + 1!), která není atomická: mezi čtení a~zápis se může vklínit jiné vlákno.
+\end{definice}
+
+\begin{center}
+\scalebox{1.2}{%
+\begin{tikzpicture}[every node/.append style={font=\footnotesize}]
+% dve drahy vlaken, cas dolu; sdilena x
+\node[font=\small] at (0,2.7) {vlákno T1};
+\node[font=\small] at (4,2.7) {vlákno T2};
+\node[font=\small] at (7.2,3.2) {sdílené $x$};
+\node[bunka,minimum width=1.2cm] at (6.6,2.3) {0};
+% kroky
+\node[komp,minimum width=2.6cm,fill=blue!6] at (0,1.8) {\texttt{tmp1 = x}\ \ (=0)};
+\node[komp,minimum width=2.6cm,fill=green!6] at (4,1.1) {\texttt{tmp2 = x}\ \ (=0)};
+\node[komp,minimum width=2.6cm,fill=blue!6] at (0,0.4) {\texttt{x = tmp1+1}\ \ (=1)};
+\node[bunka,minimum width=1.2cm] at (6.6,0.4) {1};
+\node[komp,minimum width=2.6cm,fill=green!6] at (4,-0.3) {\texttt{x = tmp2+1}\ \ (=1)};
+\node[bunka,minimum width=1.2cm,fill=red!10] at (6.6,-0.3) {1};
+% casova osa
+\draw[ptr] (-1.8,2.4) -- (-1.8,-0.6) node[below,font=\scriptsize]{čas};
+\end{tikzpicture}}%
+\obrpopis{Ztracená aktualizace (lost update) při neatomickém \texttt{x = x + 1}. Obě vlákna přečtou $x=0$ dříve, než kterékoli zapíše, takže obě zapíšou $1$; jeden přírůstek se ztratí (správně mělo být $x=2$). Výsledek závisí na prokládání -- proto „časově závislá chyba``.}
+\end{center}
+
+\subsection{Kritická sekce a vzájemné vyloučení}
+
+\begin{definice}[Kritická sekce, vzájemné vyloučení]
+\emph{Kritická sekce} je úsek programu, kde se přistupuje ke sdílenému prostředku a~kde by souběžný přístup způsobil chybu. \emph{Vzájemné vyloučení} (mutual exclusion) je požadavek, aby kritickou sekci nad týmž prostředkem vykonávalo v~jednu chvíli \emph{nejvýše jedno} vlákno. Synchronizace kritickou sekci „ohradí`` tak, aby vlákna do ní vstupovala po jednom.
+\end{definice}
+
+\begin{intuice}
+\textbf{Co musí splňovat správné řešení.} Samotné vzájemné vyloučení nestačí; od korektního ošetření kritické sekce chceme tři vlastnosti:
+\begin{enumerate}[label=(\arabic*)]
+  \item \emph{Vzájemné vyloučení} (mutual exclusion) -- v~kritické sekci je nejvýše jedno vlákno (\emph{bezpečnost}: nikdy se nestane nic špatného).
+  \item \emph{Trvalý postup} (progress) -- není-li v~sekci nikdo a~některá vlákna chtějí vstoupit, musí být v~konečném čase některé vpuštěno; o~vpuštění nesmí rozhodovat vlákno, které samo o~vstup neusiluje. Porušením je např.\ \emph{uváznutí} (deadlock).
+  \item \emph{Omezené čekání} (bounded waiting) -- existuje mez, kolikrát smí jiná vlákna vstoupit do sekce dříve než vlákno, které už o~vstup požádalo. Bez ní hrozí \emph{vyhladovění} (starvation): vlákno čeká neomezeně dlouho, i~když se sekce stále uvolňuje.
+\end{enumerate}
+\end{intuice}
+
+\subsection{Synchronizační primitiva}
+
+\begin{definice}[Aktivní vs.\ pasivní čekání]
+\emph{Aktivní čekání} (busy waiting): vlákno čeká v~cyklu a~opakovaně testuje podmínku, čímž \emph{spotřebovává} procesor (např.\ spin-lock). Vhodné jen pro velmi krátká čekání. \emph{Pasivní (blokující) čekání}: vlákno je zablokováno (vyřazeno z~plánování) a~OS ho probudí, až bude moci pokračovat -- procesor zatím dělá něco jiného. Vhodné pro delší čekání.
+\end{definice}
+
+\begin{definice}[Zámek, semafor, mutex]
+\emph{Zámek} chrání kritickou sekci: operace \emph{lock} ji uzamkne (čeká, je-li již zamčeno), \emph{unlock} odemkne. \emph{Spin-lock} implementuje lock aktivním čekáním nad atomickou instrukcí (test-and-set / compare-and-swap). \emph{Semafor} je chráněný čítač s~frontou čekajících vláken a~atomickými operacemi \emph{down} (P: je-li čítač $>0$, sniž ho, jinak vlákno zablokuj a~zařaď do fronty) a~\emph{up} (V: je-li někdo ve frontě, probuď ho, jinak zvyš čítač). \emph{Mutex} je semafor s~čítačem $1$ (binární), tj.\ vzájemné vyloučení pro jedno vlákno.
+\end{definice}
+
+\begin{center}
+\scalebox{1.2}{%
+\begin{tikzpicture}[every node/.append style={font=\footnotesize}]
+\node[anchor=south,font=\small] at (0,1.05) {semafor};
+\node[komp,minimum width=6cm,minimum height=1.5cm,fill=black!3] (s) at (0,0.25) {};
+% citac vlevo
+\node[bunka,minimum width=1.2cm,minimum height=0.75cm,fill=yellow!18] at (-2.6,-0.12) {čítač};
+% fronta vpravo: popisek nad bunkami
+\node[font=\scriptsize] at (0.55,0.72) {fronta blokovaných vláken};
+\foreach \x in {0,0.65,1.3} \node[bunka,minimum width=0.55cm,minimum height=0.55cm,fill=blue!8] at (\x,-0.12) {T};
+% operace: down vlevo do boxu, up vpravo z boxu
+\draw[ptr] (-4.4,0.55) -- node[above,font=\scriptsize]{down (P)} (s.west|-0,0.55);
+\draw[ptr] (s.east|-0,-0.05) -- node[above,font=\scriptsize]{up (V)} (4.4,-0.05);
+\end{tikzpicture}}%
+\obrpopis{Semafor = čítač $+$ fronta blokovaných vláken (\texttt{T}). \texttt{down} buď čítač sníží (je-li kladný), nebo vlákno \emph{pasivně} zablokuje. \texttt{up} buď probudí čekající vlákno z~fronty, nebo (je-li prázdná) zvýší čítač. Mutex je binární semafor (čítač $1$). Obě operace musí být atomické.}
+\end{center}
+
+\begin{poznamka}
+\textbf{Uváznutí (deadlock).} Skupina vláken může uváznout, čeká-li každé na prostředek držený jiným z~nich. Coffmanovy nutné podmínky: vzájemné vyloučení, „drž a~čekej``, neodnímatelnost prostředků a~cyklické čekání. Klasický příklad: dvě vlákna zamykají dva mutexy v~opačném pořadí. Tomu se vyhneme např.\ zamykáním vždy ve stejném pořadí. Deadlock není v~doslovných požadavcích jmenován, ale objevuje se v~řešených státnicových otázkách (semafory), proto ho zde zmiňujeme.
+\end{poznamka}
+
+\subsection{Řešené příklady}
+
+\begin{priklad}[SZZ podzim 2023 č.~1: Race condition a kritická sekce]
+\szzotazka{podzim 2023}{1}{Architektura PC a OS (race condition, kritická sekce)}\par
+\textbf{Zadání.}\par
+Třída \texttt{LimitedStack} s~metodami \cd!getDepth! (řádek~10: \cd!return currentDepth;!) a~\cd!pushValue! (řádky 14--17):
+\begin{lstlisting}[language=C++]
+bool pushValue(int v) {            // 13
+    if (currentDepth >= maxDepth)  // 14
+        return false;
+    stack[currentDepth] = v;       // 16
+    currentDepth++;                // 17
+    return true;
+}
+\end{lstlisting}
+Více vláken volá \texttt{getDepth}/\texttt{pushValue} nad sdílenou instancí. (1)~Může nastat race condition? Které řádky tvoří kritickou sekci? (2)~Může přetéct zásobník (zápis mimo pole)? (3)~Odstraňte problém.
+
+\medskip
+\textbf{Řešení.}\par
+\begin{enumerate}[label=(\arabic*)]
+\item \textbf{Ano.} Kritickou sekcí jsou řádky $\boxed{\text{10 a~14--17}}$: čtení i~aktualizace sdílené \cd!currentDepth! (a~zápis do \cd!stack!). Operace \cd!currentDepth++! je „přečti--uprav--zapiš``, navíc test na řádku~14 a~zápis na 16--17 nejsou vůči jiným vláknům atomické.
+\item \textbf{Ano, může.} Dvě vlákna T1, T2 vykonají \emph{souběžně} test na řádku~14 při \cd!currentDepth! $=\texttt{maxDepth}-1$; obě projdou (test je nepřekročen). T2 je pak pozastaveno, T1 dokončí zápis a~zvýší \cd!currentDepth! na \cd!maxDepth!. Když T2 pokračuje, zapíše na index \cd!currentDepth!, který už ukazuje \emph{za} pole -- přetečení.
+\item \textbf{Vzájemné vyloučení} nad celou kritickou sekcí. V~Javě stačí \cd!synchronized! metody; v~C\# \cd!lock! nad pomocným objektem; v~C++ \cd!std::mutex! a~\cd!std::lock_guard! (RAII zajistí odemčení i~při \cd!return!). Důležité je zamknout \emph{už před} testem na řádku~14 a~odemknout až po inkrementaci.
+\end{enumerate}
+\begin{lstlisting}[language=C++]
+bool pushValue(int v) {
+    std::lock_guard<std::mutex> g(mtx);   // lock; unlock at scope exit
+    if (currentDepth >= maxDepth) return false;
+    stack[currentDepth] = v;
+    currentDepth++;
+    return true;
+}
+int getDepth() {
+    std::lock_guard<std::mutex> g(mtx);   // cteni sdileneho stavu rovnez zamknout
+    return currentDepth;
+}
+\end{lstlisting}
+\end{priklad}
+
+\begin{priklad}[SZZ léto 2023 č.~14: Semafor a producent--konzument]
+\szzotazka{léto 2023}{14}{Synchronizace}\par
+\noindent\textit{(Pozn.: v~rámci současné akreditace nešlo o~společnou otázku (q1--q4), ale o~otázku jiné specializace (specializační sekce, systémové zaměření, ne UI). Do společného okruhu I4 tedy formálně nepatří; tematicky sem ovšem spadá a~je výborná k~procvičení.)}\par
+\textbf{Zadání.}\par
+(1)~Načrtněte rozhraní semaforu a~sémantiku operací. (2)~Pomocí něj implementujte producent--konzument s~vyrovnávací pamětí (warehouse) o~kapacitě \cd!capacity!. Datová struktura pro uložení vyprodukovaných položek má jen rozhraní (\texttt{push}/\texttt{pop}) a~\emph{sama} žádnou synchronizaci negarantuje.
+
+\medskip
+\textbf{Řešení.}\par
+\textbf{(1)~Rozhraní semaforu.} Semafor drží nezáporný čítač a~frontu čekajících vláken; \cd!down()! (P) čítač sníží, nebo vlákno zablokuje (je-li čítač~0); \cd!up()! (V) probudí čekající vlákno, nebo čítač zvýší. Obě operace jsou atomické (viz výklad výše).
+
+\textbf{(2)~Producent--konzument.} Použijeme \emph{tři} semafory: \cd!free! (počet volných míst, init \cd!capacity!), \cd!items! (počet připravených položek, init~0) a~binární \cd!mtx! (vzájemné vyloučení nad bufferem, init~1). Producent počká na volné místo, konzument na položku; přístup k~bufferu chrání \cd!mtx!.
+\begin{lstlisting}[language=C]
+typedef struct {
+    semaphore free;    // init = capacity (volna mista)
+    semaphore items;   // init = 0        (pripravene polozky)
+    semaphore mtx;     // init = 1        (vzajemne vylouceni nad bufferem)
+    buffer_t buf;      // push/pop bez vlastni synchronizace
+} prodcons_t;
+
+void prodcons_produce(prodcons_t *pc, void *item) {
+    down(&pc->free);            // pockej na volne misto
+    down(&pc->mtx);             //   vstup do kriticke sekce
+    buffer_push(&pc->buf, item);
+    up(&pc->mtx);               //   opust kritickou sekci
+    up(&pc->items);             // ohlas novou polozku
+}
+void *prodcons_consume(prodcons_t *pc) {
+    down(&pc->items);           // pockej na polozku
+    down(&pc->mtx);
+    void *item = buffer_pop(&pc->buf);
+    up(&pc->mtx);
+    up(&pc->free);              // uvolni misto
+    return item;
+}
+\end{lstlisting}
+\textbf{Proč to funguje.} Invariant \cd!free! $=\texttt{capacity}-\text{počet položek}$, \cd!items! $=\text{počet položek}$: producent nikdy nezapíše do plného bufferu (čeká na \cd!free!), konzument nikdy nečte z~prázdného (čeká na \cd!items!). \cd!mtx! brání souběžnému \texttt{push}/\texttt{pop}. Pořadí je důležité: počítací semafor se získává \emph{před} \cd!mtx!, jinak by hrozil deadlock (vlákno by drželo \cd!mtx! a~čekalo na místo, které nikdo neuvolní). \cd!mtx! je potřeba i~při jediném producentovi a~jediném konzumentovi: \texttt{push} a~\texttt{pop} mohou běžet současně nad touž nesynchronizovanou strukturou. Bez zámku by to šlo jen s~bufferem navrženým právě pro jednoho producenta a~jednoho konzumenta (kruhový buffer, kde každá strana mění jen svůj index), což zadání nezaručuje.
+\textit{(V~PDF bez náčrtu řešení; správnost konstrukce -- dodržení invariantů a~nepřítomnost deadlocku -- jsme ověřili rozborem pořadí operací.)}
+\end{priklad}
+
+\begin{priklad}[SZZ léto 2024 č.~2: Semafor, race condition, deadlock]
+\szzotazka{léto 2024}{2}{Semafor (P/V, race condition, deadlock)}\par
+\textbf{Zadání.}\par
+Dvě vlákna mají vypsat \texttt{OneTwoThreeFourFive} (liché části \texttt{f1}, sudé \texttt{f2}) přes \emph{jeden} binární semafor \cd!sem! (init~0, \cd!WaitOne!$=$P, \cd!Release!$=$V). Synchronizace „skoro funguje``, ale má race condition. (1)~Najděte scénář s~jiným výstupem nebo deadlockem (zapsaný jako posloupnost dokončených řádků). (2)~Pomohlo by FIFO pořadí probouzení? (3)~Opravte to dvěma semafory.
+\begin{lstlisting}[language={[Sharp]C}]
+void f1(){ Write("One");   /*7*/  sem.Release(); /*8*/  sem.WaitOne(); /*9*/
+           Write("Three"); /*10*/ sem.Release(); /*11*/ sem.WaitOne(); /*12*/
+           Write("Five");  /*13*/ }
+void f2(){ sem.WaitOne();  /*18*/ Write("Two");   /*19*/ sem.Release(); /*20*/
+           sem.WaitOne();  /*21*/ Write("Four");  /*22*/ sem.Release(); /*23*/ }
+\end{lstlisting}
+
+\medskip
+\textbf{Řešení.}\par
+\begin{enumerate}[label=(\arabic*)]
+\item \textbf{Chybný scénář.} Problém: \texttt{f1} po \cd!Release! (řádek~8) hned \cd!WaitOne! (řádek~9) a~\emph{sebere si vlastní} token. Posloupnost \texttt{7-8-9-10-11-12-13} dá výstup $\boxed{\texttt{OneThreeFive}}$; \texttt{f2} pak navždy uvázne na řádku~18 (\cd!sem!$=0$), tj.\ \emph{deadlock}. (Stačí uvést jeden takový scénář.)
+\item \textbf{Ne, nepomohlo.} Chyba není v~pořadí probouzení, ale v~tom, že \texttt{f1} si může token vzít sama dřív, než se \texttt{f2} vůbec dostane k~\cd!WaitOne!. Scénář (1) funguje i~při FIFO.
+\item \textbf{Oprava dvěma semafory} \cd!semA!, \cd!semB! (oba init~0): každé vlákno \emph{signalizuje druhému} (do jiného semaforu, než z~jakého čeká), takže si nemůže vzít vlastní token.
+\begin{lstlisting}[language={[Sharp]C}]
+void f1(){ Write("One");   semA.Release(); semB.WaitOne();
+           Write("Three"); semA.Release(); semB.WaitOne();
+           Write("Five"); }
+void f2(){ semA.WaitOne(); Write("Two");   semB.Release();
+           semA.WaitOne(); Write("Four");  semB.Release(); }
+\end{lstlisting}
+Výstup je vždy $\boxed{\texttt{OneTwoThreeFourFive}}$: \texttt{f2} čeká na \cd!semA! (plní \texttt{f1}), \texttt{f1} čeká na \cd!semB! (plní \texttt{f2}), výpisy se tak střídají v~pevném pořadí.
+\end{enumerate}
+\end{priklad}
+
+\begin{priklad}[SZZ jaro 2026 č.~2: Semafor mezi procesy (FIFO buffer)]
+\szzotazka{jaro 2026}{2}{Semafor mezi procesy (FIFO buffer)}\par
+\textbf{Zadání.}\par
+Jednosměrný proud bajtů mezi dvěma procesy přes FIFO buffer kapacity $N$. \cd!send(ch)! počká na volné místo a~vloží bajt, \cd!receive()! počká na bajt a~odebere ho. K~dispozici jsou jen \emph{semafory přes hranice procesů} a~atomické \cd!buffer_push!/\cd!buffer_pop! (bez synchronizace, nesmí se volat na plný/prázdný buffer). \emph{Bez aktivního čekání.} (1)~Implementujte \texttt{send}/\texttt{receive} a~uveďte počáteční stavy semaforů. (2)~Uveďte invarianty semaforů vůči počtu prvků. (3)~Vysvětlete, jak se invarianty mění uvnitř funkcí.
+
+\medskip
+\textbf{Řešení.}\par
+\textbf{(1)~Implementace.} Dva semafory: \cd!capacity! (volná místa, init~$N$) a~\cd!content! (platné bajty, init~0). Protože jsou \cd!buffer_push!/\cd!buffer_pop! atomické a~funkce běží v~různých procesech, není potřeba další mutex.
+\begin{lstlisting}[language=C]
+// capacity init = N, content init = 0
+void send(byte ch) {
+    capacity.down();     // pockej na volne misto (pasivni cekani)
+    buffer_push(ch);
+    content.up();        // ohlas novy bajt
+}
+byte receive() {
+    content.down();      // pockej na bajt
+    byte ch = buffer_pop();
+    capacity.up();       // uvolni misto
+    return ch;
+}
+\end{lstlisting}
+\textbf{(2)~Invarianty} (mezi voláními, tj.\ v~klidovém stavu): označíme-li \cd!elems! počet platných bajtů v~bufferu, pak
+\[
+\texttt{capacity} = N - \texttt{elems}, \qquad \texttt{content} = \texttt{elems}.
+\]
+Odtud $0\le\texttt{elems}\le N$, takže \cd!buffer_push! se nikdy nevolá na plný a~\cd!buffer_pop! na prázdný buffer.
+
+\textbf{(3)~Změny uvnitř funkcí.} V~\texttt{send} po \cd!capacity.down()! je invariant~1 dočasně „posunut`` o~$+1$ (jedno místo rezervováno, ale ještě nezaplněno); \cd!buffer_push! ho srovná a~poruší invariant~2 o~$-1$; \cd!content.up()! srovná i~ten. V~\texttt{receive} symetricky: \cd!content.down()! posune invariant~2, \cd!buffer_pop! ho srovná a~poruší invariant~1, \cd!capacity.up()! srovná. Mezi voláními tedy oba invarianty platí. (Tato dekompozice odpovídá oficiálnímu náčrtu řešení.)
+\end{priklad}
